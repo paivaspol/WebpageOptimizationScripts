@@ -1,0 +1,210 @@
+Page: http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_1.html
+1938
+Page: http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_1.html
+1863
+Page: http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_1.html
+Page: http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_1.html
+Page: http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_1.html
+Page: http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_1.html
+Page: http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_1.html
+Page: http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_1.html
+Page: http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_1.html
+Page: http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_1.html
+1858
+Page: http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_1.html
+2004
+Page: http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_1.html
+Page: http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_1.html
+Page: http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_1.html
+2096
+Page: http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_1.html
+2006
+Page: http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_1.html
+Page: http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_1.html
+2365
+Page: http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_1.html
+Page: http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_1.html
+1873
+Page: http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_1.html
+Page: http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_1.html
+Page: http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_1.html
+2019
+Page: http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_1.html
+Page: http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_1.html
+1838
+Page: http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_1.html
+1821
+Page: http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_1.html
+2071
+Page: http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_1.html
+Page: http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_1.html
+1965
+Page: http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_1.html
+1957
+Page: http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_1.html
+1950
+Page: http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_1.html
+Page: http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_1.html
+Page: http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_1.html
+Page: http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_1.html
+Page: http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_1.html
+1839
+Page: http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_1.html
+1890
+Page: http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_1.html
+Page: http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_1.html
+2059
+Page: http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_1.html
+1872
+Page: http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_1.html
+1925
+Page: http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_2.html
+Page: http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_2.html
+1583
+Page: http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_2.html
+1398
+Page: http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_2.html
+Page: http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_2.html
+1392
+Page: http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_2.html
+Page: http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_2.html
+1361
+Page: http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_2.html
+1326
+Page: http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_2.html
+1465
+Page: http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_2.html
+Page: http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_2.html
+Page: http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_2.html
+Page: http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_2.html
+1367
+Page: http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_2.html
+1403
+Page: http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_2.html
+Page: http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_2.html
+1354
+Page: http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_2.html
+Page: http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_2.html
+Page: http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_2.html
+1404
+Page: http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_2.html
+Page: http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_2.html
+Page: http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_2.html
+1560
+Page: http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_2.html
+Page: http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_2.html
+Page: http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_2.html
+Page: http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_2.html
+1952
+Page: http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_2.html
+Page: http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_2.html
+Page: http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_2.html
+Page: http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_2.html
+Page: http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_2.html
+1395
+Page: http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_2.html
+Page: http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_2.html
+Page: http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_2.html
+Page: http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_2.html
+Page: http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_2.html
+Page: http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_2.html
+Page: http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_2.html
+1407
+Page: http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_2.html
+Page: http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_2.html
+1396
+Page: http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_2.html
+Page: http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_2.html
+1430
+Page: http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_2.html
+Page: http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_2.html
+Page: http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_2.html
+1434
+Page: http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_2.html
+Page: http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_2.html
+Page: http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_2.html
+Page: http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_2.html
+1330
+Page: http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_2.html
+Page: http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_2.html
+1612
+Page: http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_2.html
+1378
+Page: http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_3.html
+1399
+Page: http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_3.html
+Page: http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_3.html
+Page: http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_3.html
+1488
+Page: http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_3.html
+Page: http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_3.html
+1373
+Page: http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_3.html
+1611
+Page: http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_3.html
+1451
+Page: http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_3.html
+Page: http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_3.html
+Page: http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_3.html
+Page: http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_3.html
+1422
+Page: http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_3.html
+Page: http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_3.html
+Page: http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_3.html
+Page: http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_3.html
+1388
+Page: http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_3.html
+1381
+Page: http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_3.html
+1345
+Page: http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_3.html
+1416
+Page: http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_3.html
+Page: http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_3.html
+Page: http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_3.html
+1369
+Page: http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_3.html
+1339
+Page: http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_3.html
+Page: http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_3.html
+Page: http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_3.html
+Page: http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_3.html
+1645
+Page: http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_3.html
+1503
+Page: http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_3.html
+Page: http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_3.html
+Page: http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_3.html
+Page: http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_3.html
+Page: http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_3.html
+Page: http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_3.html
+1355
+Page: http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_3.html
+Page: http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_3.html
+Page: http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_3.html
+Page: http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_3.html
+1400
+Page: http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_3.html
+Page: http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_3.html
+Page: http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_3.html
+Page: http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_3.html
+1319
+Page: http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_3.html
+1618
+Page: http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_3.html
+Page: http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_3.html
+1385
+Page: http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_3.html
+Page: http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_3.html
+Page: http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_3.html
+Page: http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_3.html
+Page: http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_3.html
+Page: http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_3.html
+Page: http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_3.html
+Page: http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_3.html
+Page: http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_3.html
+Page: http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_3.html
+Page: http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_3.html
+Page: http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_3.html
+Page: http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_3.html
+1389
