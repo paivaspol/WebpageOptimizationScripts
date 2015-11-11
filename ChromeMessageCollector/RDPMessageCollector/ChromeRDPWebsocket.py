@@ -41,7 +41,6 @@ class ChromeRDPWebsocket(object):
         '''
         Handle each message.
         '''
-        print message
         message_obj = json.loads(message)
         # print 'msg: ' + message
         if METHOD in message_obj and message_obj[METHOD].startswith('Network'):
