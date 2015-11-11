@@ -4,7 +4,7 @@ import subprocess
 import os
 import websocket
 
-import utils.phone_connection_utils
+from utils import phone_connection_utils
 
 from argparse import ArgumentParser
 from ConfigParser import ConfigParser   # Parsing configuration file.
@@ -19,7 +19,7 @@ def main(device_configuration, url):
     The main workflow of the script.
     '''
     print 'Stopping tcpdump...'
-    phone_connection_utils.stop_tcpdump(device_configuration, sleep_before_kill=False)
+    phone_connection_stop_tcpdump(device_configuration, sleep_before_kill=False)
     print 'Starting tcpdump...'
     phone_connection_utils.start_tcpdump(device_configuration)
     print 'Stopping Chrome...'
@@ -87,6 +87,6 @@ if __name__ == '__main__':
     OUTPUT_DIR = args.output_dir
 
     # Get the device configuration.
-    device_config = phone_connection_utils.get_device_configuration(config_reader, args.device)
+    device_config = phone_connection_get_device_configuration(config_reader, args.device)
     main(device_config, args.url)
 
