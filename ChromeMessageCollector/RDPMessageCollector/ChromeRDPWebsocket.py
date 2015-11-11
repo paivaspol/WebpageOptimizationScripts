@@ -23,6 +23,7 @@ class ChromeRDPWebsocket(object):
         self.originalRequestMs = None
         self.domContentEventFiredMs = None
         self.loadEventFiredMs = None
+        self.tracingCollectionCompleted = False
 
         self.network_messages = []      # A list containing all the messages.
         self.timeline_messages = []     # A list containing all the timeline messages.
@@ -40,6 +41,7 @@ class ChromeRDPWebsocket(object):
         '''
         Handle each message.
         '''
+        print message
         message_obj = json.loads(message)
         # print 'msg: ' + message
         if METHOD in message_obj and message_obj[METHOD].startswith('Network'):
@@ -52,12 +54,20 @@ class ChromeRDPWebsocket(object):
                 self.domContentEventFiredMs = message_obj[PARAMS][TIMESTAMP] * 1000
             elif message_obj[METHOD] == 'Page.loadEventFired':
                 self.loadEventFiredMs = message_obj[PARAMS][TIMESTAMP] * 1000
-        elif METHOD in message_obj and message_obj[METHOD].startswith('Timeline'):
-            self.timeline_messages.append(message)
+        elif METHOD in message_obj and message_obj[METHOD] == 'Tracing.dataCollected':
+            # Data collected.
+            self.timeline_messages.extend(message_obj[PARAMS]['value'])
+        elif METHOD in message_obj and message_obj[METHOD] == 'Tracing.tracingComplete':
+            # Tracing completed
+            self.tracingCollectionCompleted = True
 
         if self.originalRequestMs is not None and \
             self.domContentEventFiredMs is not None and \
-            self.loadEventFiredMs is not None:
+            self.loadEventFiredMs is not None and \
+            not self.tracingCollectionCompleted:
+            self.stop_trace_collection(self.ws)
+       
+        if self.tracingCollectionCompleted:
             # A page is considerd loaded if all of these three conditions are met.
             self.callback(self, self.network_messages, self.timeline_messages, self.device_configuration)
 
@@ -79,7 +89,7 @@ class ChromeRDPWebsocket(object):
         '''
         self.enable_network_tracking(self.ws)
         self.enable_page_tracking(self.ws)
-        self.enable_timeline_tracking(self.ws)
+        self.enable_trace_collection(self.ws)
         self.clear_cache(self.ws)
         self.navigate_to_page(self.ws, self.url)
     
@@ -116,13 +126,22 @@ class ChromeRDPWebsocket(object):
         print 'Enabled page tracking.'
         sleep(0.5)
 
-    def enable_timeline_tracking(self, debug_connection):
+    def enable_trace_collection(self, debug_connection):
         '''
-        Enables Timeline tracking in Chrome.
+        Enables the tracing collection.
         '''
-        enable_timeline = { 'id': 2, 'method': 'Trace.start' }
-        debug_connection.send(json.dumps(enable_timeline))
-        print 'Enabled timeline tracking.'
+        enable_trace_collection = { 'id': 4, 'method': 'Tracing.start' }
+        debug_connection.send(json.dumps(enable_trace_collection))
+        print 'Enabled trace collection'
+        sleep(0.5)
+
+    def stop_trace_collection(self, debug_connection):
+        '''
+        Enables the tracing collection.
+        '''
+        enable_trace_collection = { 'id': 4, 'method': 'Tracing.end' }
+        debug_connection.send(json.dumps(enable_trace_collection))
+        print 'Enabled trace collection'
         sleep(0.5)
 
     def navigate_to_page(self, debug_connection, url):
