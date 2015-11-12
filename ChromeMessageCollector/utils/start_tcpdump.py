@@ -1,4 +1,5 @@
 import phone_connection_utils
+import subprocess
 
 from argparse import ArgumentParser
 from ConfigParser import ConfigParser
@@ -15,6 +16,4 @@ if __name__ == '__main__':
 
     # Get the device configuration.
     device_config = phone_connection_utils.get_device_configuration(config_reader, args.device)
-    retval = -1
-    while retval != 0:
-        retval = phone_connection_utils.start_tcpdump(device_config)
+    phone_connection_utils.start_tcpdump(device_config)

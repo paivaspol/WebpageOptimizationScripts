@@ -43,9 +43,9 @@ def start_tcpdump(device_configuration):
     '''
     Starts tcpdump on the phone.
     '''
-    cmd_base = 'adb -s {0} shell \'su -c "/tcpdump -i wlan0 -n -s 0 -w {1} &"\''
+    cmd_base = 'adb -s {0} shell \'su -c "/tcpdump -i wlan0 -n -s 0 -w {1}"\''
     cmd = cmd_base.format(device_configuration[DEVICE_ID], PCAP_DIRECTORY)
-    return os.system(cmd)
+    return subprocess.Popen(cmd, shell=True)
 
 def stop_tcpdump(device_configuration, sleep_before_kill=True):
     '''
@@ -56,14 +56,15 @@ def stop_tcpdump(device_configuration, sleep_before_kill=True):
         sleep(10) # Give sometime for tcpdump to be finished.
     cmd_base = 'adb -s {0} shell ps | grep tcpdump | awk "{{ print $2 }}" | xargs adb -s {0} shell "su -c kill -9"'
     cmd = cmd_base.format(device_configuration[DEVICE_ID])
-    return os.system(cmd)
+    print cmd
+    return subprocess.Popen(cmd, shell=True)
 
-def fetch_pcap(device_configuration, pcap_directory=PCAP_DIRECTORY):
+def fetch_pcap(device_configuration, pcap_directory=PCAP_DIRECTORY, destination_directory=RESULT_DIRECTORY):
     '''
     Fetches the pcap file from the phone.
     '''
     cmd_base = 'adb -s {0} pull {1} {2}'
-    cmd = cmd_base.format(device_configuration[DEVICE_ID], pcap_directory, RESULT_DIRECTORY)
+    cmd = cmd_base.format(device_configuration[DEVICE_ID], pcap_directory, destination_directory)
     os.system(cmd)
     cmd_base = 'adb -s {0} shell rm {1}'
     cmd = cmd_base.format(device_configuration[DEVICE_ID], pcap_directory)

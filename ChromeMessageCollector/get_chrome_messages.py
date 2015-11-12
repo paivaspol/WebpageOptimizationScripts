@@ -59,7 +59,7 @@ def callback_on_page_done(debugging_socket, network_messages, timeline_messages,
         for message in timeline_messages:
             output_file.write('{0}\n'.format(json.dumps(message)))
     phone_connection_utils.stop_tcpdump(device_configuration)
-    phone_connection_utils.fetch_pcap(device_configuration)
+    phone_connection_utils.fetch_pcap(device_configuration, destination_directory=base_dir)
 
 def get_debugging_url(device_configuration):
     '''

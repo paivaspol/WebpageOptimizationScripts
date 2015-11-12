@@ -17,7 +17,7 @@ class ChromeRDPWebsocket(object):
         url - the websocket url
         target_url - the url to navigate to
         '''
-        websocket.enableTrace(True)       
+        # websocket.enableTrace(True)       
 
         # Conditions for a page to finish loading.
         self.originalRequestMs = None
@@ -140,7 +140,7 @@ class ChromeRDPWebsocket(object):
         '''
         enable_trace_collection = { 'id': 4, 'method': 'Tracing.end' }
         debug_connection.send(json.dumps(enable_trace_collection))
-        print 'Enabled trace collection'
+        # print 'Disables trace collection'
         sleep(0.5)
 
     def navigate_to_page(self, debug_connection, url):
