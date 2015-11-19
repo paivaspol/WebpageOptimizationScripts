@@ -17,7 +17,7 @@ class ChromeRDPWebsocket(object):
         url - the websocket url
         target_url - the url to navigate to
         '''
-        # websocket.enableTrace(True)       
+        websocket.enableTrace(True)       
 
         # Conditions for a page to finish loading.
         self.originalRequestMs = None
@@ -68,6 +68,7 @@ class ChromeRDPWebsocket(object):
        
         if self.tracingCollectionCompleted:
             # A page is considerd loaded if all of these three conditions are met.
+            print 'Start time {0}, Load completed: {1}'.format(self.originalRequestMs, self.loadEventFiredMs)
             self.callback(self, self.network_messages, self.timeline_messages, self.device_configuration)
 
     def on_error(self, ws, error):

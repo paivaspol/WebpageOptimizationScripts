@@ -16,6 +16,8 @@ capabilities = {
 output_filename = 'page_load_experiment.txt'
 last_modified_header_key = 'last-modified'
 
+NUM_ITERATIONS = 50
+
 def load_pages(pages_filename):
     with open(pages_filename, 'rb') as input_file:
         header_count = dict()
@@ -47,7 +49,7 @@ def load_page_helper(page, header_count, counter):
         print 'Ignoring Exception: ' + str(e)
         counter = load_page_helper(page, header_count, counter)
 
-    if counter < 20:
+    if counter < NUM_ITERATIONS:
         counter = load_page_helper(page, header_count, counter)
     return counter
 
