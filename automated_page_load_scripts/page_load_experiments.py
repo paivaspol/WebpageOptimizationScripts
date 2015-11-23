@@ -16,7 +16,7 @@ capabilities = {
 output_filename = 'page_load_experiment.txt'
 last_modified_header_key = 'last-modified'
 
-NUM_ITERATIONS = 50
+NUM_ITERATIONS = 5
 
 def load_pages(pages_filename):
     with open(pages_filename, 'rb') as input_file:

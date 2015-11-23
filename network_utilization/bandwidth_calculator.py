@@ -40,6 +40,7 @@ def parse_file(trace_filename, page_load_intervals, output_directory):
                 # The current timestamp is not in the page interval.
                 continue
 
+
             eth = dpkt.ethernet.Ethernet(buf)
             if eth.type != dpkt.ethernet.ETH_TYPE_IP:
                 # Only use IP packets 
@@ -50,7 +51,6 @@ def parse_file(trace_filename, page_load_intervals, output_directory):
             if int(ip.p) != int(dpkt.ip.IP_PROTO_TCP) or (tcp.sport != 443 and tcp.sport != 80):
                 # We only care about HTTP or HTTPS
                 continue
-
             #print 'diff: ' + str(int(ts - first_ts)) + ' ts: ' + str(ts) + ' first_ts: ' + str(first_ts)
             current_diff = int(ts - first_ts) / INTERVAL_SIZE # diff 
             #print 'Current Diff: ' + str(current_diff)
