@@ -30,6 +30,7 @@ class ChromeRDPWebsocket(object):
         self.url = target_url       # The URL to navigate to.
         self.callback = callback    # The callback method
         self.device_configuration = device_configuration # The device configuration
+        self.debugging_url = url
         self.ws = websocket.WebSocketApp(url,\
                                         on_message = self.on_message,\
                                         on_error = self.on_error,\
@@ -125,6 +126,15 @@ class ChromeRDPWebsocket(object):
         debug_connection.send(json.dumps(enable_page))
         print 'Enabled page tracking.'
         sleep(0.5)
+    
+    def enable_runtime(self, debug_connection):
+        '''
+        Enables Runtime in Chrome.
+        '''
+        enable_page = { 'id': 3, 'method': 'Runtime.enable' }
+        debug_connection.send(json.dumps(enable_page))
+        print 'Enabled Runtime.'
+        sleep(0.5)
 
     def enable_trace_collection(self, debug_connection):
         '''
@@ -152,3 +162,8 @@ class ChromeRDPWebsocket(object):
         debug_connection.send(navigate_to_page)
         sleep(0.5)
 
+    def get_debugging_url(self):
+        '''
+        Returns the debugging url.
+        '''
+        return self.debugging_url

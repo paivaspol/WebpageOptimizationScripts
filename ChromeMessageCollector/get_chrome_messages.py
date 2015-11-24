@@ -18,10 +18,10 @@ def main(device_configuration, url):
     '''
     The main workflow of the script.
     '''
-    print 'Stopping tcpdump...'
-    phone_connection_utils.stop_tcpdump(device_configuration, sleep_before_kill=False)
-    print 'Starting tcpdump...'
-    phone_connection_utils.start_tcpdump(device_configuration)
+    # print 'Stopping tcpdump...'
+    # phone_connection_utils.stop_tcpdump(device_configuration, sleep_before_kill=False)
+    # print 'Starting tcpdump...'
+    # phone_connection_utils.start_tcpdump(device_configuration)
     print 'Stopping Chrome...'
     phone_connection_utils.stop_chrome(device_configuration)
     print 'Starting Chrome...'
@@ -39,6 +39,7 @@ def callback_on_page_done(debugging_socket, network_messages, timeline_messages,
     # First, close the connection.
     debugging_socket.close_connection()
     url = debugging_socket.get_navigation_url()
+    debugging_url = debugging_socket.get_debugging_url()
     base_dir = ''
     if OUTPUT_DIR is not None:
         base_dir = os.path.join(base_dir, OUTPUT_DIR)
@@ -52,14 +53,34 @@ def callback_on_page_done(debugging_socket, network_messages, timeline_messages,
 
     network_filename = os.path.join(base_dir, 'network_' + url[len(HTTP_PREFIX):])
     timeline_filename = os.path.join(base_dir, 'timeline_' + url[len(HTTP_PREFIX):])
+    start_end_time_filename = os.path.join(base_dir, 'start_end_time_' + url[len(HTTP_PREFIX):])
     with open(network_filename, 'wb') as output_file:
         for message in network_messages:
             output_file.write('{0}\n'.format(json.dumps(message)))
     with open(timeline_filename, 'wb') as output_file:
         for message in timeline_messages:
             output_file.write('{0}\n'.format(json.dumps(message)))
-    phone_connection_utils.stop_tcpdump(device_configuration)
-    phone_connection_utils.fetch_pcap(device_configuration, destination_directory=base_dir)
+    # phone_connection_utils.stop_tcpdump(device_configuration)
+    # phone_connection_utils.fetch_pcap(device_configuration, destination_directory=base_dir)
+    
+    # Get the start and end time of the execution
+    start_time, end_time = get_start_end_time(debugging_url)
+    with open(start_end_time_filename, 'wb') as output_file:
+        output_file.write('{0} {1} {2}\n'.format(url[len(HTTP_PREFIX):], start_time, end_time))
+
+def get_start_end_time(debugging_url):
+    print 'debugging_url: ' + debugging_url
+    ws = websocket.create_connection(debugging_url)
+    navigation_starts = json.dumps({ "id": 6, "method": "Runtime.evaluate", "params": { "expression": "performance.timing.navigationStart", "returnByValue": True }})
+    load_event_ends = json.dumps({ "id": 6, "method": "Runtime.evaluate", "params": { "expression": "performance.timing.loadEventEnd", "returnByValue": True }})
+    ws.send(navigation_starts)
+    nav_starts_result = json.loads(ws.recv())
+    ws.send(load_event_ends)
+    load_ends = json.loads(ws.recv())
+    start_time = int(nav_starts_result['result']['result']['value'])
+    end_time = int(load_ends['result']['result']['value'])
+    ws.close()
+    return start_time, end_time
 
 def get_debugging_url(device_configuration):
     '''

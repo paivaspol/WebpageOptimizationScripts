@@ -18,7 +18,7 @@ if __name__ == '__main__':
     device_config = phone_connection_utils.get_device_configuration(config_reader, args.device)
     phone_connection_utils.stop_tcpdump(device_config)
     if args.output_dir is not None:
-        phone_connection_utils.fetch_pcap(device_config, args.output_dir)
+        phone_connection_utils.fetch_pcap(device_config, destination_directory=args.output_dir)
     else:
         phone_connection_utils.fetch_pcap(device_config)
 

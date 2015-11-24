@@ -43,9 +43,16 @@ def start_tcpdump(device_configuration):
     '''
     Starts tcpdump on the phone.
     '''
-    cmd_base = 'adb -s {0} shell \'su -c "/tcpdump -i wlan0 -n -s 0 -w {1}"\''
-    cmd = cmd_base.format(device_configuration[DEVICE_ID], PCAP_DIRECTORY)
-    return subprocess.Popen(cmd, shell=True)
+    tcpdump_started = False
+    while not tcpdump_started:
+        cmd_base = 'adb -s {0} shell \'su -c \'/tcpdump -i wlan0 -n -s 0 -w {1}\'\''
+        cmd = cmd_base.format(device_configuration[DEVICE_ID], PCAP_DIRECTORY)
+        retval = subprocess.Popen(cmd, shell=True)
+        get_tcp_dump_process = 'adb -s {0} shell \'su -c \'ps | grep tcpdump\'\''.format(device_configuration[DEVICE_ID])
+        result = subprocess.check_call(get_tcp_dump_process, shell=True)
+        print result
+        tcpdump_started = True
+    return retval
 
 def stop_tcpdump(device_configuration, sleep_before_kill=True):
     '''
@@ -53,8 +60,8 @@ def stop_tcpdump(device_configuration, sleep_before_kill=True):
     '''
     if sleep_before_kill:
         print 'Sleeping before killing tcpdump.'
-        sleep(10) # Give sometime for tcpdump to be finished.
-    cmd_base = 'adb -s {0} shell ps | grep tcpdump | awk "{{ print $2 }}" | xargs adb -s {0} shell "su -c kill -9"'
+        sleep(45) # Give sometime for tcpdump to be finished.
+    cmd_base = 'adb -s {0} shell ps | grep tcpdump | awk \'{{ print $2 }}\' | xargs adb -s {0} shell "su -c kill -9"'
     cmd = cmd_base.format(device_configuration[DEVICE_ID])
     print cmd
     return subprocess.Popen(cmd, shell=True)
