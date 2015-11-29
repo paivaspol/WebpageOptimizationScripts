@@ -68,8 +68,8 @@ def output_to_file(bytes_received_per_interval, output_file):
     for i in range(0, len(bytes_received_per_interval)):
         bytes_received = bytes_received_per_interval[i]  # 100ms per one slot
         running_sum += bytes_received
-        # utilization = convert_to_mbits(bytes_received) / 0.6 # each 100ms can handle 6mbps * 0.1(s/100ms) = 0.6 mbits
-        utilization = convert_to_mbits(bytes_received) # just the actual speed.
+        utilization = convert_to_mbits(bytes_received) / 0.6 # each 100ms can handle 6mbps * 0.1(s/100ms) = 0.6 mbits
+        # utilization = convert_to_mbits(bytes_received) # just the actual speed.
         line = str(i * INTERVAL_SIZE) + ' ' + str(utilization)
         output_file.write(line + '\n')
         running_sum = 0
