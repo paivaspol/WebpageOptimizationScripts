@@ -39,12 +39,12 @@ def stop_chrome(device_configuration):
     cmd = cmd_base.format(device_configuration[DEVICE_ID])
     os.system(cmd)
 
-def start_tcpdump(device_configuration):
+def start_tcpdump(device_configuration, snaplen=0):
     '''
     Starts tcpdump on the phone.
     '''
-    cmd_base = 'adb -s {0} shell \'su -c "/tcpdump -i wlan0 -n -s 0 -w {1}"\''
-    cmd = cmd_base.format(device_configuration[DEVICE_ID], PCAP_DIRECTORY)
+    cmd_base = 'adb -s {0} shell \'su -c "/tcpdump -i wlan0 -n -s {1} -w {2}"\''
+    cmd = cmd_base.format(device_configuration[DEVICE_ID], snaplen, PCAP_DIRECTORY)
     return subprocess.Popen(cmd, shell=True)
 
 def stop_tcpdump(device_configuration, sleep_before_kill=True):
