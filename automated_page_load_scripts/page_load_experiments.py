@@ -16,15 +16,16 @@ capabilities = {
 output_filename = 'page_load_experiment.txt'
 last_modified_header_key = 'last-modified'
 
-NUM_ITERATIONS = 5
+NUM_ITERATIONS = 10
 
 def load_pages(pages_filename):
     with open(pages_filename, 'rb') as input_file:
         header_count = dict()
         for raw_line in input_file:
-            page = raw_line.rstrip()
-            print 'Opening: ' + page
-            load_page_helper(page, header_count, 0)
+            if not raw_line.startswith('#'):
+                page = raw_line.rstrip()
+                print 'Opening: ' + page
+                load_page_helper(page, header_count, 0)
 
 def load_page(page, header_count):
     with open(output_filename, 'ab') as output_file:
