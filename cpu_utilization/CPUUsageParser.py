@@ -31,6 +31,7 @@ def parse_file(filename, range_to_page_map, output_directory):
                 current_range_index += 1
                 cur_file.close()
                 if current_range_index >= len(range_to_page_map):
+                    print 'here'
                     break
                 cur_page_range, cur_page_name = range_to_page_map[current_range_index]
                 full_path = os.path.join(output_directory, cur_page_name)
@@ -49,6 +50,7 @@ def parse_file(filename, range_to_page_map, output_directory):
                 result[cur_page_name].append(cpu_utilization)
             prev_line = cur_line
             cur_line = input_file.readline().rstrip().split()
+    print 'result: {0}'.format(result)
     return result
 
 def compute_stats_from_line(line):

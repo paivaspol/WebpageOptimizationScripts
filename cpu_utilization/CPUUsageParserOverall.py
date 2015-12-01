@@ -20,7 +20,7 @@ def parse_file(filename, output_directory):
         cur_line = input_file.readline().rstrip().split()
         initial_time = int(prev_line[0])
         full_path = os.path.join(output_directory, 'result_all_pages.txt')
-        cur_file = open(full_path, 'wb')
+        # cur_file = open(full_path, 'wb')
         while len(cur_line) != 0:
             current_time = int(cur_line[0])
             prev_idle, prev_non_idle, prev_total = compute_stats_from_line(prev_line)
@@ -29,7 +29,8 @@ def parse_file(filename, output_directory):
             total_diff = cur_total - prev_total
             cpu_utilization = 1.0 * (total_diff - idle_diff) / total_diff
             relative_time = (int(cur_line[0]) - initial_time)
-            cur_file.write(str(relative_time) + ' ' + str(cpu_utilization) + '\n')
+            # cur_file.write(str(relative_time) + ' ' + str(cpu_utilization) + '\n')
+            print '{0} {1}'.format(relative_time, cpu_utilization)
             prev_line = cur_line
             cur_line = input_file.readline().rstrip().split()
 
