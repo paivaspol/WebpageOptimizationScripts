@@ -1,11 +1,13 @@
 import argparse
 import dpkt
+import math
 import os
 
 HTTP_PREFIX = 'http://'
-INTERVAL_SIZE = 10
+INTERVAL_SIZE = 100
 
 def parse_file(trace_filename, page_load_intervals, output_directory):
+    exception_counter = 0
     with open(trace_filename) as pcap_file:
         pcap_objects = dpkt.pcap.Reader(pcap_file)
         current_diff = -1
@@ -16,12 +18,17 @@ def parse_file(trace_filename, page_load_intervals, output_directory):
         current_output_file = open(current_output_filename, 'wb')
         first_ts = current_page_load_interval[1][0]
         print 'page: ' + current_page_load_interval[0]
+        has_output = False
+        expected_slots = int(math.ceil(1.0 * (current_page_load_interval[1][1] - current_page_load_interval[1][0]) / INTERVAL_SIZE))
         for ts, buf in pcap_objects:
             ts = ts * 1000
             if ts > current_page_load_interval[1][1]:
                 # First, output to the file.
+                check_result(bytes_received_per_interval, expected_slots)
                 print 'result len: ' + str(len(bytes_received_per_interval))
+                print 'bytes: {0}'.format(bytes_received_per_interval)
                 output_to_file(bytes_received_per_interval, current_output_file)
+                has_output = True
 
                 # The current timestamp is already greater than the end of the current interval
                 # Get a new interval
@@ -38,8 +45,8 @@ def parse_file(trace_filename, page_load_intervals, output_directory):
 
             if not current_page_load_interval[1][0] <= ts <= current_page_load_interval[1][1]:
                 # The current timestamp is not in the page interval.
+                # print 'skipping ts {0} interval {1}'.format(ts, current_page_load_interval)
                 continue
-
 
             eth = dpkt.ethernet.Ethernet(buf)
             if eth.type != dpkt.ethernet.ETH_TYPE_IP:
@@ -47,20 +54,37 @@ def parse_file(trace_filename, page_load_intervals, output_directory):
                 continue
 
             ip = eth.data
-            tcp = ip.data
-            if int(ip.p) != int(dpkt.ip.IP_PROTO_TCP) or (tcp.sport != 443 and tcp.sport != 80):
-                # We only care about HTTP or HTTPS
-                continue
-            #print 'diff: ' + str(int(ts - first_ts)) + ' ts: ' + str(ts) + ' first_ts: ' + str(first_ts)
-            current_diff = int(ts - first_ts) / INTERVAL_SIZE # diff 
-            #print 'Current Diff: ' + str(current_diff)
-            while len(bytes_received_per_interval) < current_diff:
-                bytes_received_per_interval.append(0)
-            if len(bytes_received_per_interval) == current_diff:
-                # There isn't a bucket for this interval yet.
-                bytes_received_per_interval.append(0)
-            bytes_received_per_interval[int(current_diff)] += ip.len
-    print 'Done.'
+            try:
+                tcp = ip.data
+                if int(ip.p) != int(dpkt.ip.IP_PROTO_TCP) or (tcp.sport != 443 and tcp.sport != 80):
+                    # We only care about HTTP or HTTPS
+                    continue
+
+                #print 'diff: ' + str(int(ts - first_ts)) + ' ts: ' + str(ts) + ' first_ts: ' + str(first_ts)
+                current_diff = int(ts - first_ts) / INTERVAL_SIZE # diff 
+                while len(bytes_received_per_interval) < current_diff:
+                    bytes_received_per_interval.append(0)
+                if len(bytes_received_per_interval) == current_diff:
+                    # There isn't a bucket for this interval yet.
+                    bytes_received_per_interval.append(0)
+                bytes_received_per_interval[int(current_diff)] += ip.len
+            except Exception as e:
+                exception_counter += 1
+                pass
+
+        if not has_output:
+            check_result(bytes_received_per_interval, expected_slots)
+            print 'bytes: {0}'.format(bytes_received_per_interval)
+            output_to_file(bytes_received_per_interval, current_output_file)
+    print 'Done. Total faulty packets: {0}'.format(exception_counter)
+
+def check_result(result, expected_num_slots):
+    '''
+    Checks whether the result has the expected number of slots. If not, append zeroes to the result list.
+    '''
+    slots_missing = expected_num_slots - len(result)
+    for i in range(0, slots_missing):
+        result.append(0.0)
 
 def output_to_file(bytes_received_per_interval, output_file):
     counter = 0
@@ -69,6 +93,7 @@ def output_to_file(bytes_received_per_interval, output_file):
         bytes_received = bytes_received_per_interval[i]  # 100ms per one slot
         running_sum += bytes_received
         utilization = convert_to_mbits(bytes_received) / 0.6 # each 100ms can handle 6mbps * 0.1(s/100ms) = 0.6 mbits
+        # utilization = convert_to_mbits(bytes_received) / 0.585 # each 100ms can handle 6mbps * 0.1(s/100ms) = 0.6 mbits
         # utilization = convert_to_mbits(bytes_received) # just the actual speed.
         line = str(i * INTERVAL_SIZE) + ' ' + str(utilization)
         output_file.write(line + '\n')
