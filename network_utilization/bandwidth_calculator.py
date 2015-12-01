@@ -20,6 +20,7 @@ def parse_file(trace_filename, page_load_intervals, output_directory):
         print 'page: ' + current_page_load_interval[0]
         has_output = False
         expected_slots = int(math.ceil(1.0 * (current_page_load_interval[1][1] - current_page_load_interval[1][0]) / INTERVAL_SIZE))
+        interval_timestamps = get_interval_timestamps(first_ts, expected_slots) # A list containing tuples indicating the start and end of an interval
         for ts, buf in pcap_objects:
             ts = ts * 1000
             if ts > current_page_load_interval[1][1]:
@@ -27,7 +28,7 @@ def parse_file(trace_filename, page_load_intervals, output_directory):
                 check_result(bytes_received_per_interval, expected_slots)
                 print 'result len: ' + str(len(bytes_received_per_interval))
                 print 'bytes: {0}'.format(bytes_received_per_interval)
-                output_to_file(bytes_received_per_interval, current_output_file)
+                output_to_file(bytes_received_per_interval, interval_timestamps, current_output_file)
                 has_output = True
 
                 # The current timestamp is already greater than the end of the current interval
@@ -75,7 +76,7 @@ def parse_file(trace_filename, page_load_intervals, output_directory):
         if not has_output:
             check_result(bytes_received_per_interval, expected_slots)
             print 'bytes: {0}'.format(bytes_received_per_interval)
-            output_to_file(bytes_received_per_interval, current_output_file)
+            output_to_file(bytes_received_per_interval, interval_timestamps, current_output_file)
     print 'Done. Total faulty packets: {0}'.format(exception_counter)
 
 def check_result(result, expected_num_slots):
@@ -86,17 +87,29 @@ def check_result(result, expected_num_slots):
     for i in range(0, slots_missing):
         result.append(0.0)
 
-def output_to_file(bytes_received_per_interval, output_file):
+def get_interval_timestamps(first_ts, expected_slots):
+    '''
+    Get the interval timestamps.
+    '''
+    result = []
+    start = first_ts
+    end = first_ts + INTERVAL_SIZE
+    for i in range(0, expected_slots):
+        result.append((start, end))
+        start = end
+        end += INTERVAL_SIZE
+    return result
+
+def output_to_file(bytes_received_per_interval, interval_timestamps, output_file):
     counter = 0
     running_sum = 0
     for i in range(0, len(bytes_received_per_interval)):
         bytes_received = bytes_received_per_interval[i]  # 100ms per one slot
         running_sum += bytes_received
         utilization = convert_to_mbits(bytes_received) / 0.6 # each 100ms can handle 6mbps * 0.1(s/100ms) = 0.6 mbits
-        # utilization = convert_to_mbits(bytes_received) / 0.585 # each 100ms can handle 6mbps * 0.1(s/100ms) = 0.6 mbits
         # utilization = convert_to_mbits(bytes_received) # just the actual speed.
-        line = str(i * INTERVAL_SIZE) + ' ' + str(utilization)
-        output_file.write(line + '\n')
+        line = '{0} {1} {2} {3}\n'.format((i * INTERVAL_SIZE), utilization, interval_timestamps[i][0], interval_timestamps[i][1])
+        output_file.write(line)
         running_sum = 0
 
 def convert_to_mbits(byte):
