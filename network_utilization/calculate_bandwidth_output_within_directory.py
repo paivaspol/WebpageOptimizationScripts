@@ -72,7 +72,7 @@ def parse_file(root_dir, percent_bytes_to_ignore):
                                 # There isn't a bucket for this interval yet.
                                 bytes_received_per_interval.append(0)
                             bytes_received_per_interval[int(current_diff)] += ip.len
-                        if current_page_bytes_interval[1] < bytes_received or \ # Covers some bytes are ignored, so we short circuit the loop
+                        if current_page_bytes_interval[1] < bytes_received or \
                             bytes_received == current_page_bytes_interval[1]: # Covers no bytes are ignored.
                             # Out of the bytes interval.
                             end_ts = ts
@@ -80,7 +80,7 @@ def parse_file(root_dir, percent_bytes_to_ignore):
                             check_result(bytes_received_per_interval, expected_slots)
                             interval_timestamps = get_interval_timestamps(start_ts, expected_slots) # A list containing tuples indicating the start and end of an interval
                             output_to_file(bytes_received_per_interval, interval_timestamps, current_output_file)
-                            print 'result len: ' + str(len(bytes_received_per_interval))
+                            print 'expected_slots: {0} result len: {1} start_ts: {2:f} end_ts: {3:f}'.format(expected_slots, len(bytes_received_per_interval), start_ts, end_ts)
                             break
                     except Exception as e:
                         exception_counter += 1
@@ -129,7 +129,7 @@ def output_to_file(bytes_received_per_interval, interval_timestamps, output_file
         running_sum += bytes_received
         utilization = convert_to_mbits(bytes_received) / 0.6 # each 100ms can handle 6mbps * 0.1(s/100ms) = 0.6 mbits
         # utilization = convert_to_mbits(bytes_received) # just the actual speed.
-        line = '{0} {1} {2} {3}\n'.format((i * INTERVAL_SIZE), utilization, interval_timestamps[i][0], interval_timestamps[i][1])
+        line = '{0} {1} {2:f} {3:f}\n'.format((i * INTERVAL_SIZE), utilization, interval_timestamps[i][0], interval_timestamps[i][1])
         output_file.write(line)
         running_sum = 0
 
