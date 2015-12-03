@@ -72,7 +72,8 @@ def parse_file(root_dir, percent_bytes_to_ignore):
                                 # There isn't a bucket for this interval yet.
                                 bytes_received_per_interval.append(0)
                             bytes_received_per_interval[int(current_diff)] += ip.len
-                        elif current_page_bytes_interval[1] < bytes_received:
+                        if current_page_bytes_interval[1] < bytes_received or \ # Covers some bytes are ignored, so we short circuit the loop
+                            bytes_received == current_page_bytes_interval[1]: # Covers no bytes are ignored.
                             # Out of the bytes interval.
                             end_ts = ts
                             expected_slots = int(math.ceil(1.0 * (end_ts - start_ts) / INTERVAL_SIZE))
