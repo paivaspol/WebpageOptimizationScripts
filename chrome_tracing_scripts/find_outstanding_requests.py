@@ -25,9 +25,8 @@ def find_outstanding_request_during_intervals(chrome_network_filename, utilizati
             request = requests[i]
             if (interval[0] <= request[1][0] < interval[1]) or \
                 (interval[0] <= request[1][1] < interval[1]) or \
-                (request[1][0] < interval[0] <= interval[1] < request[1][1]):
+                (request[1][0] < interval[0] < interval[1] < request[1][1]):
                 counter += 1
-            # Short circuit this loop.
         result.append(counter)
     output_to_file(interval_utilizations, result, interval_size, output_dir)
 
@@ -78,11 +77,16 @@ def parse_network_file(chrome_network_file):
                     current_wallTime = result[request_id][0] + (timestamp - timestamp_dict[request_id])
                     result[request_id] = (result[request_id][0], current_wallTime)
     sorted_result = sorted(result.iteritems(), key=lambda x: x[1][0])
+
     return sorted_result
 
 def print_object_duration(requests):
     for request in requests:
-        print '{0} {1}'.format(request[0], (request[1][1] - request[1][0]))
+        print '{0} {1} {2}'.format(request[0], (request[1][1] - request[1][0]), request)
+
+def print_generic(intervals):
+    for interval in intervals:
+        print interval
 
 def get_requestid_and_timestamp(event):
     '''
