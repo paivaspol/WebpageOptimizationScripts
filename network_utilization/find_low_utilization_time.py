@@ -46,10 +46,15 @@ def find_utilization_time(pcap_filename, start_interval, end_interval):
         total_time = cur_ts - initial_ts
     print 'total: {0} idle: {1} fraction: {2}'.format(total_time, cumulative_idle_time, (1.0 * cumulative_idle_time / total_time))
 
+def output_to_file(total_time, cumulative_idle_time, path):
+    output_filename = 'time_spent_breakdown.txt'
+    with open(os.path.join(path, output_filename), 'wb') as output_file:
+        output_file.write('{0:f} {1:f} {2}\n'.format(total_time, cumulative_idle_time, (1.0 * cumulative_idle_time / total_time)))
+
 if __name__ == '__main__':
     parser = ArgumentParser()
     parser.add_argument('pcap_filename')
-    parser.add_argument('start_interval', type=int)
-    parser.add_argument('end_interval', type=int)
+    parser.add_argument('start_interval', type=float)
+    parser.add_argument('end_interval', type=float)
     args = parser.parse_args()
     find_utilization_time(args.pcap_filename, args.start_interval, args.end_interval)
