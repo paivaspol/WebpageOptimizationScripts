@@ -1,60 +1,64 @@
 from argparse import ArgumentParser
 
-import dpkt
+import common_module
+import os
 
-THRESHOLD = 15.0
+def find_low_utilizations(utilization_intervals, interval_size, start_end_interval, thresholds):
+    total_time = (start_end_interval[1][1] - start_end_interval[1][0])
+    results = []
+    for threshold in thresholds:
+        low_utilization_time = 0.0
+        for i in range(0, len(utilization_intervals)):
+            if i < len(utilization_intervals) - 1:
+                if utilization_intervals[i][1] <= threshold:
+                    low_utilization_time += interval_size
+            else:
+                # Case for last interval.
+                left_over_time = total_time % interval_size
+                if utilization_intervals[i][1] <= threshold:
+                    low_utilization_time += left_over_time
+        # print 'total time: {0} low_utilization_time: {1}'.format(total_time, low_utilization_time)
+        results.append(low_utilization_time)
+    return results, total_time
 
-def find_utilization_time(pcap_filename, start_interval, end_interval):
-    cumulative_idle_time = 0.0
-    total_time = 0.0
-    with open(pcap_filename, 'rb') as pcap_file:
-        pcap_objects = dpkt.pcap.Reader(pcap_file)
-        prev_ts = None
-        cur_ts = None
-        initial_ts = None
-        for ts, buf in pcap_objects:
-            ts = ts * 1000 # Convert to ms precision
+def output_low_utilizations(total_time, results, thresholds, output_dir):
+    full_path = os.path.join(output_dir, 'low_utilization_times')
+    with open(full_path, 'wb') as output_file:
+        header = '# total_time '
+        for threshold in thresholds:
+            header += str(threshold) + ' '
+        header.strip()
+        output_file.write(header + '\n')
+        line = str(total_time)
+        for result in results:
+            line += ' ' + str(result) 
+        output_file.write(line + '\n')
 
-            if not start_interval <= ts:
-                continue
-            elif ts > end_interval:
-                break
-
-            eth = dpkt.ethernet.Ethernet(buf)
-            if eth.type != dpkt.ethernet.ETH_TYPE_IP:
-                # Only use IP packets.
-                continue
-            
-            ip = eth.data
-            tcp = ip.data
-            if int(ip.p) != int(dpkt.ip.IP_PROTO_TCP) or (tcp.sport != 443 and tcp.sport != 80):
-                # We only care about HTTP or HTTPS
-                continue
-            
-            if cur_ts is None:
-                # Set the initial cur_ts
-                cur_ts = ts
-                initial_ts = ts
-                continue
-    
-            # Update the timestamps
-            prev_ts = cur_ts
-            cur_ts = ts
-            idle_time = cur_ts - prev_ts
-            if idle_time > THRESHOLD:
-                cumulative_idle_time += idle_time
-        total_time = cur_ts - initial_ts
-    print 'total: {0} idle: {1} fraction: {2}'.format(total_time, cumulative_idle_time, (1.0 * cumulative_idle_time / total_time))
-
-def output_to_file(total_time, cumulative_idle_time, path):
-    output_filename = 'time_spent_breakdown.txt'
-    with open(os.path.join(path, output_filename), 'wb') as output_file:
-        output_file.write('{0:f} {1:f} {2}\n'.format(total_time, cumulative_idle_time, (1.0 * cumulative_idle_time / total_time)))
+def parse_utilizations(utilization_filename):
+    '''
+    Parses the utilizations
+    '''
+    result = []
+    first_interval = None
+    second_interval = None
+    with open(utilization_filename, 'rb') as input_file:
+        for raw_line in input_file:
+            line = raw_line.strip().split()
+            result.append((int(line[0]), float(line[1])))
+            if first_interval is None:
+                first_interval = int(line[0])
+            elif second_interval is None:
+                second_interval = int(line[0])
+    return result, (second_interval - first_interval)
 
 if __name__ == '__main__':
     parser = ArgumentParser()
-    parser.add_argument('pcap_filename')
-    parser.add_argument('start_interval', type=float)
-    parser.add_argument('end_interval', type=float)
+    parser.add_argument('utilization_filename')
+    parser.add_argument('start_end_time_filename')
+    parser.add_argument('thresholds', type=float, nargs='*')
+    parser.add_argument('--output-dir', default='.')
     args = parser.parse_args()
-    find_utilization_time(args.pcap_filename, args.start_interval, args.end_interval)
+    start_end_interval = common_module.parse_page_start_end_time(args.start_end_time_filename)
+    utilization_intervals, interval_size = parse_utilizations(args.utilization_filename)
+    results, total_time = find_low_utilizations(utilization_intervals, interval_size, start_end_interval, args.thresholds)
+    output_low_utilizations(total_time, results, args.thresholds, args.output_dir)

@@ -7,7 +7,7 @@ def parse_page_start_end_time(page_start_end_time_filename):
     with open(page_start_end_time_filename, 'rb') as input_file:
         for raw_line in input_file:
             line = raw_line.strip().split()
-            result.append((line[0], (int(line[1]), int(line[2]))))
+            result.append((line[0], (float(line[1]), float(line[2]))))
     if len(result) > 1:
         return result
     else:

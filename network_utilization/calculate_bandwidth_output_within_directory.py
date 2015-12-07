@@ -80,7 +80,7 @@ def parse_file(root_dir, percent_bytes_to_ignore):
                             check_result(bytes_received_per_interval, expected_slots)
                             interval_timestamps = get_interval_timestamps(start_ts, expected_slots) # A list containing tuples indicating the start and end of an interval
                             measurement_interval = (start_ts, end_ts)
-                            output_measurement_interval(measurement_interval, path)
+                            output_measurement_interval(page, measurement_interval, path)
                             output_to_file(bytes_received_per_interval, interval_timestamps, measurement_interval, current_output_file)
                             print 'expected_slots: {0} result len: {1} start_ts: {2:f} end_ts: {3:f}'.format(expected_slots, len(bytes_received_per_interval), start_ts, end_ts)
                             break
@@ -123,12 +123,12 @@ def check_result(result, expected_num_slots):
     for i in range(0, slots_missing):
         result.append(0.0)
 
-def output_measurement_interval(measurement_interval, path):
+def output_measurement_interval(page, measurement_interval, path):
     '''
     Outputs the measurement interval.
     '''
     with open(os.path.join(path, 'start_end_time_ignoring_bytes.txt'), 'wb') as output_file:
-        output_file.write('{0:f} {1:f}\n'.format(measurement_interval[0], measurement_interval[1]))
+        output_file.write('{0} {1:f} {2:f}\n'.format(page, measurement_interval[0], measurement_interval[1]))
 
 def output_to_file(bytes_received_per_interval, interval_timestamps, measurement_interval, output_file):
     counter = 0
