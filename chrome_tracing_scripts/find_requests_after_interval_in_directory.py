@@ -11,8 +11,8 @@ def main(root_dir):
         url = extract_url_from_path(path)
         print 'URL: ' + url
         network_trace_filename = os.path.join(path, 'network_{0}'.format(url))
-        bandwidth_filename = os.path.join(path, 'bandwidth.txt')
-        command = 'python find_outstanding_requests.py {0} {1} --output-dir {2}'.format(network_trace_filename, bandwidth_filename, path)
+        bandwidth_filename = os.path.join(path, 'intervals_with_zero_or_one.txt')
+        command = 'python find_requests_after_interval.py {0} {1} --output-dir {2}'.format(network_trace_filename, bandwidth_filename, path)
         subprocess.call(command, shell=True)
 
 def extract_url_from_path(path):
