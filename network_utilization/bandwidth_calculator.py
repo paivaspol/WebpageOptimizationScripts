@@ -1,12 +1,13 @@
 import argparse
+import common_module
 import dpkt
 import math
 import os
 
-HTTP_PREFIX = 'http://'
 INTERVAL_SIZE = 100
+OUTPUT_FILENAME = 'bandwidth.txt'
 
-def parse_file(trace_filename, page_load_intervals, output_directory):
+def parse_file(trace_filename, page_load_intervals, output_directory, use_spdyproxy):
     exception_counter = 0
     with open(trace_filename) as pcap_file:
         pcap_objects = dpkt.pcap.Reader(pcap_file)
@@ -14,7 +15,7 @@ def parse_file(trace_filename, page_load_intervals, output_directory):
         bytes_received_per_interval = []
         current_interval_index = 0
         current_page_load_interval = page_load_intervals[current_interval_index]
-        current_output_filename = os.path.join(output_directory, current_page_load_interval[0][len(HTTP_PREFIX):])
+        current_output_filename = os.path.join(output_directory, OUTPUT_FILENAME)
         current_output_file = open(current_output_filename, 'wb')
         first_ts = current_page_load_interval[1][0]
         print 'page: ' + current_page_load_interval[0]
@@ -37,7 +38,7 @@ def parse_file(trace_filename, page_load_intervals, output_directory):
                 if current_interval_index >= len(page_load_intervals):
                     break
                 current_page_load_interval = page_load_intervals[current_interval_index]
-                current_output_filename = os.path.join(output_directory, current_page_load_interval[0][len(HTTP_PREFIX):])
+                current_output_filename = os.path.join(output_directory, OUTPUT_FILENAME)
                 current_output_file = open(current_output_filename, 'wb')
                 first_ts = current_page_load_interval[1][0]
                 current_diff = -1
@@ -57,7 +58,7 @@ def parse_file(trace_filename, page_load_intervals, output_directory):
             ip = eth.data
             try:
                 tcp = ip.data
-                if int(ip.p) != int(dpkt.ip.IP_PROTO_TCP) or (tcp.sport != 443 and tcp.sport != 80):
+                if int(ip.p) != int(dpkt.ip.IP_PROTO_TCP) or not common_module.check_web_port(use_spdyproxy, tcp.sport):
                     # We only care about HTTP or HTTPS
                     continue
 
@@ -71,6 +72,7 @@ def parse_file(trace_filename, page_load_intervals, output_directory):
                 bytes_received_per_interval[int(current_diff)] += ip.len
             except Exception as e:
                 exception_counter += 1
+                print e
                 pass
 
         if not has_output:
@@ -113,7 +115,7 @@ def output_to_file(bytes_received_per_interval, interval_timestamps, output_file
         running_sum = 0
 
 def convert_to_mbits(byte):
-    return 1.0 * (byte * 8) / 1048576
+    return 1.0 * (byte * 8e-6)
 
 def get_page_load_intervals(page_load_interval_filename):
     result = dict()
@@ -132,6 +134,7 @@ if __name__ == '__main__':
     parser.add_argument('trace_filename')
     parser.add_argument('page_load_interval_filename')
     parser.add_argument('output_directory')
+    parser.add_argument('--use-spdyproxy', default=False, action='store_true')
     args = parser.parse_args()
     page_load_intervals = get_page_load_intervals(args.page_load_interval_filename)
-    parse_file(args.trace_filename, page_load_intervals, args.output_directory)
+    parse_file(args.trace_filename, page_load_intervals, args.output_directory, args.use_spdyproxy)
