@@ -17,17 +17,17 @@ def start_chrome(device_configuration):
     '''
     Setup and run chrome on Android.
     '''
+    # Setup port-forwarding for RDP
+    cmd_base = 'adb -s {0} forward tcp:{1} localabstract:chrome_devtools_remote'
+    cmd = cmd_base.format(device_configuration[DEVICE_ID], device_configuration[ADB_PORT])
+    p = subprocess.Popen(cmd, shell=True)
+
     # Run chrome
     cmd_base = 'adb -s {0} shell "am start -a android.intent.action.VIEW -n {1}"'
     cmd = cmd_base.format(device_configuration[DEVICE_ID], device_configuration[CHROME_INSTANCE])
     p = subprocess.Popen(cmd, shell=True)
 
-    sleep(15) # So we have enough time to forward the port.
-
-    # Setup port-forwarding for RDP
-    cmd_base = 'adb -s {0} forward tcp:{1} localabstract:chrome_devtools_remote'
-    cmd = cmd_base.format(device_configuration[DEVICE_ID], device_configuration[ADB_PORT])
-    p = subprocess.Popen(cmd, shell=True)
+    sleep(3) # So we have enough time to forward the port.
 
     return p
 
@@ -70,12 +70,36 @@ def fetch_pcap(device_configuration, pcap_directory=PCAP_DIRECTORY, destination_
     '''
     Fetches the pcap file from the phone.
     '''
+    fetch_file(device_configuration, pcap_directory, destination_directory, remove_file=True)
+
+def fetch_cpu_measurement_file(device_configuration, measurement_dir, destination_directory):
+    print 'Fetching CPU Measurement file...'
+    fetch_file(device_configuration, measurement_dir, destination_directory, remove_file=True)
+
+def fetch_file(device_configuration, file_location_on_phone, destination_directory, remove_file=False):
+    print 'destination directory: ' + destination_directory
     cmd_base = 'adb -s {0} pull {1} {2}'
-    cmd = cmd_base.format(device_configuration[DEVICE_ID], pcap_directory, destination_directory)
+    cmd = cmd_base.format(device_configuration[DEVICE_ID], file_location_on_phone, destination_directory)
     os.system(cmd)
-    cmd_base = 'adb -s {0} shell rm {1}'
-    cmd = cmd_base.format(device_configuration[DEVICE_ID], pcap_directory)
-    os.system(cmd)
+    if remove_file:
+        cmd_base = 'adb -s {0} shell rm {1}'
+        cmd = cmd_base.format(device_configuration[DEVICE_ID], file_location_on_phone)
+        os.system(cmd)
+
+def kill_cpu_measurement(device_configuration):
+    command = 'adb -s {0} shell am force-stop edu.michigan.pageloadcpumeasurement'
+    cmd = command.format(device_configuration[DEVICE_ID])
+    subprocess.Popen(cmd, shell=True)
+
+def start_cpu_measurement(device_configuration):
+    command = 'adb -s {0} shell am start -n edu.michigan.pageloadcpumeasurement/.MainActivity'
+    cmd = command.format(device_configuration[DEVICE_ID])
+    subprocess.Popen(cmd, shell=True)
+
+def bring_cpu_measurement_to_foreground(device_configuration):
+    command = 'adb -s {0} shell am broadcast -a "android.intent.action.PROCESS_TEXT"'
+    cmd = command.format(device_configuration[DEVICE_ID])
+    subprocess.Popen(cmd, shell=True).wait()
 
 def get_device_configuration(config_reader, device):
     '''
@@ -86,5 +110,4 @@ def get_device_configuration(config_reader, device):
     device_config[IP] = config_reader.get(device, IP)
     device_config[CHROME_INSTANCE] = 'com.android.chrome/com.google.android.apps.chrome.Main'
     device_config[ADB_PORT] = int(config_reader.get(device, ADB_PORT))
-    print 'device_config: ' + str(device_config)
     return device_config

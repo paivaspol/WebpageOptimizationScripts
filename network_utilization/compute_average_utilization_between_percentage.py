@@ -81,8 +81,6 @@ def find_bytes_intervals(page_total_bytes_filename, start_percentage, end_percen
             result.append((line[0], (start_percentage * int(line[1]), end_percentage * int(line[1]))))
     return result
 
-def find_utilizations(bytes_received, time_usage):
-
 if __name__ == '__main__':
     arg_parser = ArgumentParser()
     arg_parser.add_argument('page_start_end_time', help='The file containing the start and end time of each page')

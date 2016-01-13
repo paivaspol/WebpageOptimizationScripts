@@ -12,7 +12,9 @@ from time import sleep
 from RDPMessageCollector.ChromeRDPWebsocket import ChromeRDPWebsocket # The websocket
 
 HTTP_PREFIX = 'http://'
+WWW_PREFIX = 'www.'
 OUTPUT_DIR = None
+PAGE_ID = None
 
 def main(device_configuration, url):
     '''
@@ -28,7 +30,15 @@ def main(device_configuration, url):
     phone_connection_utils.start_chrome(device_configuration)
 
     print 'Connected to Chrome...'
-    debugging_url = get_debugging_url(device_configuration)
+    got_debugging_url = False
+    while not got_debugging_url:
+        try:
+            debugging_url, page_id = get_debugging_url(device_configuration)
+            got_debugging_url = True
+        except requests.exceptions.ConnectionError as e:
+            pass
+            
+    device_configuration['page_id'] = page_id
     debugging_socket = ChromeRDPWebsocket(debugging_url, url, device_configuration, callback_on_page_done)
 
 def callback_on_page_done(debugging_socket, network_messages, timeline_messages, device_configuration):
@@ -46,53 +56,85 @@ def callback_on_page_done(debugging_socket, network_messages, timeline_messages,
         if not os.path.exists(base_dir):
             os.mkdir(base_dir)
 
-    base_dir = os.path.join(base_dir, url[len(HTTP_PREFIX):])
+    final_url = url[len(HTTP_PREFIX):]
+    if WWW_PREFIX in url:
+        final_url = url[len(HTTP_PREFIX) + len(WWW_PREFIX):]
+    
+    final_url = final_url.replace('/', '_')
+    print 'base_dir: ' + base_dir + ' final_url: ' + final_url
+
+    base_dir = os.path.join(base_dir, final_url)
     # Create the directory if the directory doesn't exist.
     if not os.path.exists(base_dir):
         os.mkdir(base_dir)
 
-    network_filename = os.path.join(base_dir, 'network_' + url[len(HTTP_PREFIX):])
-    timeline_filename = os.path.join(base_dir, 'timeline_' + url[len(HTTP_PREFIX):])
-    start_end_time_filename = os.path.join(base_dir, 'start_end_time_' + url[len(HTTP_PREFIX):])
+    network_filename = os.path.join(base_dir, 'network_' + final_url)
+    timeline_filename = os.path.join(base_dir, 'timeline_' + final_url)
+    start_end_time_filename = os.path.join(base_dir, 'start_end_time_' + final_url)
     with open(network_filename, 'wb') as output_file:
         for message in network_messages:
             output_file.write('{0}\n'.format(json.dumps(message)))
-    with open(timeline_filename, 'wb') as output_file:
-        for message in timeline_messages:
-            output_file.write('{0}\n'.format(json.dumps(message)))
+    # Output timeline objects
+    if len(timeline_messages) > 0:
+        with open(timeline_filename, 'wb') as output_file:
+            for message in timeline_messages:
+                output_file.write('{0}\n'.format(json.dumps(message)))
     # phone_connection_utils.stop_tcpdump(device_configuration)
     # phone_connection_utils.fetch_pcap(device_configuration, destination_directory=base_dir)
     
     # Get the start and end time of the execution
     start_time, end_time = get_start_end_time(debugging_url)
     with open(start_end_time_filename, 'wb') as output_file:
-        output_file.write('{0} {1} {2}\n'.format(url[len(HTTP_PREFIX):], start_time, end_time))
+        output_file.write('{0} {1} {2}\n'.format(final_url, start_time, end_time))
+
+    close_tab(device_configuration)
 
 def get_start_end_time(debugging_url):
-    print 'debugging_url: ' + debugging_url
-    ws = websocket.create_connection(debugging_url)
-    navigation_starts = json.dumps({ "id": 6, "method": "Runtime.evaluate", "params": { "expression": "performance.timing.navigationStart", "returnByValue": True }})
-    load_event_ends = json.dumps({ "id": 6, "method": "Runtime.evaluate", "params": { "expression": "performance.timing.loadEventEnd", "returnByValue": True }})
-    ws.send(navigation_starts)
-    nav_starts_result = json.loads(ws.recv())
-    ws.send(load_event_ends)
-    load_ends = json.loads(ws.recv())
-    start_time = int(nav_starts_result['result']['result']['value'])
-    end_time = int(load_ends['result']['result']['value'])
-    ws.close()
+    # print 'debugging_url: ' + debugging_url
+    start_time = None
+    end_time = None
+    while start_time is None or end_time is None or (start_time is not None and start_time <= 0) or (end_time is not None and end_time <= 0):
+        try:
+            ws = websocket.create_connection(debugging_url)
+            navigation_starts = json.dumps({ "id": 6, "method": "Runtime.evaluate", "params": { "expression": "performance.timing.navigationStart", "returnByValue": True }})
+            load_event_ends = json.dumps({ "id": 6, "method": "Runtime.evaluate", "params": { "expression": "performance.timing.loadEventEnd", "returnByValue": True }})
+            print 'navigation starts: ' + str(navigation_starts)
+            ws.send(navigation_starts)
+            nav_starts_result = json.loads(ws.recv())
+            ws.send(load_event_ends)
+            load_ends = json.loads(ws.recv())
+            print 'start time: ' + str(nav_starts_result)
+            start_time = int(nav_starts_result['result']['result']['value'])
+            end_time = int(load_ends['result']['result']['value'])
+        except Exception as e:
+            pass
+        finally:
+            ws.close()
     return start_time, end_time
+
+def close_tab(device_configuration):
+    '''
+    Connects the client to the debugging socket.
+    '''
+    base_url = 'http://localhost:{0}/json/close/{1}'
+    url = base_url.format(device_configuration[phone_connection_utils.ADB_PORT], device_configuration['page_id'])
+    response = requests.get(url)
+    # response_json = json.loads(response.text)
+    print response.text
 
 def get_debugging_url(device_configuration):
     '''
     Connects the client to the debugging socket.
     '''
+    # print 'here (0)'
     base_url = 'http://localhost:{0}/json'
     url = base_url.format(device_configuration[phone_connection_utils.ADB_PORT])
     response = requests.get(url)
+    # print 'response: ' + str(response.text)
     response_json = json.loads(response.text)
+    page_id = response_json[0]['id']
     # Always use the 0th tab and return the connection to the debugging url.
-    return response_json[0][phone_connection_utils.WEB_SOCKET_DEBUGGER_URL]
-
+    return response_json[0][phone_connection_utils.WEB_SOCKET_DEBUGGER_URL], page_id
 
 if __name__ == '__main__':
     argparser = ArgumentParser()

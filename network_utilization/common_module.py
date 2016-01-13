@@ -17,8 +17,27 @@ def extract_url_from_path(path):
     '''
     Extracts the url from the path.
     '''
+    if path.endswith('/'):
+        path = path[:len(path) - 1]
     last_delim_index = -1
     for i in range(0, len(path)):
         if path[i] == '/':
             last_delim_index = i
-    return path[last_delim_index + 1:]
+    url = path[last_delim_index + 1:].replace('/', '_')
+    return url
+
+def convert_to_mbits(byte):
+    return 1.0 * (byte * 8) / 1048576
+
+def compute_utilization(bytes_received, bandwidth=6, interval=100):
+    '''
+    bandwidth is in mbps
+    Interval is in MS
+    '''
+    return convert_to_mbits(bytes_received) / (interval * bandwidth / 1000.0)
+
+def check_web_port(use_spdyproxy, tcp_port):
+    if use_spdyproxy:
+        return tcp_port == 44300
+    else:
+        return tcp_port == 443 or tcp_port == 80

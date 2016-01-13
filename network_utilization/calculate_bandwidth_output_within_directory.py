@@ -1,4 +1,5 @@
 import argparse
+import common_module
 import dpkt
 import math
 import os
@@ -19,7 +20,7 @@ def parse_file(root_dir, percent_bytes_to_ignore):
             pcap_objects = dpkt.pcap.Reader(pcap_file)
             current_diff = -1
             bytes_received_per_interval = []
-            page = extract_url(path)
+            page = common_module.extract_url_from_path(path)
             print 'page: ' + page
             start_end_filename = os.path.join(path, START_END_FORMAT_STR.format(page))
             total_bytes_filename = os.path.join(path, 'bytes_received.txt')
@@ -92,16 +93,6 @@ def parse_file(root_dir, percent_bytes_to_ignore):
                 pass
             print '{0} done. Faulty packets: {1}'.format(page, exception_counter)
 
-def extract_url(path):
-    '''
-    Extracts the url from the path.
-    '''
-    delim_index = -1
-    for i in range(0, len(path)):
-        if path[i] == '/':
-            delim_index = i
-    return path[delim_index + 1:]
-
 def get_interval_timestamps(start_ts, expected_slots):
     '''
     Get the interval timestamps.
@@ -143,7 +134,7 @@ def output_to_file(bytes_received_per_interval, interval_timestamps, measurement
         running_sum = 0
 
 def convert_to_mbits(byte):
-    return 1.0 * (byte * 8) / 1048576
+    return 1.0 * (byte * 8e-6)
 
 def get_page_load_interval(page_load_interval_filename):
     with open(page_load_interval_filename, 'rb') as input_file:

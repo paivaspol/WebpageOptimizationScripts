@@ -56,9 +56,8 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onReceive(Context context, Intent intent) {
             System.out.println("Intent: " + intent);
-            Intent newIntent = new Intent(context, MainActivity.class);
-            intent.addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
-            startActivity(newIntent);}
+            outputToFile();
+        }
     };
 
     @Override
@@ -94,14 +93,7 @@ public class MainActivity extends AppCompatActivity {
             TextView measurementStatus = (TextView) findViewById(R.id.textView);
             handler.removeCallbacksAndMessages(null); // stop the measurement.
             measurementStatus.setText(MEASUREMENT_NOT_RUNNING);
-            try {
-                for (String procStatLine : procStatLines) {
-                    outputStream.write(procStatLine.replace("\t", " ").getBytes());
-                }
-                outputStream.close();
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
+            outputToFile();
         }
         startedGettingMeasurement = !startedGettingMeasurement; // Switch the flag.
         System.out.println("Measurement State After: " + startedGettingMeasurement);
@@ -109,6 +101,18 @@ public class MainActivity extends AppCompatActivity {
             unregisterReceiver(receiver);
         } catch (IllegalArgumentException e) {
 
+        }
+    }
+
+    private void outputToFile() {
+        try {
+            for (String procStatLine : procStatLines) {
+                outputStream.write(procStatLine.replace("\t", " ").getBytes());
+            }
+            outputStream.close();
+            System.out.println("Finished writing to output file.");
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
     }
 

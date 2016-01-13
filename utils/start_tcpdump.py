@@ -1,5 +1,5 @@
-import phone_connection_utils
 import subprocess
+import phone_connection_utils
 
 from argparse import ArgumentParser
 from ConfigParser import ConfigParser

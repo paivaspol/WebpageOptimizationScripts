@@ -8,6 +8,7 @@ if __name__ == '__main__':
     argparser.add_argument('config_filename')
     argparser.add_argument('device', help='The device name e.g. Nexus_6')
     argparser.add_argument('--output-dir')
+    argparser.add_argument('--no-sleep', default=False, action='store_true')
     args = argparser.parse_args()
 
     # Setup the config filename
@@ -16,7 +17,7 @@ if __name__ == '__main__':
 
     # Get the device configuration.
     device_config = phone_connection_utils.get_device_configuration(config_reader, args.device)
-    phone_connection_utils.stop_tcpdump(device_config)
+    phone_connection_utils.stop_tcpdump(device_config, sleep_before_kill=(not args.no_sleep))
     if args.output_dir is not None:
         phone_connection_utils.fetch_pcap(device_config, destination_directory=args.output_dir)
     else:

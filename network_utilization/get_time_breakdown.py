@@ -26,18 +26,21 @@ def parse_pcap_file(pcap_filename, start_end_time, bytes_interval, total_bytes):
                     continue
 
                 ip = eth.data
-                tcp = ip.data
-                if int(ip.p) != int(dpkt.ip.IP_PROTO_TCP) or (tcp.sport != 443 and tcp.sport != 80):
-                    continue
-                cumulative_bytes += ip.len
-                if cumulative_bytes >= 0 and time_first_bytes is None:
-                    time_first_bytes = ts
-                elif cumulative_bytes >= bytes_interval[0] and time_exceed_lower_bytes_threshold is None:
-                    time_exceed_lower_bytes_threshold = ts
-                elif cumulative_bytes >= bytes_interval[1] and time_exceed_upper_bytes_threshold is None:
-                    time_exceed_upper_bytes_threshold = ts
-                elif cumulative_bytes >= total_bytes and time_last_bytes is None:
-                    time_last_bytes = ts
+                try:
+                    tcp = ip.data
+                    if int(ip.p) != int(dpkt.ip.IP_PROTO_TCP) or (tcp.sport != 443 and tcp.sport != 80):
+                        continue
+                    cumulative_bytes += ip.len
+                    if cumulative_bytes >= 0 and time_first_bytes is None:
+                        time_first_bytes = ts
+                    elif cumulative_bytes >= bytes_interval[0] and time_exceed_lower_bytes_threshold is None:
+                        time_exceed_lower_bytes_threshold = ts
+                    elif cumulative_bytes >= bytes_interval[1] and time_exceed_upper_bytes_threshold is None:
+                        time_exceed_upper_bytes_threshold = ts
+                    elif cumulative_bytes >= total_bytes and time_last_bytes is None:
+                        time_last_bytes = ts
+                except Exception as e1:
+                    pass
         except dpkt.NeedData as e:
             pass
     return (start_end_time[1][0], time_first_bytes, time_exceed_lower_bytes_threshold, time_exceed_upper_bytes_threshold, time_last_bytes, start_end_time[1][1])

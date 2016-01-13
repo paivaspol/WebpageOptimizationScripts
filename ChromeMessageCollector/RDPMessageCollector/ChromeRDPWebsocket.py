@@ -43,6 +43,7 @@ class ChromeRDPWebsocket(object):
         Handle each message.
         '''
         message_obj = json.loads(message)
+        # self.tracingCollectionCompleted = True
         # print 'msg: ' + message
         if METHOD in message_obj and message_obj[METHOD].startswith('Network'):
             if message_obj[METHOD] == 'Network.requestWillBeSent' and \
@@ -61,14 +62,22 @@ class ChromeRDPWebsocket(object):
             # Tracing completed
             self.tracingCollectionCompleted = True
 
+        # if self.originalRequestMs is not None and \
+        #     self.domContentEventFiredMs is not None and \
+        #     self.loadEventFiredMs is not None and \
+        #     not self.tracingCollectionCompleted:
+        #     self.stop_trace_collection(self.ws)
+       
+        # if self.tracingCollectionCompleted:
+        #     # A page is considerd loaded if all of these three conditions are met.
+        #     print 'Start time {0}, Load completed: {1}'.format(self.originalRequestMs, self.loadEventFiredMs)
+        #     self.callback(self, self.network_messages, self.timeline_messages, self.device_configuration)
+
         if self.originalRequestMs is not None and \
             self.domContentEventFiredMs is not None and \
-            self.loadEventFiredMs is not None and \
-            not self.tracingCollectionCompleted:
-            self.stop_trace_collection(self.ws)
-       
-        if self.tracingCollectionCompleted:
-            # A page is considerd loaded if all of these three conditions are met.
+            self.loadEventFiredMs is not None:
+            self.disable_network_tracking(self.ws)
+            self.disable_page_tracking(self.ws)
             print 'Start time {0}, Load completed: {1}'.format(self.originalRequestMs, self.loadEventFiredMs)
             self.callback(self, self.network_messages, self.timeline_messages, self.device_configuration)
 
@@ -90,8 +99,9 @@ class ChromeRDPWebsocket(object):
         '''
         self.enable_network_tracking(self.ws)
         self.enable_page_tracking(self.ws)
-        self.enable_trace_collection(self.ws)
+        # self.enable_trace_collection(self.ws)
         self.clear_cache(self.ws)
+        print 'navigating to url: ' + str(self.url)
         self.navigate_to_page(self.ws, self.url)
     
     def close_connection(self):
@@ -109,6 +119,24 @@ class ChromeRDPWebsocket(object):
         print 'Cleared browser cache'
         sleep(0.5)
 
+    def disable_network_tracking(self, debug_connection):
+        '''
+        Disable Network tracking in Chrome.
+        '''
+        disable_network = { "id": 1, "method": "Network.disable" }
+        debug_connection.send(json.dumps(disable_network))
+        print 'Disable network tracking.'
+        sleep(0.5)
+
+    def disable_page_tracking(self, debug_connection):
+        '''
+        Disable Page tracking in Chrome.
+        '''
+        disable_page = { 'id': 3, 'method': 'Page.disable' }
+        debug_connection.send(json.dumps(disable_page))
+        print 'Disable page tracking.'
+        sleep(0.5)
+
     def enable_network_tracking(self, debug_connection):
         '''
         Enables Network tracking in Chrome.
@@ -116,6 +144,10 @@ class ChromeRDPWebsocket(object):
         enable_network = { "id": 1, "method": "Network.enable" }
         debug_connection.send(json.dumps(enable_network))
         print 'Enabled network tracking.'
+        sleep(0.5)
+        disable_cache = { "id": 10, "method": "Network.setCacheDisabled", "params": { "cacheDisabled": True } }
+        debug_connection.send(json.dumps(disable_cache))
+        print 'Disable debugging connection.'
         sleep(0.5)
 
     def enable_page_tracking(self, debug_connection):
@@ -126,6 +158,7 @@ class ChromeRDPWebsocket(object):
         debug_connection.send(json.dumps(enable_page))
         print 'Enabled page tracking.'
         sleep(0.5)
+
     
     def enable_runtime(self, debug_connection):
         '''

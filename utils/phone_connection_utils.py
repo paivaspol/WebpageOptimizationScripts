@@ -63,12 +63,24 @@ def fetch_pcap(device_configuration, pcap_directory=PCAP_DIRECTORY, destination_
     '''
     Fetches the pcap file from the phone.
     '''
+    fetch_file(device_configuration, pcap_directory, destination_directory, remove_file=True)
+
+def fetch_cpu_measurement_file(device_configuration, measurement_dir, destination_directory):
+    fetch_file(device_configuration, measurement_dir, destination_directory, remove_file=True)
+
+def fetch_file(device_configuration, file_location_on_phone, destination_directory, remove_file=False):
     cmd_base = 'adb -s {0} pull {1} {2}'
-    cmd = cmd_base.format(device_configuration[DEVICE_ID], pcap_directory, destination_directory)
+    cmd = cmd_base.format(device_configuration[DEVICE_ID], file_location_on_phone, destination_directory)
     os.system(cmd)
-    cmd_base = 'adb -s {0} shell rm {1}'
-    cmd = cmd_base.format(device_configuration[DEVICE_ID], pcap_directory)
-    os.system(cmd)
+    if remove_file:
+        cmd_base = 'adb -s {0} shell rm {1}'
+        cmd = cmd_base.format(device_configuration[DEVICE_ID], file_location_on_phone)
+        os.system(cmd)
+
+def toggle_cpu_measurement(device_configuration):
+    command = 'adb -s {0} shell am start -n edu.michigan.pageloadcpumeasurement/.MainActivity'
+    cmd = command.format(device_configuration[DEVICE_ID])
+    subprocoess.Popen(cmd, shell=True)
 
 def get_device_configuration(config_reader, device):
     '''

@@ -1,0 +1,2 @@
+http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/image_only.html
+http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/html_only.html
