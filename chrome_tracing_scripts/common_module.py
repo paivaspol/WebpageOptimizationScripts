@@ -55,3 +55,15 @@ def parse_utilization_file(utilization_filename):
             result[key] = value
     return sorted(result.iteritems(), key=lambda x: x[0][0])
 
+def extract_url_from_path(path):
+    '''
+    Extracts the url from the path.
+    '''
+    if path.endswith('/'):
+        path = path[:len(path) - 1]
+    last_delim_index = -1
+    for i in range(0, len(path)):
+        if path[i] == '/':
+            last_delim_index = i
+    url = path[last_delim_index + 1:].replace('/', '_')
+    return url
