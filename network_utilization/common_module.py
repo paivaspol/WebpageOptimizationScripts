@@ -27,7 +27,7 @@ def extract_url_from_path(path):
     return url
 
 def convert_to_mbits(byte):
-    return 1.0 * (byte * 8) / 1048576
+    return byte * 8e-6
 
 def compute_utilization(bytes_received, bandwidth=6, interval=100):
     '''
