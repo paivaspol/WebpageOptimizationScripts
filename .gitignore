@@ -1,2 +1,5 @@
 *.pyc
 temp.log
+.DS_Store
+*.txt
+*.pcap
