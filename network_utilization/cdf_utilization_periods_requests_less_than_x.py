@@ -117,104 +117,129 @@ def find_bandwidth_from_intervals(bytes_received_per_interval, intervals, max_re
 
 def find_periods_with_request_less_than_x(network_events, num_request_threshold, page_start_end_time, load_time):
     current_outstanding_requests = set()
-    request_initial_timestamp = dict() # requestId --> timestamp
-    initial_timestamp = None    # the first timestamp when there exists a request
-    initial_walltime = None
-    current_begin_interval = None
-    current_max_num_outstanding_request_during_interval = -1
-    current_interval_requests = set()
-    intervals_requests_greater_than_x = []
-    intervals_requests_less_than_or_eq_x = []
-    requests_during_interval = dict()   # This is a mapping from the interval to a set of requestIds during that interval.
-    max_requests_during_interval = dict()   # Maps from the request id to the max number of requests during the interval.
+    request_initial_timestamp = dict()
+    request_initial_walltime = dict()
+    initial_timestamp = None
+    network_events.sort(key=lambda x: x[PARAMS]['timestamp'])
+    #sorted_network_events = sorted(network_events, key=lambda x: x[PARAMS]['timestamp'])
     for network_event in network_events:
         if network_event[METHOD] == 'Network.requestWillBeSent':
-            # print 'method: {0} len: {1}'.format(network_event[METHOD], len(current_outstanding_requests))
             request_id = network_event[PARAMS][REQUEST_ID]
             timestamp = network_event[PARAMS]['timestamp']
-            request_initial_timestamp[request_id] = timestamp
-
-            if current_begin_interval is None:
-                current_begin_interval = timestamp
-                initial_timestamp = timestamp
-                initial_walltime = network_event[PARAMS]['wallTime']
-
-            # The request is not in the current outstanding requests.
-            # Check if adding the requests will make the number of outstanding request exceeds the threshold.
-            if request_id not in current_outstanding_requests and len(current_outstanding_requests) + 1 == num_request_threshold + 1:
-                # print 'going above: current_outstanding_requests: ' + str(len(current_outstanding_requests))
-                start_interval_diff = current_begin_interval - initial_timestamp
-                end_interval_diff = timestamp - initial_timestamp
-                #if end_interval_diff - start_interval_diff > 0:
-                interval = (start_interval_diff, end_interval_diff)
-                intervals_requests_less_than_or_eq_x.append(interval)
-                # print 'len: {0} start_interval_diff: {1} end_interval_diff: {2}'.format(len(current_outstanding_requests), start_interval_diff, end_interval_diff)
-                current_begin_interval = timestamp
-                requests_during_interval[interval] = list(current_interval_requests)
-                max_requests_during_interval[interval] = current_max_num_outstanding_request_during_interval
-                current_max_num_outstanding_request_during_interval = len(current_outstanding_requests) + 1
-                current_interval_requests = set(current_outstanding_requests)
-            
+            # request_initial_timestamp[request_id] = timestamp
             current_outstanding_requests.add(request_id)
-            current_interval_requests.add(request_id)
-            print 'current outstanding requests: ' + str(len(current_outstanding_requests))
-        elif network_event[METHOD] == 'Network.loadingFinished':
-            # print 'method: {0} len: {1}'.format(network_event[METHOD], len(current_outstanding_requests))
+            request_initial_timestamp[request_id] = timestamp
+            
+            if initial_timestamp is None:
+                initial_timestamp = timestamp
 
+            request_initial_walltime[request_id] = network_event[PARAMS]['wallTime']
+            if len(current_outstanding_requests) == num_request_threshold + 1:
+                # Greater than
+                print 'above len: ' + str(len(current_outstanding_requests)) + ' timestamp: ' + str(timestamp - initial_timestamp)
+        elif network_event[METHOD] == 'Network.loadingFinished':
             # The request is in the current outstanding requests.
             # Check if removing the requests will make the number of outstanding request falls under the threshold.
             request_id = network_event[PARAMS][REQUEST_ID]
             timestamp = network_event[PARAMS]['timestamp']
-            print 'request: ' + str(request_id) + ' request started: ' + str(request_initial_timestamp[request_id] - initial_timestamp) + ' time: ' + str(timestamp - initial_timestamp)
-
-            if request_id in current_outstanding_requests and len(current_outstanding_requests) - 1 == num_request_threshold:
-                print 'going below: current_outstanding_requests: ' + str(len(current_outstanding_requests))
-                start_interval_diff = current_begin_interval - initial_timestamp
-                end_interval_diff = timestamp - initial_timestamp
-                #if end_interval_diff - start_interval_diff > 0:
-                interval = (start_interval_diff, end_interval_diff)
-                intervals_requests_greater_than_x.append(interval)
-                requests_during_interval[interval] = list(current_interval_requests)
-                # print 'len: {0} start_interval_diff: {1} end_interval_diff: {2}'.format(len(current_outstanding_requests), start_interval_diff, end_interval_diff)
-                current_begin_interval = timestamp
-                max_requests_during_interval[interval] = current_max_num_outstanding_request_during_interval
-                current_max_num_outstanding_request_during_interval = len(current_outstanding_requests) - 1
-                current_interval_requests = set(current_outstanding_requests)
-                # print 'initial_walltime: {0} time diff: {1}'.format(request_initial_walltime[request_id], time_diff)
-            # Actually remove the request.
             current_outstanding_requests.remove(request_id)
-            print 'current outstanding requests: ' + str(len(current_outstanding_requests))
-        current_max_num_outstanding_request_during_interval = max(current_max_num_outstanding_request_during_interval, len(current_outstanding_requests))
+            if len(current_outstanding_requests) == num_request_threshold:
+                # Less than or equal to.
+                print 'below len: ' + str(len(current_outstanding_requests)) + ' timestamp: ' + str(timestamp - initial_timestamp)
 
-    # Handle the last case
-    begin_interval_relative_time = current_begin_interval - initial_timestamp
-    end_interval = network_events[len(network_events) - 1][PARAMS]['timestamp'] - initial_timestamp
-    interval = (begin_interval_relative_time, end_interval)
-    if len(current_outstanding_requests) <= num_request_threshold:
-        intervals_requests_less_than_or_eq_x.append(interval)
-    else:
-        intervals_requests_greater_than_x.append(interval)
-    requests_during_interval[interval] = list(current_outstanding_requests)
-    max_requests_during_interval[interval] = current_max_num_outstanding_request_during_interval
 
-    # print 'intervals less than x: {0}'.format(intervals_requests_less_than_or_eq_x)
-    # print 'intervals greater than x: {0}'.format(intervals_requests_greater_than_x)
-    sorted_merged_list = sorted(intervals_requests_greater_than_x + intervals_requests_less_than_or_eq_x, key=lambda x: x[0])
-    load_time = load_time / 1000.0
-    last_interval = sorted_merged_list[len(sorted_merged_list) - 1]
-    if last_interval[1] < load_time:
-        sorted_merged_list[len(sorted_merged_list) - 1] = (last_interval[0], load_time)
-
-    # print sorted_merged_list
-    return sorted_merged_list, initial_walltime, requests_during_interval, max_requests_during_interval
-
-# Returns a list of objectified network events.
-def parse_network_events(network_events_filename):
-    result = []
-    with open(network_events_filename, 'rb') as input_file:
-        for raw_line in input_file:
-            result.append(json.loads(json.loads(raw_line.strip())))
-    return result
+# def find_periods_with_request_less_than_x(network_events, num_request_threshold, page_start_end_time, load_time):
+#     current_outstanding_requests = set()
+#     request_initial_timestamp = dict() # requestId --> timestamp
+#     initial_timestamp = None    # the first timestamp when there exists a request
+#     initial_walltime = None
+#     current_begin_interval = None
+#     current_max_num_outstanding_request_during_interval = -1
+#     current_interval_requests = set()
+#     intervals = []
+#     # intervals_requests_greater_than_x = []
+#     # intervals_requests_less_than_or_eq_x = []
+#     requests_during_interval = dict()   # This is a mapping from the interval to a set of requestIds during that interval.
+#     max_requests_during_interval = dict()   # Maps from the request id to the max number of requests during the interval.
+#     for network_event in network_events:
+#         if network_event[METHOD] == 'Network.requestWillBeSent':
+#             # print 'method: {0} len: {1}'.format(network_event[METHOD], len(current_outstanding_requests))
+#             request_id = network_event[PARAMS][REQUEST_ID]
+#             timestamp = network_event[PARAMS]['timestamp']
+#             request_initial_timestamp[request_id] = timestamp
+# 
+#             if current_begin_interval is None:
+#                 current_begin_interval = timestamp
+#                 initial_timestamp = timestamp
+#                 initial_walltime = network_event[PARAMS]['wallTime']
+# 
+#             current_outstanding_requests.add(request_id)
+#             current_interval_requests.add(request_id)
+#             # The request is not in the current outstanding requests.
+#             # Check if adding the requests will make the number of outstanding request exceeds the threshold.
+#             if len(current_outstanding_requests) == num_request_threshold + 1:
+#                 print 'going above: current_outstanding_requests: ' + str(len(current_outstanding_requests))
+#                 print 'request: ' + str(request_id) + ' request started: ' + str(request_initial_timestamp[request_id] - initial_timestamp) + ' time: ' + str(timestamp - initial_timestamp)
+#                 start_interval_diff = current_begin_interval - initial_timestamp
+#                 end_interval_diff = timestamp - initial_timestamp
+#                 #if end_interval_diff - start_interval_diff > 0:
+#                 interval = (start_interval_diff, end_interval_diff)
+#                 intervals.append(interval)
+#                 # print 'len: {0} start_interval_diff: {1} end_interval_diff: {2}'.format(len(current_outstanding_requests), start_interval_diff, end_interval_diff)
+#                 current_begin_interval = timestamp
+#                 requests_during_interval[interval] = list(current_interval_requests)
+#                 max_requests_during_interval[interval] = current_max_num_outstanding_request_during_interval
+#                 current_max_num_outstanding_request_during_interval = len(current_outstanding_requests) + 1
+#                 current_interval_requests = set(current_outstanding_requests)
+#             
+#             print 'current outstanding requests: ' + str(len(current_outstanding_requests))
+#         elif network_event[METHOD] == 'Network.loadingFinished':
+#             # print 'method: {0} len: {1}'.format(network_event[METHOD], len(current_outstanding_requests))
+# 
+#             # The request is in the current outstanding requests.
+#             # Check if removing the requests will make the number of outstanding request falls under the threshold.
+#             request_id = network_event[PARAMS][REQUEST_ID]
+#             timestamp = network_event[PARAMS]['timestamp']
+# 
+#             current_outstanding_requests.remove(request_id)
+# 
+#             if len(current_outstanding_requests) == num_request_threshold:
+#                 print 'going below: current_outstanding_requests: ' + str(len(current_outstanding_requests))
+#                 print 'request: ' + str(request_id) + ' request started: ' + str(request_initial_timestamp[request_id] - initial_timestamp) + ' time: ' + str(timestamp - initial_timestamp)
+#                 start_interval_diff = current_begin_interval - initial_timestamp
+#                 end_interval_diff = timestamp - initial_timestamp
+#                 #if end_interval_diff - start_interval_diff > 0:
+#                 interval = (start_interval_diff, end_interval_diff)
+#                 intervals.append(interval)
+#                 requests_during_interval[interval] = list(current_interval_requests)
+#                 # print 'len: {0} start_interval_diff: {1} end_interval_diff: {2}'.format(len(current_outstanding_requests), start_interval_diff, end_interval_diff)
+#                 current_begin_interval = timestamp
+#                 max_requests_during_interval[interval] = current_max_num_outstanding_request_during_interval
+#                 current_max_num_outstanding_request_during_interval = len(current_outstanding_requests) - 1
+#                 current_interval_requests = set(current_outstanding_requests)
+#                 # print 'initial_walltime: {0} time diff: {1}'.format(request_initial_walltime[request_id], time_diff)
+#             # Actually remove the request.
+#             print 'current outstanding requests: ' + str(len(current_outstanding_requests))
+#         current_max_num_outstanding_request_during_interval = max(current_max_num_outstanding_request_during_interval, len(current_outstanding_requests))
+# 
+#     # Handle the last case
+#     begin_interval_relative_time = current_begin_interval - initial_timestamp
+#     end_interval = network_events[len(network_events) - 1][PARAMS]['timestamp'] - initial_timestamp
+#     interval = (begin_interval_relative_time, end_interval)
+#     intervals.append(interval)
+#     requests_during_interval[interval] = list(current_outstanding_requests)
+#     max_requests_during_interval[interval] = current_max_num_outstanding_request_during_interval
+# 
+#     # print 'intervals less than x: {0}'.format(intervals_requests_less_than_or_eq_x)
+#     # print 'intervals greater than x: {0}'.format(intervals_requests_greater_than_x)
+#     # sorted_merged_list = sorted(intervals_requests_greater_than_x + intervals_requests_less_than_or_eq_x, key=lambda x: x[0])
+#     load_time = load_time / 1000.0
+#     last_interval = intervals[len(intervals) - 1]
+#     if last_interval[1] < load_time:
+#         intervals[len(intervals) - 1] = (last_interval[0], load_time)
+# 
+#     # print sorted_merged_list
+#     return intervals, initial_walltime, requests_during_interval, max_requests_during_interval
 
 def compute_utilization(bandwidth_list):
     '''
@@ -293,7 +318,7 @@ def print_intervals(output_directory, threshold, max_requests_during_interval, r
         for i in range(0, len(max_requests_during_interval)):
             interval = sorted_max_requests_during_interval[i][0]
             # print 'max req: {0} len req: {1}'.format(max_requests_during_interval[interval], len(requests_during_interval[interval]))
-            output_file.write('{0} {1} {2} {3} {4}\n'.format((i % 2), interval[0], interval[1], max_requests_during_interval[interval], sorted(requests_during_interval[interval])))
+            output_file.write('{0} {1} {2} {3}\n'.format(interval[0], interval[1], max_requests_during_interval[interval], sorted(requests_during_interval[interval])))
 
 if __name__ == '__main__':
     parser = ArgumentParser()
@@ -304,12 +329,14 @@ if __name__ == '__main__':
     parser.add_argument('num_request_threshold', type=int)
     parser.add_argument('--output-dir', default='.')
     args = parser.parse_args()
-    network_events = parse_network_events(args.network_events_filename)
+    network_events = common_module.parse_network_events(args.network_events_filename)
     page_start_end_time = common_module.parse_page_start_end_time(args.page_start_end_time_filename)
     request_sizes_dict = read_request_sizes(args.page_request_size_filename)
     # print page_start_end_time
     load_time = page_start_end_time[1][1] - page_start_end_time[1][0]
-    intervals, initial_walltime, requests_during_interval, max_requests_during_interval = find_periods_with_request_less_than_x(network_events, args.num_request_threshold, page_start_end_time, load_time)
+    # intervals, initial_walltime, requests_during_interval, max_requests_during_interval = find_periods_with_request_less_than_x(network_events, args.num_request_threshold, page_start_end_time, load_time)
+    find_periods_with_request_less_than_x(network_events, args.num_request_threshold, page_start_end_time, load_time)
+    exit()
     print_intervals(args.output_dir, args.num_request_threshold, max_requests_during_interval, requests_during_interval)
 
     # Find the bandwidth and utilizations during those intervals

@@ -10,7 +10,7 @@ def find_utilizations(root_dir, threshold):
             continue
         print path
         url = common_module.extract_url_from_path(path)
-        if url == 'bbc.co.uk_sport_0_football_':
+        if url == 'cnn.com':
             pcap_filename = os.path.join(path, 'output.pcap')
             network_filename = os.path.join(path, 'network_{0}'.format(url))
             start_end_time_filename = os.path.join(path, 'start_end_time_{0}'.format(url))

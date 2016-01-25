@@ -1,3 +1,5 @@
+import simplejson as json
+
 def parse_page_start_end_time(page_start_end_time_filename):
     '''
     Parses the page start and end time and returns a list of tuples in the following format:
@@ -41,3 +43,14 @@ def check_web_port(use_spdyproxy, tcp_port):
         return tcp_port == 44300
     else:
         return tcp_port == 443 or tcp_port == 80
+
+# Returns a list of objectified network events.
+def parse_network_events(network_events_filename):
+    result = []
+    with open(network_events_filename, 'rb') as input_file:
+        for raw_line in input_file:
+            network_event = json.loads(json.loads(raw_line.strip()))
+            if network_event['method'] != 'Network.requestServedFromCache':
+                result.append(network_event)
+    return result
+

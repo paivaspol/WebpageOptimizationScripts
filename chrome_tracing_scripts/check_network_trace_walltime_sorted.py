@@ -18,7 +18,7 @@ def iterate_network_trace(network_trace_filename):
                 if current_walltime is not None and this_event_walltime <= current_walltime:
                     raise ValueError('We are fucked')
                 current_walltime = float(this_event_walltime)
-                print current_walltime
+                #print current_walltime
 
 if __name__ == '__main__':
     parser = ArgumentParser()
