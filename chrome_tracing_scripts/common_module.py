@@ -8,6 +8,7 @@ def parse_network_file(chrome_network_file):
     Returns a dictionary mapping: request id -> (requestWillBeSent, loadingFinished)
     '''
     result = dict() # Mapping: request id --> (requestWillBeSent, loadingFinished)
+    walltime_dict = dict()
     timestamp_dict = dict() # Mapping: request id --> timestamp
     with open(chrome_network_file, 'rb') as input_file:
         for raw_line in input_file:
@@ -15,16 +16,14 @@ def parse_network_file(chrome_network_file):
             if event['method'] == 'Network.requestWillBeSent':
                 request_id, timestamp = get_requestid_and_timestamp(event)
                 wallTime = convert_to_ms_precision(float(event[PARAMS]['wallTime']))
-                result[request_id] = (wallTime, -1)
+                walltime_dict[request_id] = wallTime
                 timestamp_dict[request_id] = timestamp
             elif event['method'] == 'Network.loadingFinished' or \
                 event['method'] == 'Network.loadingFailed':
                 request_id, timestamp = get_requestid_and_timestamp(event)
-                if request_id in result:
-                    current_wallTime = result[request_id][0] + (timestamp - timestamp_dict[request_id])
-                    result[request_id] = (result[request_id][0], current_wallTime)
+                current_wallTime = walltime_dict[request_id] + (timestamp - timestamp_dict[request_id])
+                result[request_id] = (walltime_dict[request_id], current_wallTime)
     sorted_result = sorted(result.iteritems(), key=lambda x: x[1][0])
-
     return sorted_result
 
 def get_requestid_and_timestamp(event):

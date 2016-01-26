@@ -55,7 +55,7 @@ def find_utilizations(interval_to_bytes):
     return result
 
 def find_requests_for_intervals(network_events, intervals):
-    interval_to_num_requests = generate_interval_to_num_request_dict(intervals)
+    interval_to_num_requests = generate_interval_to_requests_dict(intervals)
     request_to_load_interval_dict = dict() # maps from the request id to the interval.
     request_initial_walltime = dict()
     request_initial_timestamp = dict()
@@ -73,22 +73,28 @@ def find_requests_for_intervals(network_events, intervals):
     for request_id in request_to_load_interval_dict:
         request_load_interval = request_to_load_interval_dict[request_id]
         # print 'request id: ' + str(request_id) + ' load interval: ' + str(request_load_interval) + ' load time: ' + str(request_load_interval[1] - request_load_interval[0])
-        populate_num_requests_for_all_intervals(interval_to_num_requests, request_load_interval)
+        populate_num_requests_for_all_intervals(interval_to_num_requests, request_load_interval, request_id)
     return interval_to_num_requests
 
-def populate_num_requests_for_all_intervals(interval_to_num_request_dict, request_load_interval):
+def populate_num_requests_for_all_intervals(interval_to_num_request_dict, request_load_interval, request_id):
     for interval in interval_to_num_request_dict:
         if request_load_interval[0] <= interval[0] < interval[1] <= request_load_interval[1] or \
             request_load_interval[0] <= interval[0] <= request_load_interval[1] < interval[1] or \
             interval[0] <= request_load_interval[0] <= interval[1] < request_load_interval[1] or \
             interval[0] <= request_load_interval[0] < request_load_interval[1] <= interval[1]:
             # print '\t[OK] interval: {0}'.format(interval)
-            interval_to_num_request_dict[interval] += 1 
+            interval_to_num_request_dict[interval].add(request_id)
 
 def generate_interval_to_num_request_dict(intervals):
     result = dict()
     for interval in intervals:
         result[interval] = 0
+    return result
+
+def generate_interval_to_requests_dict(intervals):
+    result = dict()
+    for interval in intervals:
+        result[interval] = set()
     return result
             
 def split_page_load_to_intervals(page_start_end_time, interval_size=100):
@@ -110,7 +116,10 @@ def output_to_file(result, utilizations, output_dir):
     full_path = os.path.join(output_dir, '100ms_interval_num_request.txt')
     with open(full_path, 'wb') as output_file:
         for interval in result:
-            line = '{0} {1} {2} {3:.6f}'.format(interval[0], interval[1], result[interval], utilizations[interval])
+            requests = result[interval]
+            line = '{0:f} {1:f} {2} {3:f}'.format(interval[0], interval[1], len(requests), utilizations[interval])
+            for request in requests:
+                line += ' ' + str(request)
             output_file.write(line + '\n')
 
 if __name__ == '__main__':
@@ -118,7 +127,6 @@ if __name__ == '__main__':
     parser.add_argument('network_events_filename')
     parser.add_argument('page_start_end_time_filename')
     parser.add_argument('pcap_filename')
-
     parser.add_argument('--output-dir', default='.')
     args = parser.parse_args()
     page_start_end_time = common_module.parse_page_start_end_time(args.page_start_end_time_filename)

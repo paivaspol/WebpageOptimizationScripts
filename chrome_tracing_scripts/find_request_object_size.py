@@ -15,7 +15,7 @@ def get_request_sizes(network_filename):
                 request_size[network_event['params']['requestId']] += network_event['params']['encodedDataLength']
             elif network_event['method'] == 'Network.loadingFinished':
                 cumulative_size = request_size[network_event['params']['requestId']]
-                request_size[network_event['params']['requestId']] = network_event['params']['encodedDataLength']
+                request_size[network_event['params']['requestId']] = max(network_event['params']['encodedDataLength'], cumulative_size)
     return request_size
 
 def get_request_sizes_in_directory(root_dir, write_results):
