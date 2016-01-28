@@ -43,7 +43,7 @@ def find_utilization_for_intervals(pcap_filename, intervals, page_load_start_end
                     pass
         except dpkt.NeedData as e:
             pass
-    return find_utilizations(interval_to_bytes_received)
+    return find_utilizations(interval_to_bytes_received), interval_to_bytes_received
 
 def find_utilizations(interval_to_bytes):
     result = dict()
@@ -78,11 +78,12 @@ def find_requests_for_intervals(network_events, intervals):
 
 def populate_num_requests_for_all_intervals(interval_to_num_request_dict, request_load_interval, request_id):
     for interval in interval_to_num_request_dict:
-        if request_load_interval[0] <= interval[0] < interval[1] <= request_load_interval[1] or \
-            request_load_interval[0] <= interval[0] <= request_load_interval[1] < interval[1] or \
-            interval[0] <= request_load_interval[0] <= interval[1] < request_load_interval[1] or \
-            interval[0] <= request_load_interval[0] < request_load_interval[1] <= interval[1]:
-            # print '\t[OK] interval: {0}'.format(interval)
+        # if request_load_interval[0] <= interval[0] < interval[1] <= request_load_interval[1] or \
+        #     request_load_interval[0] <= interval[0] <= request_load_interval[1] < interval[1] or \
+        #     interval[0] <= request_load_interval[0] <= interval[1] < request_load_interval[1] or \
+        #if interval[0] <= request_load_interval[0] < request_load_interval[1] <= interval[1]:
+        if request_load_interval[0] < interval[0] < interval[1] < request_load_interval[1]:
+            # print '\t[OK] interval: {0} request interval: {1}'.format(interval, request_load_interval)
             interval_to_num_request_dict[interval].add(request_id)
 
 def generate_interval_to_num_request_dict(intervals):
@@ -112,12 +113,12 @@ def split_page_load_to_intervals(page_start_end_time, interval_size=100):
         end_interval = min(end_interval + 100, end_load_time)
     return result
 
-def output_to_file(result, utilizations, output_dir):
+def output_to_file(result, utilizations, intervals_to_bytes_received, output_dir):
     full_path = os.path.join(output_dir, '100ms_interval_num_request.txt')
     with open(full_path, 'wb') as output_file:
         for interval in result:
             requests = result[interval]
-            line = '{0:f} {1:f} {2} {3:f}'.format(interval[0], interval[1], len(requests), utilizations[interval])
+            line = '{0:f} {1:f} {2} {3} {4:f}'.format(interval[0], interval[1], len(requests), intervals_to_bytes_received[interval], utilizations[interval])
             for request in requests:
                 line += ' ' + str(request)
             output_file.write(line + '\n')
@@ -133,5 +134,5 @@ if __name__ == '__main__':
     page_load_intervals = split_page_load_to_intervals(page_start_end_time)
     network_events = common_module.parse_network_events(args.network_events_filename)
     interval_to_request_count = find_requests_for_intervals(network_events, page_load_intervals)
-    utilizations = find_utilization_for_intervals(args.pcap_filename, page_load_intervals, page_start_end_time[1])
-    output_to_file(interval_to_request_count, utilizations, args.output_dir)
+    utilizations, intervals_to_bytes_received = find_utilization_for_intervals(args.pcap_filename, page_load_intervals, page_start_end_time[1])
+    output_to_file(interval_to_request_count, utilizations, intervals_to_bytes_received, args.output_dir)

@@ -24,7 +24,7 @@ def aggregate_utilizations(root_dir):
         with open(result_filename, 'rb') as input_file:
             for raw_line in input_file:
                 line = raw_line.strip().split()
-                aggregated_utilizations.append((int(line[2]), float(line[3])))
+                aggregated_utilizations.append((int(line[2]), float(line[4])))
     return aggregated_utilizations
 
 def output_to_file(aggregated_utilizations, threshold, output_dir):

@@ -15,13 +15,8 @@ def find_request_sizes(root_dir):
             for raw_line in input_file:
                 line = raw_line.strip().split()
                 num_requests = int(line[2])
-                utilizations = float(line[4])
-                # if num_requests <= num_objects_threshold and utilizations > utilization_threshold:
-                sum_request_sizes = 0
-                for i in range(5, len(line)):
-                    request_id = line[i]
-                    sum_request_sizes += requests_to_sizes[request_id]
-                request_sizes_per_interval.append((num_requests, utilizations, sum_request_sizes))
+                actual_bytes_downloaded = int(line[3])
+                request_sizes_per_interval.append((num_requests, actual_bytes_downloaded))
     return request_sizes_per_interval
 
 def get_request_sizes(request_sizes_filename):
@@ -34,26 +29,17 @@ def get_request_sizes(request_sizes_filename):
 
 def generate_bar_and_whisker(request_sizes, output_dir):
     num_requests_to_request_sizes = dict()
-    num_requests_to_utilizations = dict()
     for interval_data in request_sizes:
-        num_requests, utilization, request_sizes = interval_data
+        num_requests, actual_bytes_downloaded = interval_data
         if num_requests not in num_requests_to_request_sizes:
             num_requests_to_request_sizes[num_requests] = []
-            num_requests_to_utilizations[num_requests] = []
-        num_requests_to_request_sizes[num_requests].append(request_sizes)
-        num_requests_to_utilizations[num_requests].append(utilization)
+        num_requests_to_request_sizes[num_requests].append(actual_bytes_downloaded)
     result_requests_to_request_size_datapoints = dict()
-    result_requests_to_utilizations_datapoints = dict()
     for num_requests in num_requests_to_request_sizes:
         request_size_for_requests = num_requests_to_request_sizes[num_requests]
-        utilizations_for_requests = num_requests_to_utilizations[num_requests]
         result_requests_to_request_size_datapoints[num_requests] = generate_find_datapoints(request_size_for_requests)
-        result_requests_to_utilizations_datapoints[num_requests] = generate_find_datapoints(utilizations_for_requests)
-        print 'num_requests: ' + str(num_requests) + ' request_size: ' + str(len(request_size_for_requests)) + ' request_to_utilization: ' + str(len(utilizations_for_requests))
-    output_filename = os.path.join(output_dir, 'median_sum_requests.txt')
+    output_filename = os.path.join(output_dir, 'median_actual_bytes_downloaded.txt')
     write_to_file(result_requests_to_request_size_datapoints, output_filename)
-    output_filename = os.path.join(output_dir, 'median_utilizations.txt')
-    write_to_file(result_requests_to_utilizations_datapoints, output_filename)
 
 def generate_find_datapoints(data_list):
     return numpy.median(data_list)

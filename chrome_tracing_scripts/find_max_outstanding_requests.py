@@ -21,11 +21,11 @@ def find_number_of_requests(root_dir):
                 elif network_event['method'] == 'Network.loadingFinished':
                     unique_requests.remove(network_event['params']['requestId'])
                 max_num_outstanding_requests = max(max_num_outstanding_requests, len(unique_requests))
-        result.append(max_num_outstanding_requests)
+        result.append((url, max_num_outstanding_requests))
     
-    sorted_number_of_objects = sorted(result)
+    sorted_number_of_objects = sorted([ (url, num_objects) for url, num_objects in result if num_objects >= 41 ], key= lambda x: x[1])
     for num_obj in sorted_number_of_objects:
-        print num_obj
+        print '{0} {1}'.format(num_obj[0], num_obj[1])
 
 if __name__ == '__main__':
     parser = ArgumentParser()

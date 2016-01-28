@@ -7,7 +7,7 @@ if __name__ == '__main__':
     argparser = ArgumentParser()
     argparser.add_argument('config_filename')
     argparser.add_argument('device', help='The device name e.g. Nexus_6')
-    argparser.add_argument('--output-dir')
+    argparser.add_argument('--output-dir', default='.')
     argparser.add_argument('--no-wait', action='store_false', default=True)
     args = argparser.parse_args()
 
