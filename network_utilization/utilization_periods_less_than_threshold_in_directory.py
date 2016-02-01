@@ -4,7 +4,7 @@ import common_module
 import subprocess
 import os
 
-def find_utilizations(root_dir):
+def find_utilizations(root_dir, interval_size):
     for path, dirs, filenames in os.walk(root_dir):
         if len(filenames) == 0:
             continue
@@ -12,15 +12,16 @@ def find_utilizations(root_dir):
         pcap_filename = os.path.join(path, 'output.pcap')
         network_filename = os.path.join(path, 'network_' + url)
         page_start_end_filename = os.path.join(path, 'start_end_time_' + url)
-        command = 'python utilization_periods_less_than_threshold.py {0} {1} {2} --output-dir {3}'.format(network_filename, page_start_end_filename, pcap_filename, path)
+        requests_to_ignore_filename = os.path.join(path, 'requests_to_ignore.txt')
+        command = 'python utilization_periods_less_than_threshold.py {0} {1} {2} --output-dir {3} --interval-size {4} --requests-to-ignore {5}'.format(network_filename, page_start_end_filename, pcap_filename, path, interval_size, requests_to_ignore_filename)
         subprocess.call(command, shell=True)
 
-def aggregate_utilizations(root_dir):
+def aggregate_utilizations(root_dir, interval_size):
     aggregated_utilizations = []
     for path, dirs, filenames in os.walk(root_dir):
         if len(filenames) == 0:
             continue
-        result_filename = os.path.join(path, '100ms_interval_num_request.txt')
+        result_filename = os.path.join(path, '{0}ms_interval_num_request.txt'.format(interval_size))
         with open(result_filename, 'rb') as input_file:
             for raw_line in input_file:
                 line = raw_line.strip().split()
@@ -53,8 +54,9 @@ if __name__ == '__main__':
     parser.add_argument('output_dir')
     parser.add_argument('threshold', type=int)
     parser.add_argument('--dont-compute-utilizations', default=False, action='store_true')
+    parser.add_argument('--interval-size', default=100, type=int)
     args = parser.parse_args()
     if not args.dont_compute_utilizations:
-        find_utilizations(args.root_dir)
-    aggregated_utilizations = aggregate_utilizations(args.root_dir)
+        find_utilizations(args.root_dir, args.interval_size)
+    aggregated_utilizations = aggregate_utilizations(args.root_dir, args.interval_size)
     output_to_file(aggregated_utilizations, args.threshold, args.output_dir)

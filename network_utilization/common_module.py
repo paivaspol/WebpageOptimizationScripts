@@ -54,3 +54,32 @@ def parse_network_events(network_events_filename):
                 result.append(network_event)
     return result
 
+def parse_pages_to_use(pages_to_use_filename):
+    result = set()
+    if pages_to_use_filename is None:
+        return result
+    with open(pages_to_use_filename, 'rb') as input_file:
+        for raw_line in input_file:
+            line = raw_line.strip().split()
+            result.add(line[0])
+    return result
+
+def parse_requests_to_ignore(requests_to_ignore_filename):
+    result = dict()
+    with open(requests_to_ignore_filename, 'rb') as input_file:
+        current_url = ''
+        for raw_line in input_file:
+            if raw_line.startswith('page'):
+                line = raw_line.strip().split()
+                result[line[1]] = []
+                current_url = line[1]
+            else:
+                result[current_url].append(raw_line.strip())
+    return result
+
+def parse_requests_to_ignore_in_url_directory(requests_to_ignore_filename):
+    result = set()
+    with open(requests_to_ignore_filename, 'rb') as input_file:
+        for raw_line in input_file:
+            result.add(raw_line.strip())
+    return result

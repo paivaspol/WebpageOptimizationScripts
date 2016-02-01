@@ -54,7 +54,7 @@ def find_utilizations(interval_to_bytes):
         result[interval] = bandwidth / EXPECTED_BANDWIDTH
     return result
 
-def find_requests_for_intervals(network_events, intervals):
+def find_requests_for_intervals(network_events, intervals, requests_to_ignore):
     interval_to_num_requests = generate_interval_to_requests_dict(intervals)
     request_to_load_interval_dict = dict() # maps from the request id to the interval.
     request_initial_walltime = dict()
@@ -63,6 +63,8 @@ def find_requests_for_intervals(network_events, intervals):
         if 'timestamp' not in network_event[PARAMS]:
             continue
         request_id = network_event[PARAMS][REQUEST_ID]
+        if request_id in requests_to_ignore:
+            continue
         timestamp = network_event[PARAMS]['timestamp'] * 1000 # Convert to ms
         if network_event[METHOD] == 'Network.requestWillBeSent':
             request_initial_walltime[request_id] = network_event[PARAMS]['wallTime'] * 1000 # Convert to ms
@@ -110,11 +112,11 @@ def split_page_load_to_intervals(page_start_end_time, interval_size=100):
         interval = (start_interval, end_interval)
         result.append(interval)
         start_interval = end_interval
-        end_interval = min(end_interval + 100, end_load_time)
+        end_interval = min(end_interval + interval_size, end_load_time)
     return result
 
-def output_to_file(result, utilizations, intervals_to_bytes_received, output_dir):
-    full_path = os.path.join(output_dir, '100ms_interval_num_request.txt')
+def output_to_file(result, utilizations, intervals_to_bytes_received, output_dir, interval_size):
+    full_path = os.path.join(output_dir, '{0}ms_interval_num_request.txt'.format(interval_size))
     with open(full_path, 'wb') as output_file:
         for interval in result:
             requests = result[interval]
@@ -129,10 +131,13 @@ if __name__ == '__main__':
     parser.add_argument('page_start_end_time_filename')
     parser.add_argument('pcap_filename')
     parser.add_argument('--output-dir', default='.')
+    parser.add_argument('--requests-to-ignore', default=None)
+    parser.add_argument('--interval-size', default=100, type=int)
     args = parser.parse_args()
     page_start_end_time = common_module.parse_page_start_end_time(args.page_start_end_time_filename)
-    page_load_intervals = split_page_load_to_intervals(page_start_end_time)
+    requests_to_ignore = common_module.parse_requests_to_ignore_in_url_directory(args.requests_to_ignore)
+    page_load_intervals = split_page_load_to_intervals(page_start_end_time, args.interval_size)
     network_events = common_module.parse_network_events(args.network_events_filename)
-    interval_to_request_count = find_requests_for_intervals(network_events, page_load_intervals)
+    interval_to_request_count = find_requests_for_intervals(network_events, page_load_intervals, requests_to_ignore)
     utilizations, intervals_to_bytes_received = find_utilization_for_intervals(args.pcap_filename, page_load_intervals, page_start_end_time[1])
-    output_to_file(interval_to_request_count, utilizations, intervals_to_bytes_received, args.output_dir)
+    output_to_file(interval_to_request_count, utilizations, intervals_to_bytes_received, args.output_dir, args.interval_size)
