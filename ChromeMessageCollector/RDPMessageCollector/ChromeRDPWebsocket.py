@@ -119,6 +119,15 @@ class ChromeRDPWebsocket(object):
         print 'Cleared browser cache'
         sleep(0.5)
 
+    def can_clear_cache(self, debug_connection):
+        '''
+        Clears the cache in the browser
+        '''
+        clear_cache = { "id": 4, "method": "Network.canClearBrowserCache" }
+        debug_connection.send(json.dumps(clear_cache))
+        print 'Cleared browser cache'
+        sleep(0.5)
+
     def disable_network_tracking(self, debug_connection):
         '''
         Disable Network tracking in Chrome.

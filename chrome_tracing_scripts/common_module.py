@@ -18,11 +18,12 @@ def parse_network_file(chrome_network_file):
                 wallTime = convert_to_ms_precision(float(event[PARAMS]['wallTime']))
                 walltime_dict[request_id] = wallTime
                 timestamp_dict[request_id] = timestamp
-            elif event['method'] == 'Network.loadingFinished' or \
-                event['method'] == 'Network.loadingFailed':
+            elif (event['method'] == 'Network.loadingFinished' or \
+                event['method'] == 'Network.loadingFailed'):
                 request_id, timestamp = get_requestid_and_timestamp(event)
-                current_wallTime = walltime_dict[request_id] + (timestamp - timestamp_dict[request_id])
-                result[request_id] = (walltime_dict[request_id], current_wallTime)
+                if request_id in walltime_dict and request_id in timestamp_dict:
+                    current_wallTime = walltime_dict[request_id] + (timestamp - timestamp_dict[request_id])
+                    result[request_id] = (walltime_dict[request_id], current_wallTime)
     sorted_result = sorted(result.iteritems(), key=lambda x: x[1][0])
     return sorted_result
 

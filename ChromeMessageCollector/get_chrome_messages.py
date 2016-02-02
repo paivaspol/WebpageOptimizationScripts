@@ -29,6 +29,8 @@ def main(device_configuration, url):
     print 'Starting Chrome...'
     phone_connection_utils.start_chrome(device_configuration)
 
+    # close_all_tabs(device_configuration)
+
     print 'Connected to Chrome...'
     got_debugging_url = False
     while not got_debugging_url:
@@ -122,6 +124,24 @@ def close_tab(device_configuration):
     # response_json = json.loads(response.text)
     print response.text
 
+def close_all_tabs(device_configuration):
+    '''
+    Closes all the tabs in Chrome.
+    '''
+    base_url = 'http://localhost:{0}/json'
+    url = base_url.format(device_configuration[phone_connection_utils.ADB_PORT])
+    print 'base url: ' + url
+    response = requests.get(url)
+    print 'response: ' + str(response.text)
+    response_json = json.loads(response.text)
+    print 'response len: ' + str(len(response_json))
+    for i in range(0, len(response_json)):
+        response = response_json[i]
+        page_id = response['id']
+        base_url = 'http://localhost:{0}/json/close/{1}'
+        url = base_url.format(device_configuration[phone_connection_utils.ADB_PORT], page_id)
+        response = requests.get(url)
+
 def get_debugging_url(device_configuration):
     '''
     Connects the client to the debugging socket.
@@ -152,4 +172,3 @@ if __name__ == '__main__':
     # Get the device configuration.
     device_config = phone_connection_utils.get_device_configuration(config_reader, args.device)
     main(device_config, args.url)
-
