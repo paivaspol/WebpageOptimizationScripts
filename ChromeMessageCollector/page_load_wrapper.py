@@ -13,13 +13,14 @@ NEXUS_5 = 'Nexus_5'
 HTTP_PREFIX = 'http://'
 WWW_PREFIX = 'www.'
 
-TIMEOUT = 2 * 60 # set to 2 minutes
+TIMEOUT = 5 * 60 # set to 5 minutes
 
 def main(pages_file, num_repetitions, output_dir, use_caching_proxy, start_measurements):
     signal.signal(signal.SIGALRM, timeout_handler) # Setup the timeout handler
     pages = get_pages(pages_file)
     while len(pages) > 0:
         page = pages.pop(0)
+        print 'page: ' + page
         if use_caching_proxy:
             try:
                 # Special Case for Populating the proxy cache.
@@ -48,7 +49,8 @@ def get_pages(pages_file):
     pages = []
     with open(pages_file, 'rb') as input_file:
         for raw_line in input_file:
-            pages.append(raw_line)
+            line = raw_line.strip().split()
+            pages.append(line[len(line) - 1])
     return pages
 
 def load_page(raw_line, run_index, output_dir, start_measurements):
@@ -70,10 +72,9 @@ def load_page(raw_line, run_index, output_dir, start_measurements):
     subprocess.Popen(cmd, shell=True).wait()
 
 def stop_tcpdump_and_cpu_measurement(line, output_dir_run='.'):
-    if WWW_PREFIX in line:
-        url = line[len(HTTP_PREFIX) + len(WWW_PREFIX):]
-    else:
-        url = line[len(HTTP_PREFIX):]
+    url = line[len(HTTP_PREFIX):]
+    if url.startswith(WWW_PREFIX):
+        url = url[len(WWW_PREFIX):]
     if '/' in url:
         url = url.replace('/', '_')
     output_directory = os.path.join(output_dir_run, url)

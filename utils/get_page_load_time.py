@@ -1,13 +1,16 @@
 from argparse import ArgumentParser
 
+import common_module
 import os
 
-def find_load_times(root_dir):
+def find_load_times(root_dir, pages_to_ignore):
     result = dict()
     for path, dirs, filenames in os.walk(root_dir):
         if len(filenames) == 0:
             continue
         url = extract_url_from_path(path)
+        if url in pages_to_ignore:
+            continue
         full_path = os.path.join(path, 'start_end_time_' + url)
         if os.path.exists(full_path):
             with open(full_path, 'rb') as input_file:
@@ -34,5 +37,7 @@ def extract_url_from_path(path):
 if __name__ == '__main__':
     parser = ArgumentParser()
     parser.add_argument('root_dir')
+    parser.add_argument('--pages-to-ignore', default=None)
     args = parser.parse_args()
-    find_load_times(args.root_dir)
+    pages_to_ignore = common_module.parse_pages_to_ignore(args.pages_to_ignore)
+    find_load_times(args.root_dir, pages_to_ignore)

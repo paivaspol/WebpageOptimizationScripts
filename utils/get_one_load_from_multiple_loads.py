@@ -15,14 +15,14 @@ WWW_PREFIX = 'www.'
 def get_page_to_chosen_run(root_dir, num_iterations, run_type, pages):
     page_to_chosen_run_index_dict = dict()
     for page in pages:
-        if WWW_PREFIX in page:
+        if page.startswith(WWW_PREFIX):
             page = page[len(WWW_PREFIX):]
         if '/' in page:
             # This is a case that we have to properly handle in another script.
             continue
         print 'Processing: ' + page
         load_times = []
-        load_time_to_load_index_dict = dict()
+
         for i in range(0, num_iterations):
             run_path = os.path.join(os.path.join(root_dir, str(i)), page)
             start_end_time_filename = os.path.join(run_path, 'start_end_time_{0}'.format(page))
@@ -30,9 +30,9 @@ def get_page_to_chosen_run(root_dir, num_iterations, run_type, pages):
                 continue
             this_run_page_load_time = get_page_load_time(start_end_time_filename)
             load_times.append(this_run_page_load_time)
-            load_time_to_load_index_dict[this_run_page_load_time] = i
 
         # Choose the load time.
+        print 'number of loads: ' + str(len(load_times))
         if len(load_times) > 0:
             if run_type == MEDIAN:
                 chosen_load_time = numpy.median(load_times)
@@ -42,8 +42,15 @@ def get_page_to_chosen_run(root_dir, num_iterations, run_type, pages):
                 chosen_load_time = max(load_times)
             elif run_type == RANDOM:
                 chosen_load_time = random.sample(load_times, 1)[0]
-            page_to_chosen_run_index_dict[page] = load_time_to_load_index_dict[chosen_load_time]
+            page_to_chosen_run_index_dict[page] = find_index_for_load_time(chosen_load_time, load_times)
     return page_to_chosen_run_index_dict
+
+def find_index_for_load_time(target_page_load_time, load_times):
+    for i in range(0, len(load_times)):
+        load_time = load_times[i]
+        if target_page_load_time == load_time:
+            return i
+    return -1
 
 def get_page_load_time(start_end_time_filename):
     '''
@@ -60,12 +67,12 @@ def get_pages(pages_file):
     result = []
     with open(pages_file, 'rb') as input_file:
         for raw_line in input_file:
-            page = raw_line.strip()[len(HTTP_PREFIX):].replace('/', '_')
+            line = raw_line.strip().split()
+            page = line[len(line) - 1][len(HTTP_PREFIX):].replace('/', '_')
             result.append(page)
-            
     return result
 
-def copy_chosen_runs(chosen_runs, root_dir, output_dir):
+def copy_chosen_runs(chosen_runs, root_dir, output_dir, num_iterations):
     '''
     Copies the chosen runs to the output directory.
     '''
@@ -73,9 +80,10 @@ def copy_chosen_runs(chosen_runs, root_dir, output_dir):
         os.mkdir(output_dir)
     
     for page, run_index in chosen_runs.iteritems():
-        run_path = os.path.join(os.path.join(root_dir, str(run_index)), page)
-        copy_command = 'cp -r -v {0} {1}'.format(run_path, output_dir)
-        subprocess.call(copy_command, shell=True)
+        if 0 <= run_index < num_iterations:
+            run_path = os.path.join(os.path.join(root_dir, str(run_index)), page)
+            copy_command = 'cp -r -v {0} {1}'.format(run_path, output_dir)
+            subprocess.call(copy_command, shell=True)
 
 if __name__ == '__main__':
     parser = ArgumentParser()
@@ -88,4 +96,4 @@ if __name__ == '__main__':
     if args.run_type == MIN or args.run_type == MEDIAN or args.run_type == MAX or args.run_type == RANDOM:
         pages = get_pages(args.pages_file)
         chosen_runs = get_page_to_chosen_run(args.root_dir, args.num_iterations, args.run_type, pages)
-        copy_chosen_runs(chosen_runs, args.root_dir, args.output_dir)
+        copy_chosen_runs(chosen_runs, args.root_dir, args.output_dir, args.num_iterations)

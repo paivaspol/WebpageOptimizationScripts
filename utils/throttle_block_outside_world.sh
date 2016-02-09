@@ -17,15 +17,13 @@ EOF
 cat <<EOF | pfctl -q -a 4G -f -
 dummynet out proto tcp from 192.168.2.1 to 192.168.2.0/24 port 1:65535 pipe 1
 dummynet in proto tcp from 192.168.2.0/24 to 192.168.2.1 port 1:65535 pipe 2
-pass out quick on bridge100 inet proto tcp from any to any port 1:65535
-pass in quick on bridge100 inet proto tcp from any to any port 1:65535 
 EOF
 
 # Dummynet
 
 # Create the dummynet queue
 dnctl pipe 1 config bw 6Mbit/s delay 100ms
-dnctl pipe 2 config bw 2Mbit/s delay
+dnctl pipe 2 config bw 2Mbit/s 
 
 # Activate PF
 pfctl -E
