@@ -111,3 +111,9 @@ def get_device_configuration(config_reader, device):
     device_config[CHROME_INSTANCE] = 'com.android.chrome/com.google.android.apps.chrome.Main'
     device_config[ADB_PORT] = int(config_reader.get(device, ADB_PORT))
     return device_config
+
+def get_cpu_running_chrome(device_config):
+    command = 'adb -s {0} shell \'ps -c | grep chrome\''.format(device_config[DEVICE_ID])
+    process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    output, _ = process.communicate()
+    return output.split()[5]

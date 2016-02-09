@@ -1,3 +1,4 @@
+import common_module
 import json
 import requests
 import subprocess
@@ -20,14 +21,14 @@ def main(device_configuration, url):
     '''
     The main workflow of the script.
     '''
-    # print 'Stopping tcpdump...'
-    # phone_connection_utils.stop_tcpdump(device_configuration, sleep_before_kill=False)
-    # print 'Starting tcpdump...'
-    # phone_connection_utils.start_tcpdump(device_configuration)
+    output_directory = create_output_directory_for_url(url)
     print 'Stopping Chrome...'
     phone_connection_utils.stop_chrome(device_configuration)
     print 'Starting Chrome...'
     phone_connection_utils.start_chrome(device_configuration)
+    
+    cpu_chrome_running_on = phone_connection_utils.get_cpu_running_chrome(device_configuration)
+    output_cpu_running_chrome(output_directory, cpu_chrome_running_on)
 
     # close_all_tabs(device_configuration)
 
@@ -43,6 +44,34 @@ def main(device_configuration, url):
     device_configuration['page_id'] = page_id
     debugging_socket = ChromeRDPWebsocket(debugging_url, url, device_configuration, callback_on_page_done)
 
+def output_cpu_running_chrome(output_directory, cpu_id):
+    '''
+    Outputs the CPU id that is running chrome.
+    '''
+    cpu_running_chrome_filename = os.path.join(output_directory, 'cpu_running_chrome.txt')
+    with open(cpu_running_chrome_filename, 'wb') as output_file:
+        output_file.write(cpu_id)
+    
+
+def create_output_directory_for_url(url):
+    '''
+    Creates an output directory for the url
+    '''
+    base_dir = ''
+    if OUTPUT_DIR is not None:
+        base_dir = os.path.join(base_dir, OUTPUT_DIR)
+        if not os.path.exists(base_dir):
+            os.mkdir(base_dir)
+    
+    final_url = common_module.escape_url(url)
+    print 'base_dir: ' + base_dir + ' final_url: ' + final_url
+
+    base_dir = os.path.join(base_dir, final_url)
+    # Create the directory if the directory doesn't exist.
+    if not os.path.exists(base_dir):
+        os.mkdir(base_dir)
+    return base_dir
+
 def callback_on_page_done(debugging_socket, network_messages, timeline_messages, device_configuration):
     '''
     Sets up the call back once the page is done loading.
@@ -52,24 +81,9 @@ def callback_on_page_done(debugging_socket, network_messages, timeline_messages,
     debugging_socket.close_connection()
     url = debugging_socket.get_navigation_url()
     debugging_url = debugging_socket.get_debugging_url()
-    base_dir = ''
-    if OUTPUT_DIR is not None:
-        base_dir = os.path.join(base_dir, OUTPUT_DIR)
-        if not os.path.exists(base_dir):
-            os.mkdir(base_dir)
-
-    final_url = url[len(HTTP_PREFIX):]
-    if WWW_PREFIX in url:
-        final_url = url[len(HTTP_PREFIX) + len(WWW_PREFIX):]
+    final_url = common_module.escape_url(url)
+    base_dir = create_output_directory_for_url(url)
     
-    final_url = final_url.replace('/', '_')
-    print 'base_dir: ' + base_dir + ' final_url: ' + final_url
-
-    base_dir = os.path.join(base_dir, final_url)
-    # Create the directory if the directory doesn't exist.
-    if not os.path.exists(base_dir):
-        os.mkdir(base_dir)
-
     network_filename = os.path.join(base_dir, 'network_' + final_url)
     timeline_filename = os.path.join(base_dir, 'timeline_' + final_url)
     start_end_time_filename = os.path.join(base_dir, 'start_end_time_' + final_url)
@@ -100,12 +114,12 @@ def get_start_end_time(debugging_url):
             ws = websocket.create_connection(debugging_url)
             navigation_starts = json.dumps({ "id": 6, "method": "Runtime.evaluate", "params": { "expression": "performance.timing.navigationStart", "returnByValue": True }})
             load_event_ends = json.dumps({ "id": 6, "method": "Runtime.evaluate", "params": { "expression": "performance.timing.loadEventEnd", "returnByValue": True }})
-            print 'navigation starts: ' + str(navigation_starts)
+            # print 'navigation starts: ' + str(navigation_starts)
             ws.send(navigation_starts)
             nav_starts_result = json.loads(ws.recv())
             ws.send(load_event_ends)
             load_ends = json.loads(ws.recv())
-            print 'start time: ' + str(nav_starts_result)
+            # print 'start time: ' + str(nav_starts_result)
             start_time = int(nav_starts_result['result']['result']['value'])
             end_time = int(load_ends['result']['result']['value'])
         except Exception as e:
