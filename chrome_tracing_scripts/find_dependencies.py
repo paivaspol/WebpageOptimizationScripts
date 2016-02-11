@@ -27,6 +27,7 @@ def find_dependencies(network_activities):
     request_id_to_initiator_map = dict() # Maps from the resource to initiator.
     request_id_to_resource_map = dict() # Maps from the request id to the resource url
     request_id_to_document_url = dict() # Maps from the request id to the document url.
+    request_id_to_request_object = dict() # Maps from the request id to the network event.
     for network_activity in network_activities:
         if METHOD in network_activity and \
             network_activity[METHOD] == 'Network.requestWillBeSent':
@@ -45,14 +46,17 @@ def find_dependencies(network_activities):
             request_id_to_resource_map[request_id] = network_activity[PARAMS][REQUEST][URL]
             request_id_to_initiator_map[request_id] = requester
             request_id_to_document_url[request_id] = network_activity[PARAMS]['documentURL']
+            request_id_to_request_object[request_id] = network_activity
         elif METHOD in network_activity and \
             network_activity[METHOD] == 'Network.responseReceived':
             request_id = network_activity[PARAMS][REQUEST_ID]
+            request_network_activity = request_id_to_request_object[request_id]
             if request_id in request_id_to_initiator_map and \
-                request_id_to_initiator_map[request_id] == DEFAULT_REQUESTER:
+                request_network_activity[PARAMS][INITIATOR][TYPE] == 'parser':
                 # Try to apply the second extraction rule: use the referer instead.
                 response = network_activity[PARAMS][RESPONSE]
-                if REQUEST_HEADERS in response and REFERER in response[REQUEST_HEADERS]:
+                if REQUEST_HEADERS in response and REFERER in response[REQUEST_HEADERS] and \
+                    response[REQUEST_HEADERS][REFERER].endswith('.css'):
                     request_id_to_initiator_map[request_id] = response[REQUEST_HEADERS][REFERER]
             elif request_id in request_id_to_document_url and \
                 request_id_to_initiator_map[request_id] == DEFAULT_REQUESTER:
@@ -60,7 +64,7 @@ def find_dependencies(network_activities):
                 request_id_to_initiator_map[request_id] = request_id_to_document_url[request_id]
 
     dep_tree = populate_dependencies(request_id_to_initiator_map, request_id_to_resource_map)
-    return dep_tree
+    return { key: dep_tree[key] for key in dep_tree if key != DEFAULT_REQUESTER }
 
 def populate_dependencies(request_id_to_initiator_map, request_id_to_document_url):
     dep_tree = dict()
@@ -96,7 +100,7 @@ def output_dep_graph(dep_graph, initiator, prefix):
 def iterate_dep_graph(dep_graph):
     for key, value in dep_graph.iteritems():
         print 'key: {0} len Values: {1}'.format(key, len(value))
-        print '\t{0}'.format(value)
+        # print '\t{0}'.format(value)
 
 if __name__ == '__main__':
     parser = ArgumentParser()
