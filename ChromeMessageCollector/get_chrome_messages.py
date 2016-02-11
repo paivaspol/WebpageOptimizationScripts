@@ -103,6 +103,8 @@ def callback_on_page_done(debugging_socket, network_messages, timeline_messages,
     with open(start_end_time_filename, 'wb') as output_file:
         output_file.write('{0} {1} {2}\n'.format(final_url, start_time, end_time))
 
+    get_resource_tree(debugging_url)
+
     close_tab(device_configuration)
 
 def get_start_end_time(debugging_url):
@@ -127,6 +129,21 @@ def get_start_end_time(debugging_url):
         finally:
             ws.close()
     return start_time, end_time
+
+def get_resource_tree(debugging_url):
+    try:
+        ws = websocket.create_connection(debugging_url)
+        get_resource_tree = json.dumps({ "id": 6, "method": "Page.getResourceTree", "params": { }})
+        # print 'navigation starts: ' + str(navigation_starts)
+        ws.send(get_resource_tree)
+        resource_tree = json.loads(ws.recv())
+        # print 'start time: ' + str(nav_starts_result)
+        print resource_tree
+    except Exception as e:
+        pass
+    finally:
+        ws.close()
+
 
 def close_tab(device_configuration):
     '''
