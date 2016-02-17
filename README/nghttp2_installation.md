@@ -7,7 +7,9 @@ This was fixed by including `-L` and `-I` to the `LDFLAGS`, `CFLAGS`, and `CPPFL
 
 At this point, I was able to run `make` to start building `nghttp2`. However, the build failed at one point where it couldn't find a symbol from `openssl`. The problem stems from
 the build process of `openssl` where `make depend` couldn't find `stdargs.h`. After researching about this for a while, I gave up. The very hacky solution I used was 
-install `openssl` via `Homebrew`, then copy everything under `[homebrew_openssl]\include` and `[homebrew-openssl]\lib` to the build path. Then, it worked!
+install `openssl` via `Homebrew`, then copy everything under `[homebrew_openssl]\include` and `[homebrew-openssl]\lib` to the build path.
+
+`make install` may complain about `PYTHONPATH` environment variable. Just `export PYTHONPATH=...` where `...` is the path is the one `make install` is mentioning`.
 
 # Building nghttp2 on Ubuntu 14.04
 
