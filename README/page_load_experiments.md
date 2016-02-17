@@ -7,4 +7,5 @@
 
 ## Installing Components
 
-* [nghttp2]()
+* [nghttp2](https://github.com/paivaspol/WebpageOptimization/blob/master/README/nghttp2_installation.md)
+* [Squid]()
