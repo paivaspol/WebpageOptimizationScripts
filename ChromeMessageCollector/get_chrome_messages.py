@@ -27,8 +27,9 @@ def main(device_configuration, url):
     print 'Starting Chrome...'
     phone_connection_utils.start_chrome(device_configuration)
     
-    cpu_chrome_running_on = phone_connection_utils.get_cpu_running_chrome(device_configuration)
-    output_cpu_running_chrome(output_directory, cpu_chrome_running_on)
+    if device_configuration[phone_connection_utils.DEVICE_TYPE] != phone_connection_utils.DEVICE_MAC:
+        cpu_chrome_running_on = phone_connection_utils.get_cpu_running_chrome(device_configuration)
+        output_cpu_running_chrome(output_directory, cpu_chrome_running_on)
 
     # close_all_tabs(device_configuration)
 
@@ -144,13 +145,21 @@ def get_resource_tree(debugging_url):
     finally:
         ws.close()
 
+def get_debugging_port(device_configuration):
+    '''
+    Returns the correct Chrome debug port.
+    '''
+    if device_configuration[phone_connection_utils.DEVICE_TYPE] == phone_connection_utils.DEVICE_PHONE:
+        return device_configuration[phone_connection_utils.ADB_PORT]
+    elif device_configuration[phone_connection_utils.DEVICE_TYPE] == phone_connection_utils.DEVICE_MAC:
+        return device_configuration[phone_connection_utils.CHROME_MAC_DEBUG_PORT]
 
 def close_tab(device_configuration):
     '''
     Connects the client to the debugging socket.
     '''
     base_url = 'http://localhost:{0}/json/close/{1}'
-    url = base_url.format(device_configuration[phone_connection_utils.ADB_PORT], device_configuration['page_id'])
+    url = base_url.format(get_debugging_port(device_configuration), device_configuration['page_id'])
     response = requests.get(url)
     # response_json = json.loads(response.text)
     print response.text
@@ -160,7 +169,7 @@ def close_all_tabs(device_configuration):
     Closes all the tabs in Chrome.
     '''
     base_url = 'http://localhost:{0}/json'
-    url = base_url.format(device_configuration[phone_connection_utils.ADB_PORT])
+    url = base_url.format(get_debugging_port(device_configuration))
     print 'base url: ' + url
     response = requests.get(url)
     print 'response: ' + str(response.text)
@@ -170,7 +179,7 @@ def close_all_tabs(device_configuration):
         response = response_json[i]
         page_id = response['id']
         base_url = 'http://localhost:{0}/json/close/{1}'
-        url = base_url.format(device_configuration[phone_connection_utils.ADB_PORT], page_id)
+        url = base_url.format(get_debugging_port(device_configuration), page_id)
         response = requests.get(url)
 
 def get_debugging_url(device_configuration):
@@ -179,7 +188,7 @@ def get_debugging_url(device_configuration):
     '''
     # print 'here (0)'
     base_url = 'http://localhost:{0}/json'
-    url = base_url.format(device_configuration[phone_connection_utils.ADB_PORT])
+    url = base_url.format(get_debugging_port(device_configuration))
     response = requests.get(url)
     # print 'response: ' + str(response.text)
     response_json = json.loads(response.text)

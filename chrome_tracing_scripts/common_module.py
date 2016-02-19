@@ -70,12 +70,15 @@ def extract_url_from_path(path):
 
 HTTP_PREFIX = 'http://'
 WWW_PREFIX = 'www.'
-
 def escape_page(url):
-    url = url[len(HTTP_PREFIX):]
+    if url.endswith('/'):
+        url = url[:len(url) - 1]
+    if url.startswith(HTTP_PREFIX):
+        url = url[len(HTTP_PREFIX):]
     if url.startswith(WWW_PREFIX):
         url = url[len(WWW_PREFIX):]
     return url.replace('/', '_')
+
 
 def parse_pages_to_ignore(pages_to_ignore_filename):
     pages = set()

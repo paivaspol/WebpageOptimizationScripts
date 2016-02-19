@@ -1,5 +1,6 @@
 from argparse import ArgumentParser
 
+import common_module
 import numpy
 import os
 import random
@@ -15,11 +16,7 @@ WWW_PREFIX = 'www.'
 def get_page_to_chosen_run(root_dir, num_iterations, run_type, pages):
     page_to_chosen_run_index_dict = dict()
     for page in pages:
-        if page.startswith(WWW_PREFIX):
-            page = page[len(WWW_PREFIX):]
-        if '/' in page:
-            # This is a case that we have to properly handle in another script.
-            continue
+        page = common_module.escape_page(page)
         print 'Processing: ' + page
         load_times = []
 
@@ -68,7 +65,7 @@ def get_pages(pages_file):
     with open(pages_file, 'rb') as input_file:
         for raw_line in input_file:
             line = raw_line.strip().split()
-            page = line[len(line) - 1][len(HTTP_PREFIX):].replace('/', '_')
+            page = common_module.escape_page(line[len(line) - 1])
             result.append(page)
     return result
 

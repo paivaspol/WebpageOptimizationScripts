@@ -10,34 +10,53 @@ RESULT_DIRECTORY = '../result/'
 DEVICE_ID = 'id'
 IP = 'ip'
 ADB_PORT = 'adb_port'
-CHROME_INSTANCE = 'com.android.chrome'
+CHROME_MAC_DEBUG_PORT = 'chrome_mac_debugging_port'
+DEVICE_TYPE = 'type'
+CHROME_INSTANCE = 'chrome_instance'
 WEB_SOCKET_DEBUGGER_URL = 'webSocketDebuggerUrl'
+
+DEVICE_PHONE = 'phone'
+DEVICE_MAC = 'mac'
+
+ANDROID_CHROME_INSTANCE = 'com.android.chrome/com.google.android.apps.chrome.Main'
+MAC_CHROME_INSTANCE = '"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"'
 
 def start_chrome(device_configuration):
     '''
     Setup and run chrome on Android.
     '''
-    # Setup port-forwarding for RDP
-    cmd_base = 'adb -s {0} forward tcp:{1} localabstract:chrome_devtools_remote'
-    cmd = cmd_base.format(device_configuration[DEVICE_ID], device_configuration[ADB_PORT])
-    p = subprocess.Popen(cmd, shell=True)
+    if device_configuration[DEVICE_TYPE] == DEVICE_PHONE:
+        # Setup port-forwarding for RDP
+        cmd_base = 'adb -s {0} forward tcp:{1} localabstract:chrome_devtools_remote'
+        cmd = cmd_base.format(device_configuration[DEVICE_ID], device_configuration[ADB_PORT])
+        p = subprocess.Popen(cmd, shell=True)
 
-    # Run chrome
-    cmd_base = 'adb -s {0} shell "am start -a android.intent.action.VIEW -n {1}"'
-    cmd = cmd_base.format(device_configuration[DEVICE_ID], device_configuration[CHROME_INSTANCE])
-    p = subprocess.Popen(cmd, shell=True)
+        # Run chrome
+        cmd_base = 'adb -s {0} shell "am start -a android.intent.action.VIEW -n {1}"'
+        cmd = cmd_base.format(device_configuration[DEVICE_ID], device_configuration[CHROME_INSTANCE])
+        p = subprocess.Popen(cmd, shell=True)
 
-    sleep(3) # So we have enough time to forward the port.
+        sleep(3) # So we have enough time to forward the port.
 
-    return p
+        return p
+    elif device_configuration[DEVICE_TYPE] == DEVICE_MAC:
+        print 'device config: ' + str(device_configuration)
+        # Run Chrome.
+        cmd = device_configuration[CHROME_INSTANCE] + ' --disable-extensions --remote-debugging-port={0}'.format(device_configuration[CHROME_MAC_DEBUG_PORT])
+        p = subprocess.Popen(cmd, shell=True)
+        return p
+        
 
 def stop_chrome(device_configuration):
     '''
     Kill the chrome process that is running.
     '''
-    cmd_base = 'adb -s {0} shell am force-stop com.android.chrome'
-    cmd = cmd_base.format(device_configuration[DEVICE_ID])
-    os.system(cmd)
+    if device_configuration[DEVICE_TYPE] == DEVICE_PHONE:
+        cmd_base = 'adb -s {0} shell am force-stop com.android.chrome'
+        cmd = cmd_base.format(device_configuration[DEVICE_ID])
+        os.system(cmd)
+    elif device_configuration[DEVICE_TYPE] == DEVICE_MAC:
+        os.system('pkill -9 Chrome')
 
 def start_tcpdump(device_configuration):
     '''
@@ -106,10 +125,16 @@ def get_device_configuration(config_reader, device):
     Constructs a device configuration map.
     '''
     device_config = dict()
-    device_config[DEVICE_ID] = config_reader.get(device, DEVICE_ID)
     device_config[IP] = config_reader.get(device, IP)
-    device_config[CHROME_INSTANCE] = 'com.android.chrome/com.google.android.apps.chrome.Main'
-    device_config[ADB_PORT] = int(config_reader.get(device, ADB_PORT))
+    device_type = config_reader.get(device, DEVICE_TYPE)
+    device_config[DEVICE_TYPE] = device_type
+    if device_type == DEVICE_PHONE:
+        device_config[ADB_PORT] = int(config_reader.get(device, ADB_PORT))
+        device_config[CHROME_INSTANCE] = ANDROID_CHROME_INSTANCE
+        device_config[DEVICE_ID] = config_reader.get(device, DEVICE_ID)
+    elif device_type == DEVICE_MAC:
+        device_config[CHROME_MAC_DEBUG_PORT] = int(config_reader.get(device, CHROME_MAC_DEBUG_PORT))
+        device_config[CHROME_INSTANCE] = MAC_CHROME_INSTANCE
     return device_config
 
 def get_cpu_running_chrome(device_config):
