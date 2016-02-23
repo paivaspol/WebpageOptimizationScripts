@@ -4,6 +4,8 @@ import threading
 
 from time import sleep
 
+from utils import navigation_utils
+
 METHOD = 'method'
 PARAMS = 'params'
 REQUEST_ID = 'requestId'
@@ -17,7 +19,7 @@ class ChromeRDPWebsocket(object):
         url - the websocket url
         target_url - the url to navigate to
         '''
-        websocket.enableTrace(True)       
+        # websocket.enableTrace(True)       
 
         # Conditions for a page to finish loading.
         self.originalRequestMs = None
@@ -111,13 +113,7 @@ class ChromeRDPWebsocket(object):
         return self.url
 
     def clear_cache(self, debug_connection):
-        '''
-        Clears the cache in the browser
-        '''
-        clear_cache = { "id": 4, "method": "Network.clearBrowserCache" }
-        debug_connection.send(json.dumps(clear_cache))
-        print 'Cleared browser cache'
-        sleep(0.5)
+        navigation_utils.clear_cache(debug_connection)
 
     def can_clear_cache(self, debug_connection):
         '''
@@ -197,12 +193,7 @@ class ChromeRDPWebsocket(object):
         sleep(0.5)
 
     def navigate_to_page(self, debug_connection, url):
-        '''
-        Navigates to the url.
-        '''
-        navigate_to_page = json.dumps({ "id": 0, "method": "Page.navigate", "params": { "url": url }})
-        debug_connection.send(navigate_to_page)
-        sleep(0.5)
+        navigation_utils.navigate_to_page(debug_connection, url)
 
     def get_debugging_url(self):
         '''
