@@ -14,6 +14,8 @@ from utils import chrome_utils
 
 NEXUS_6_CONFIG = '../device_config/nexus6.cfg'
 NEXUS_6 = 'Nexus_6'
+NEXUS_6_2_CONFIG = '../device_config/nexus6_2.cfg'
+NEXUS_6_2 = 'Nexus_6_2'
 NEXUS_5_CONFIG = '../device_config/nexus5.cfg'
 NEXUS_5 = 'Nexus_5'
 MAC_CONFIG = '../device_config/mac.cfg'
@@ -22,6 +24,8 @@ HTTP_PREFIX = 'http://'
 WWW_PREFIX = 'www.'
 
 TIMEOUT = 5 * 60 # set to 5 minutes
+PAUSE = 2
+BUFFER_FOR_TRACE = 5
 
 def main(pages_file, num_repetitions, output_dir, use_caching_proxy, start_measurements, device, disable_tracing):
     signal.signal(signal.SIGALRM, timeout_handler) # Setup the timeout handler
@@ -44,6 +48,10 @@ def main(pages_file, num_repetitions, output_dir, use_caching_proxy, start_measu
             try:
                 signal.alarm(TIMEOUT)
                 load_page(page, i, output_dir, start_measurements, device, disable_tracing)
+                if not disable_tracing:
+                    # Kill the browser.
+                    sleep(BUFFER_FOR_TRACE)
+                    initialize_browser(device)
                 signal.alarm(0) # Reset the alarm
                 i += 1
                 iteration_path = os.path.join(output_dir, str(i - 1))
@@ -51,9 +59,12 @@ def main(pages_file, num_repetitions, output_dir, use_caching_proxy, start_measu
                     stop_tcpdump_and_cpu_measurement(page.strip(), device, output_dir_run=iteration_path)
             except PageLoadException as e:
                 print 'Timeout for {0}-th load. Append to end of queue...'.format(i)
+                # Kill the browser and append a page.
+                initialize_browser(device)
                 pages.append(page)
                 break
-    shutdown_browser(device)
+            sleep(PAUSE)
+    # shutdown_browser(device)
 
 def get_pages(pages_file):
     pages = []
@@ -141,6 +152,8 @@ def timeout_handler(signum, frame):
 def get_device_config(device):
     if device == NEXUS_6:
         return NEXUS_6, NEXUS_6_CONFIG
+    if device == NEXUS_6_2:
+        return NEXUS_6_2, NEXUS_6_2_CONFIG
     elif device == NEXUS_5:
         return NEXUS_5, NEXUS_5_CONFIG
     elif device == MAC:
@@ -153,7 +166,7 @@ if __name__ == '__main__':
     parser.add_argument('--output-dir', default='.')
     parser.add_argument('--use-caching-proxy', default=False, action='store_true')
     parser.add_argument('--dont-start-measurements', default=False, action='store_true')
-    parser.add_argument('--use-device', default=NEXUS_6)
+    parser.add_argument('--use-device', default=NEXUS_6_2)
     parser.add_argument('--disable-tracing', default=False, action='store_true')
     args = parser.parse_args()
     start_measurements = not args.dont_start_measurements

@@ -90,3 +90,11 @@ def parse_pages_to_ignore(pages_to_ignore_filename):
     print pages
     return pages
 
+def parse_page_start_end_time(filename):
+    with open(filename, 'rb') as input_file:
+        line = input_file.readline().strip().split()
+        web_perf_nav_start = float(line[1])
+        web_perf_load_event = float(line[2])
+        chrome_ts_nav_start = float(line[3])
+        chrome_ts_load_event = float(line[4])
+        return (line[0], (web_perf_nav_start, web_perf_load_event), (chrome_ts_nav_start, chrome_ts_load_event))

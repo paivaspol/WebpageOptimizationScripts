@@ -81,7 +81,7 @@ class ChromeRDPWebsocket(object):
             self.disable_network_tracking(self.ws)
             self.disable_page_tracking(self.ws)
             print 'Start time {0}, Load completed: {1}'.format(self.originalRequestMs, self.loadEventFiredMs)
-            self.callback(self, self.network_messages, self.timeline_messages, self.device_configuration)
+            self.callback(self, self.network_messages, self.timeline_messages, self.originalRequestMs, self.loadEventFiredMs, self.device_configuration)
 
     def on_error(self, ws, error):
         '''

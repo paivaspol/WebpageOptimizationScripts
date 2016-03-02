@@ -42,7 +42,7 @@ def start_chrome(device_configuration):
     elif device_configuration[DEVICE_TYPE] == DEVICE_MAC:
         print 'device config: ' + str(device_configuration)
         # Run Chrome.
-        cmd = device_configuration[CHROME_INSTANCE] + ' --disable-extensions --remote-debugging-port={0} --disable-logging > /dev/null 2>&1 &'.format(device_configuration[CHROME_MAC_DEBUG_PORT])
+        cmd = device_configuration[CHROME_INSTANCE] + ' --incognito --disable-extensions --remote-debugging-port={0} --disable-logging > /dev/null 2>&1 &'.format(device_configuration[CHROME_MAC_DEBUG_PORT])
         p = subprocess.call(cmd, shell=True)
         return p
         

@@ -75,7 +75,7 @@ def create_output_directory_for_url(url):
         os.mkdir(base_dir)
     return base_dir
 
-def callback_on_page_done(debugging_socket, network_messages, timeline_messages, device_configuration):
+def callback_on_page_done(debugging_socket, network_messages, timeline_messages, original_request_ts, load_event_ts, device_configuration):
     '''
     Sets up the call back once the page is done loading.
     '''
@@ -99,14 +99,14 @@ def callback_on_page_done(debugging_socket, network_messages, timeline_messages,
                 output_file.write('{0}\n'.format(json.dumps(message)))
     # Get the start and end time of the execution
     start_time, end_time = navigation_utils.get_start_end_time(debugging_url)
-    write_page_start_end_time(final_url, base_dir, start_time, end_time)
+    write_page_start_end_time(final_url, base_dir, start_time, end_time, original_request_ts, load_event_ts)
     get_resource_tree(debugging_url)
     close_tab(device_configuration, device_configuration['page_id'])
 
-def write_page_start_end_time(escaped_url, base_dir, start_time, end_time):
+def write_page_start_end_time(escaped_url, base_dir, start_time, end_time, original_request_ts, load_event_ts):
     start_end_time_filename = os.path.join(base_dir, 'start_end_time_' + escaped_url)
     with open(start_end_time_filename, 'wb') as output_file:
-        output_file.write('{0} {1} {2}\n'.format(escaped_url, start_time, end_time))
+        output_file.write('{0} {1} {2} {3} {4}\n'.format(escaped_url, start_time, end_time, original_request_ts, load_event_ts))
 
 def get_resource_tree(debugging_url):
     try:
