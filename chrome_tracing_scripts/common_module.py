@@ -98,3 +98,6 @@ def parse_page_start_end_time(filename):
         chrome_ts_nav_start = float(line[3])
         chrome_ts_load_event = float(line[4])
         return (line[0], (web_perf_nav_start, web_perf_load_event), (chrome_ts_nav_start, chrome_ts_load_event))
+
+def convert_to_ms(time_in_seconds):
+    return time_in_seconds * 1000

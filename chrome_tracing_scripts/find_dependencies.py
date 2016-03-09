@@ -1,4 +1,6 @@
 import simplejson as json
+import common_module
+import os
 
 from argparse import ArgumentParser 
 
@@ -13,10 +15,11 @@ REFERER = 'referer'
 URL = 'url'
 STACKTRACE = 'stackTrace'
 TYPE = 'type'
+TIMESTAMP = 'timestamp'
 
 DEFAULT_REQUESTER = '##default'
 
-def find_dependencies(network_activities):
+def find_dependencies(network_activities, page_start_end_time):
     '''
     Finds the dependency of the resources
     The ordering of the initiator extraction is as follows:
@@ -28,7 +31,16 @@ def find_dependencies(network_activities):
     request_id_to_resource_map = dict() # Maps from the request id to the resource url
     request_id_to_document_url = dict() # Maps from the request id to the document url.
     request_id_to_request_object = dict() # Maps from the request id to the network event.
+    start_time, end_time = page_start_end_time[2]
     for network_activity in network_activities:
+        if TIMESTAMP not in network_activity[PARAMS]:
+            continue
+
+        ts = common_module.convert_to_ms(network_activity[PARAMS][TIMESTAMP])
+        if not start_time <= ts <= end_time:
+            # If the event doesn't fall in the page load range.
+            continue
+
         if METHOD in network_activity and \
             network_activity[METHOD] == 'Network.requestWillBeSent':
             # print REQUEST + ': ' + str(network_activity[PARAMS][REQUEST][URL])
@@ -50,6 +62,8 @@ def find_dependencies(network_activities):
         elif METHOD in network_activity and \
             network_activity[METHOD] == 'Network.responseReceived':
             request_id = network_activity[PARAMS][REQUEST_ID]
+            if request_id not in request_id_to_request_object:
+                continue
             request_network_activity = request_id_to_request_object[request_id]
             if request_id in request_id_to_initiator_map and \
                 request_network_activity[PARAMS][INITIATOR][TYPE] == 'parser':
@@ -102,13 +116,68 @@ def iterate_dep_graph(dep_graph):
         print 'key: {0} len Values: {1}'.format(key, len(value))
         # print '\t{0}'.format(value)
 
+def convert_graph_to_json(dep_graph):
+    '''
+    The json is list of objects where each object represents a node in the dependency graph.
+    Each object has the following data:
+        - Parent of the node
+        - A list of Children of the node
+        - The URL of the node.
+        - IsRoot boolean value
+        - IsLeaf boolean value.
+    Skipping nodes that started from about:blank
+    '''
+    result_dict = dict()
+    for node, children in dep_graph.iteritems():
+        if node == 'about:blank':
+            continue
+        if node not in result_dict:
+            result_dict[node] = dict()
+            node_info = result_dict[node]
+            node_info['isRoot'] = True
+            node_info['parent'] = None
+            node_info['url'] = node
+        node_info = result_dict[node]
+        node_info['children'] = [ child for child in children if child != node ]
+        node_info['isLeaf'] = True if children is None or len(children) == 0 else False
+        for child in node_info['children']:
+            if child not in result_dict:
+                result_dict[child] = dict()
+                result_dict[child]['children'] = None
+                result_dict[child]['url'] = child
+                result_dict[child]['isLeaf'] = True
+            result_dict[child]['parent'] = node
+            result_dict[child]['isRoot'] = False
+    sanity_check(result_dict)
+    return result_dict
+
+def sanity_check(result_dict):
+    found_root = False
+    for node, node_info in result_dict.iteritems():
+        if not found_root:
+            found_root = node_info['isRoot']
+        elif found_root and node_info['isRoot']:
+            print 'Double root for ' + node
+    if not found_root:
+        print 'Did not see any root...'
+
+def dump_object_to_json(result_obj, output_dir):
+    output_filename = os.path.join(output_dir, 'dependency_graph.json')
+    with open(output_filename, 'wb') as output_file:
+        json_str = json.dumps(result_obj)
+        output_file.write(json_str)
+
 if __name__ == '__main__':
     parser = ArgumentParser()
     parser.add_argument('network_data_file', help='The file containing the chrome network capture file.')
+    parser.add_argument('page_start_end_time', help='The file containing the page start and end time.')
+    parser.add_argument('--output-dir', default='.')
     args = parser.parse_args()
     network_activities = convert_to_object(args.network_data_file)
-    dep_graph = find_dependencies(network_activities)
-    print '{0} {1}'.format(len(dep_graph.keys()), dep_graph.keys())
-    iterate_dep_graph(dep_graph)
+    page_start_end_time = common_module.parse_page_start_end_time(args.page_start_end_time)
+    dep_graph = find_dependencies(network_activities, page_start_end_time)
+    result_dict = convert_graph_to_json(dep_graph)
+    dump_object_to_json(result_dict, args.output_dir)
+    # iterate_dep_graph(dep_graph)
     # output_dep_graph(dep_graph, DEFAULT_REQUESTER, '')
 
