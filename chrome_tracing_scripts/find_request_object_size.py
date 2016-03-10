@@ -4,18 +4,31 @@ import common_module
 import simplejson as json
 import os
 
-def get_request_sizes(network_filename):
+def get_request_sizes(network_filename, start_end_time):
     request_size = dict()
+    start_time, end_time = start_end_time
     with open(network_filename, 'rb') as input_file:
         for raw_line in input_file:
             network_event = json.loads(json.loads(raw_line.strip()))
+            if 'timestamp' not in network_event['params']:
+                continue
+
+            ts = common_module.convert_to_ms(network_event['params']['timestamp'])
+            if not start_time <= ts <= end_time:
+                # If the event doesn't fall in the page load range.
+                continue
+
             if network_event['method'] == 'Network.requestWillBeSent':
                 request_size[network_event['params']['requestId']] = 0
             elif network_event['method'] == 'Network.dataReceived':
-                request_size[network_event['params']['requestId']] += network_event['params']['encodedDataLength']
+                request_id = network_event['params']['requestId']
+                if request_id in request_size:
+                    request_size[request_id] += network_event['params']['encodedDataLength']
             elif network_event['method'] == 'Network.loadingFinished':
-                cumulative_size = request_size[network_event['params']['requestId']]
-                request_size[network_event['params']['requestId']] = max(network_event['params']['encodedDataLength'], cumulative_size)
+                request_id = network_event['params']['requestId']
+                if request_id in request_size:
+                    cumulative_size = request_size[request_id]
+                    request_size[request_id] = max(network_event['params']['encodedDataLength'], cumulative_size)
     return request_size
 
 def get_request_sizes_in_directory(root_dir, write_results):
@@ -26,7 +39,8 @@ def get_request_sizes_in_directory(root_dir, write_results):
         # print path
         url = common_module.extract_url_from_path(path)
         full_path = os.path.join(path, 'network_' + url)
-        page_request_sizes = get_request_sizes(full_path)
+        page_start_end_time = common_module.parse_page_start_end_time(os.path.join(path, 'start_end_time_' + url))
+        page_request_sizes = get_request_sizes(full_path, page_start_end_time[2])
         request_sizes.extend(page_request_sizes.values())
         if write_results:
             full_path = os.path.join(path, 'request_sizes.txt')
