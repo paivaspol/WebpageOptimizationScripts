@@ -1,6 +1,0 @@
-# http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_1.html
-# http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_2.html
-http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_2_image_in_html.html
-# http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_2_append_later.html
-# http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_3.html
-http://ec2-54-208-18-221.compute-1.amazonaws.com/load_time_experiments/scenario_3_image_in_html.html

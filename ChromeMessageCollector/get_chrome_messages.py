@@ -103,7 +103,7 @@ def callback_on_page_done(debugging_socket, network_messages, timeline_messages,
     get_resource_tree(debugging_url)
     close_tab(device_configuration, device_configuration['page_id'])
 
-def write_page_start_end_time(escaped_url, base_dir, start_time, end_time, original_request_ts, load_event_ts):
+def write_page_start_end_time(escaped_url, base_dir, start_time, end_time, original_request_ts=-1, load_event_ts=-1):
     start_end_time_filename = os.path.join(base_dir, 'start_end_time_' + escaped_url)
     with open(start_end_time_filename, 'wb') as output_file:
         output_file.write('{0} {1} {2} {3} {4}\n'.format(escaped_url, start_time, end_time, original_request_ts, load_event_ts))

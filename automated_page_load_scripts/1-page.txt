@@ -1,1 +1,0 @@
-http://ec2-54-164-60-195.compute-1.amazonaws.com/10MB.html
