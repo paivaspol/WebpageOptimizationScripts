@@ -80,6 +80,7 @@ def initialize_browser(device):
     config_reader = ConfigParser()
     config_reader.read(device_config)
     device_config_obj = phone_connection_utils.get_device_configuration(config_reader, device)
+    phone_connection_utils.wake_phone_up(device_config_obj)
     print 'Stopping Chrome...'
     phone_connection_utils.stop_chrome(device_config_obj)
     print 'Starting Chrome...'
