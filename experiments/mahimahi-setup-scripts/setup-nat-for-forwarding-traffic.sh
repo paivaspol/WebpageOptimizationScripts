@@ -20,6 +20,8 @@
 #   ./setup-nat-for-forwarding-traffic.sh 100.64.0.2 80 80 delay-1241
 # 
 # These information can be retrieved from `ifconfig`.
+# Reference Link: https://stackoverflow.com/questions/14212807/iptables-forward-request-on-different-interfaces-and-port 
+#
 
 # Setup the downlink route.
 gateway=$1
