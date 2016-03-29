@@ -4,6 +4,8 @@ import signal # For timeout.
 import os
 import simplejson
 
+import common_module
+
 from argparse import ArgumentParser
 from ConfigParser import ConfigParser
 from time import sleep
@@ -54,6 +56,8 @@ def main(pages_file, num_repetitions, output_dir, use_caching_proxy, start_measu
                     sleep(BUFFER_FOR_TRACE)
                     initialize_browser(device)
                 signal.alarm(0) # Reset the alarm
+                while check_previous_page_load(i, output_dir, page):
+                    load_page(page, i, output_dir, start_measurements, device, disable_tracing)
                 i += 1
                 iteration_path = os.path.join(output_dir, str(i - 1))
                 if start_measurements:
@@ -74,6 +78,20 @@ def get_pages(pages_file):
             line = raw_line.strip().split()
             pages.append(line[len(line) - 1])
     return pages
+
+def check_previous_page_load(current_run_index, base_output_dir, raw_line):
+    if current_run_index > 0:
+        url = common_module.escape_url(raw_line.strip())
+        output_dir_prev_run = os.path.join(os.path.join(base_output_dir, str(current_run_index - 1)), url)
+        prev_run_start_end_time = os.path.join(output_dir_prev_run, 'start_end_time_' + url)
+        output_dir_cur_run = os.path.join(os.path.join(base_output_dir, str(current_run_index)), url)
+        cur_run_start_end_time = os.path.join(output_dir_cur_run, 'start_end_time_' + url)
+        with open(prev_run_start_end_time, 'rb') as input_file:
+            prev_line = input_file.readline()
+        with open(cur_run_start_end_time, 'rb') as input_file:
+            cur_line = input_file.readline()
+        return prev_line == cur_line
+    return False
 
 def initialize_browser(device):
     # Get the device configuration
@@ -123,8 +141,8 @@ def load_page(raw_line, run_index, output_dir, start_measurements, device, disab
     cmd = 'python get_chrome_messages.py {1} {2} {0} --output-dir {3}'.format(line, device_config, device, output_dir_run) 
     if disable_tracing:
         cmd += ' --disable-tracing'
-    if run_index > 0:
-        cmd += ' --reload-page'
+    # if run_index > 0:
+    #     cmd += ' --reload-page'
     subprocess.Popen(cmd, shell=True).wait()
 
 def stop_tcpdump_and_cpu_measurement(line, device, output_dir_run='.'):
