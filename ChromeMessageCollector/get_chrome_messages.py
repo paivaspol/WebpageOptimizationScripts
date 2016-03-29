@@ -20,7 +20,7 @@ WWW_PREFIX = 'www.'
 OUTPUT_DIR = None
 PAGE_ID = None
 
-def main(device_configuration, url, disable_tracing):
+def main(device_configuration, url, disable_tracing, reload_page):
     '''
     The main workflow of the script.
     '''
@@ -41,10 +41,10 @@ def main(device_configuration, url, disable_tracing):
     print 'Connected to Chrome...'
     device_configuration['page_id'] = page_id
     if not disable_tracing:
-        debugging_socket = ChromeRDPWebsocket(debugging_url, url, device_configuration, callback_on_page_done)
+        debugging_socket = ChromeRDPWebsocket(debugging_url, url, device_configuration, reload_page, callback_on_page_done)
     else:
         chrome_rdp_object_without_tracing = ChromeRDPWithoutTracing(debugging_url, url)
-        start_time, end_time = chrome_rdp_object_without_tracing.navigate_to_page(url)
+        start_time, end_time = chrome_rdp_object_without_tracing.navigate_to_page(url, reload_page)
         print str((start_time, end_time)) + ' ' + str((end_time - start_time))
         escaped_url = common_module.escape_url(url)
         write_page_start_end_time(escaped_url, output_directory, start_time, end_time)
@@ -129,6 +129,7 @@ if __name__ == '__main__':
     argparser.add_argument('url', help='The URL to navigate to e.g. http://apple.com')
     argparser.add_argument('--output-dir', help='The output directory of the generated files', default=None)
     argparser.add_argument('--disable-tracing', default=False, action='store_true')
+    argparser.add_argument('--reload-page', default=False, action='store_true')
     args = argparser.parse_args()
 
     # Setup the config filename
@@ -138,4 +139,4 @@ if __name__ == '__main__':
 
     # Get the device configuration.
     device_config = phone_connection_utils.get_device_configuration(config_reader, args.device)
-    main(device_config, args.url, args.disable_tracing)
+    main(device_config, args.url, args.disable_tracing, args.reload_page)

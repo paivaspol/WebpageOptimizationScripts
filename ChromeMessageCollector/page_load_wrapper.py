@@ -21,6 +21,7 @@ NEXUS_5 = 'Nexus_5'
 MAC_CONFIG = '../device_config/mac.cfg'
 MAC = 'mac'
 HTTP_PREFIX = 'http://'
+HTTPS_PREFIX = 'https://'
 WWW_PREFIX = 'www.'
 
 TIMEOUT = 5 * 60 # set to 5 minutes
@@ -122,6 +123,8 @@ def load_page(raw_line, run_index, output_dir, start_measurements, device, disab
     cmd = 'python get_chrome_messages.py {1} {2} {0} --output-dir {3}'.format(line, device_config, device, output_dir_run) 
     if disable_tracing:
         cmd += ' --disable-tracing'
+    if run_index > 0:
+        cmd += ' --reload-page'
     subprocess.Popen(cmd, shell=True).wait()
 
 def stop_tcpdump_and_cpu_measurement(line, device, output_dir_run='.'):
@@ -138,7 +141,9 @@ def stop_tcpdump_and_cpu_measurement(line, device, output_dir_run='.'):
 def escape_url(url):
     if url.endswith('/'):
         url = url[:len(url) - 1]
-    if url.startswith(HTTP_PREFIX):
+    if url.startswith(HTTPS_PREFIX):
+        url = url[len(HTTPS_PREFIX):]
+    elif url.startswith(HTTP_PREFIX):
         url = url[len(HTTP_PREFIX):]
     if url.startswith(WWW_PREFIX):
         url = url[len(WWW_PREFIX):]

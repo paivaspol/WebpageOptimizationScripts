@@ -19,8 +19,11 @@ class ChromeRDPWithoutTracing(object):
         self.ws = websocket.WebSocket()
         self.ws.connect(self.debugging_url)
 
-    def navigate_to_page(self, url):
-        navigation_utils.navigate_to_page(self.ws, url)
+    def navigate_to_page(self, url, reload_page):
+        if reload_page:
+            navigation_utils.reload_page(self.ws)
+        else:
+            navigation_utils.navigate_to_page(self.ws, url)
         result = self.ws.recv()
         start_time, end_time = navigation_utils.get_start_end_time_with_socket(self.ws)
         navigation_utils.clear_cache(self.ws)

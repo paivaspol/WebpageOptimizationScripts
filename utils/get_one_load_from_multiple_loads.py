@@ -11,6 +11,7 @@ MIN = 'min'
 MAX = 'max'
 RANDOM = 'random'
 HTTP_PREFIX = 'http://'
+HTTPS_PREFIX = 'https://'
 WWW_PREFIX = 'www.'
 
 def get_page_to_chosen_run(root_dir, num_iterations, run_type, pages):
@@ -29,7 +30,7 @@ def get_page_to_chosen_run(root_dir, num_iterations, run_type, pages):
             load_times.append(this_run_page_load_time)
 
         # Choose the load time.
-        print 'number of loads: ' + str(len(load_times))
+        # print 'number of loads: ' + str(len(load_times))
         if len(load_times) > 0:
             if run_type == MEDIAN:
                 chosen_load_time = numpy.median(load_times)
@@ -76,11 +77,14 @@ def copy_chosen_runs(chosen_runs, root_dir, output_dir, num_iterations):
     if not os.path.exists(output_dir):
         os.mkdir(output_dir)
     
+    counter = 0
     for page, run_index in chosen_runs.iteritems():
         if 0 <= run_index < num_iterations:
             run_path = os.path.join(os.path.join(root_dir, str(run_index)), page)
-            copy_command = 'cp -r -v {0} {1}'.format(run_path, output_dir)
+            copy_command = 'cp -r {0} {1}'.format(run_path, output_dir)
             subprocess.call(copy_command, shell=True)
+            counter += 1
+    print 'Copied {0} sites from {1} sites'.format(counter, len(chosen_runs))
 
 if __name__ == '__main__':
     parser = ArgumentParser()

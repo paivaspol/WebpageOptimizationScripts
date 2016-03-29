@@ -13,7 +13,7 @@ TIMESTAMP = 'timestamp'
 
 class ChromeRDPWebsocket(object):
 
-    def __init__(self, url, target_url, device_configuration, callback):
+    def __init__(self, url, target_url, device_configuration, should_reload, callback):
         '''
         Initialize the object. 
         url - the websocket url
@@ -32,6 +32,7 @@ class ChromeRDPWebsocket(object):
         self.url = target_url       # The URL to navigate to.
         self.callback = callback    # The callback method
         self.device_configuration = device_configuration # The device configuration
+        self.should_reload = should_reload
         self.debugging_url = url
         self.ws = websocket.WebSocketApp(url,\
                                         on_message = self.on_message,\
@@ -104,7 +105,10 @@ class ChromeRDPWebsocket(object):
         # self.enable_trace_collection(self.ws)
         self.clear_cache(self.ws)
         print 'navigating to url: ' + str(self.url)
-        self.navigate_to_page(self.ws, self.url)
+        if self.should_reload:
+            navigation_utils.reload_page(self.ws)
+        else:
+            navigation_utils.navigate_to_page(debug_connection, url)
     
     def close_connection(self):
         self.ws.close()
@@ -191,9 +195,6 @@ class ChromeRDPWebsocket(object):
         debug_connection.send(json.dumps(enable_trace_collection))
         # print 'Disables trace collection'
         sleep(0.5)
-
-    def navigate_to_page(self, debug_connection, url):
-        navigation_utils.navigate_to_page(debug_connection, url)
 
     def get_debugging_url(self):
         '''

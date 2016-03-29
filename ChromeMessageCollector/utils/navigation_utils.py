@@ -9,7 +9,16 @@ def navigate_to_page(debug_connection, url):
     '''
     navigate_to_page = json.dumps({ "id": 0, "method": "Page.navigate", "params": { "url": url }})
     debug_connection.send(navigate_to_page)
-    sleep(0.5)
+    sleep(1.0)
+
+def reload_page(debug_connection, ignore_cache=True):
+    '''
+    Reloads the current page.
+    '''
+    reload_page = json.dumps({ "id": 1, "method": "Page.reload", "params": { "ignoreCache": ignore_cache }})
+    debug_connection.send(reload_page)
+    sleep(1.0)
+
 
 def get_start_end_time_with_socket(ws):
     start_time = None
@@ -38,10 +47,10 @@ def get_start_end_time(debugging_url):
     return get_start_end_time_with_socket(ws)
 
 def clear_cache(debug_connection):
-        '''
-        Clears the cache in the browser
-        '''
-        clear_cache = { "id": 4, "method": "Network.clearBrowserCache" }
-        debug_connection.send(json.dumps(clear_cache))
-        print 'Cleared browser cache'
-        sleep(0.5)
+    '''
+    Clears the cache in the browser
+    '''
+    clear_cache = { "id": 4, "method": "Network.clearBrowserCache" }
+    debug_connection.send(json.dumps(clear_cache))
+    print 'Cleared browser cache'
+    sleep(0.5)
