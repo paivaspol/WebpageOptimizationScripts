@@ -1,0 +1,125 @@
+#
+# Recommended minimum configuration:
+#
+
+# Example rule allowing access from your local networks.
+# Adapt to list your (internal) IP networks from where browsing
+# should be allowed
+acl localnet src 10.0.0.0/8	# RFC1918 possible internal network
+acl localnet src 172.16.0.0/12	# RFC1918 possible internal network
+acl localnet src 192.168.0.0/16	# RFC1918 possible internal network
+acl localnet src fc00::/7       # RFC 4193 local private network range
+acl localnet src fe80::/10      # RFC 4291 link-local (directly plugged) machines
+
+acl SSL_ports port 443
+acl Safe_ports port 80		# http
+acl Safe_ports port 21		# ftp
+acl Safe_ports port 443		# https
+acl Safe_ports port 70		# gopher
+acl Safe_ports port 210		# wais
+acl Safe_ports port 1025-65535	# unregistered ports
+acl Safe_ports port 280		# http-mgmt
+acl Safe_ports port 488		# gss-http
+acl Safe_ports port 591		# filemaker
+acl Safe_ports port 777		# multiling http
+acl CONNECT method CONNECT
+acl allowed src 127.0.0.1
+acl allowed src 192.168.2.2
+
+#
+# Recommended minimum Access Permission configuration:
+#
+# Deny requests to certain unsafe ports
+http_access deny !Safe_ports
+
+# Deny CONNECT to other than secure SSL ports
+http_access deny CONNECT !SSL_ports
+
+# Only allow cachemgr access from localhost
+# http_access allow localhost manager
+http_access allow all
+http_access deny manager
+
+# We strongly recommend the following be uncommented to protect innocent
+# web applications running on the proxy server who think the only
+# one who can access services on "localhost" is a local user
+#http_access deny to_localhost
+
+#
+# INSERT YOUR OWN RULE(S) HERE TO ALLOW ACCESS FROM YOUR CLIENTS
+#
+
+# Example rule allowing access from your local networks.
+# Adapt localnet in the ACL section to list your (internal) IP networks
+# from where browsing should be allowed
+http_access allow localnet
+http_access allow localhost
+
+# And finally deny all other access to this proxy
+http_access deny all
+
+# Uncomment and adjust the following to add a disk cache directory.
+cache_dir ufs /home/vaspol/Research/MobileWebOptimization/squid/var/cache/squid 4096 16 256
+maximum_object_size 262144 KB
+
+# Leave coredumps in the first cache dir
+coredump_dir /home/vaspol/Research/MobileWebOptimization/squid/var/cache/squid
+
+cache_access_log stdio:/home/vaspol/Research/MobileWebOptimization/squid/logs/squid-access.log
+cache_store_log stdio:/home/vaspol/Research/MobileWebOptimization/squid/logs/squid-store.log
+cache_log /home/vaspol/Research/MobileWebOptimization/squid/logs/squid-cache.log
+# pid_filename /tmp/squid.pid
+
+# Make the user to the current user instead of nobody.
+cache_effective_user vaspol
+
+# SSL Related configurations
+# Squid normally listens to port 3128
+# http_port 10000
+http_port 10000 ssl-bump cert=/home/vaspol/Research/MobileWebOptimization/squid/certs/apple-pi.eecs.umich.edu.pem.crt key=/home/vaspol/Research/MobileWebOptimization/squid/certs/apple-pi.eecs.umich.edu.pk generate-host-certificates=on version=1 options=NO_SSLv2,NO_SSLv3,SINGLE_DH_USE
+
+# Intercepted Traffic
+https_port 10001 cert=/home/vaspol/Research/MobileWebOptimization/squid/certs/apple-pi.eecs.umich.edu.pem.crt key=/home/vaspol/Research/MobileWebOptimization/squid/certs/apple-pi.eecs.umich.edu.pk ssl-bump intercept generate-host-certificates=on version=1 options=NO_SSLv2,NO_SSLv3,SINGLE_DH_USE
+
+# sslcrtd_program /home/vaspol/Research/squid/squid/libexec/ssl_crtd -s /home/vaspol/Research/squid/var/lib/ssl_db -M 4MB
+
+sslproxy_cert_error allow all  
+sslproxy_flags DONT_VERIFY_PEER
+
+ssl_bump stare all
+ssl_bump bump all
+
+range_offset_limit 100 MB
+maximum_object_size 200 MB
+quick_abort_min -1
+
+#
+# Add any of your own refresh_pattern entries above these.
+#
+refresh_pattern ^http* 600000 100% 700000 override-expire override-lastmod reload-into-ims ignore-reload ignore-private ignore-auth ignore-no-store store-stale ignore-no-cache
+refresh_pattern -i \.(html|htm|css|js)$ 1440 100% 40320 override-expire override-lastmod ignore-reload ignore-no-store ignore-private store-stale reload-into-ims
+refresh_pattern -i \.(html|htm|css|js)* 1440 100% 40320 override-expire override-lastmod ignore-reload ignore-no-store ignore-private store-stale reload-into-ims
+refresh_pattern -i \.(gif|png|jpeg|jpg|bmp|tif|tiff|ico)$ 10080 100% 43200 override-expire override-lastmod reload-into-ims ignore-reload ignore-no-cache ignore-auth ignore-private store-stale
+refresh_pattern -i \.(gif|png|jpeg|jpg|bmp|tif|tiff|ico)\? 10080 100% 43200 override-expire override-lastmod reload-into-ims ignore-reload ignore-no-cache ignore-auth ignore-private store-stale
+refresh_pattern -i \.(json)$ 1440 100% 40320 override-expire override-lastmod ignore-reload ignore-no-store ignore-private store-stale reload-into-ims
+refresh_pattern -i \.(json)* 1440 100% 40320 override-expire override-lastmod ignore-reload ignore-no-store ignore-private store-stale reload-into-ims
+
+refresh_pattern -i \.(flv|x-flv|mov|avi|qt|mpg|mpeg|swf|wmv)$ 10080 100% 43200 override-expire override-lastmod reload-into-ims ignore-reload ignore-no-cache store-stale
+refresh_pattern -i \.(xml|js|jsp|txt|css|json)$ 10080 100% 43200 override-expire override-lastmod reload-into-ims ignore-reload ignore-no-cache ignore-auth store-stale
+refresh_pattern -i \.(xml|js|jsp|txt|css|json)\? 10080 100% 43200 override-expire override-lastmod reload-into-ims ignore-reload ignore-no-cache ignore-auth store-stale
+refresh_pattern -i \? 10080 100% 43200 override-expire override-lastmod reload-into-ims ignore-reload ignore-no-cache ignore-auth store-stale
+
+refresh_pattern ^ftp:		1440	20%	10080
+refresh_pattern ^gopher:	1440	0%	1440
+refresh_pattern -i (/cgi-bin/|\?) 10	100%	60
+refresh_pattern .		0	20%	4320 store-stale
+
+# Replace the header.
+offline_mode on
+reply_header_replace Cache-Control public, max-age=604800
+reply_header_access Expires deny all
+reply_header_access Pragma deny all
+reply_header_access Etag deny all
+# miss_access allow CONNECT
+# miss_access deny all
+
