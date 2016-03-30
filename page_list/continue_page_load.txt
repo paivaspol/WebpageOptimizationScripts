@@ -1,1 +1,5 @@
-http://www.dailymail.co.uk/ http://www.dailymail.co.uk/ushome/index.html
+http://www.deadspin.com http://deadspin.com
+http://www.wwe.com
+http://www.soccerway.com
+http://www.bbc.co.uk/news/ http://www.bbc.co.uk/news
+http://www.sfgate.com/ http://m.sfgate.com

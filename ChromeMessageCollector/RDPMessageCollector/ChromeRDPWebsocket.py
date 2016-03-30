@@ -108,7 +108,7 @@ class ChromeRDPWebsocket(object):
         if self.should_reload:
             navigation_utils.reload_page(self.ws)
         else:
-            navigation_utils.navigate_to_page(debug_connection, url)
+            navigation_utils.navigate_to_page(self.ws, self.url)
     
     def close_connection(self):
         self.ws.close()
