@@ -33,43 +33,111 @@ BUFFER_FOR_TRACE = 5
 def main(pages_file, num_repetitions, output_dir, use_caching_proxy, start_measurements, device, disable_tracing):
     signal.signal(signal.SIGALRM, timeout_handler) # Setup the timeout handler
     pages = get_pages(pages_file)
+    if start_measurements and not disable_tracing:
+        load_pages_with_measurement_and_tracing_enabled(pages, output_dir, num_repetitions, device)
+    elif not start_measurements and disable_tracing:
+        load_pages_with_measurement_and_tracing_disabled(pages, output_dir, num_repetitions, device)
+    else:
+        if not start_measurements:
+            initialize_browser(device)
+        while len(pages) > 0:
+            page = pages.pop(0)
+            print 'page: ' + page
+            if use_caching_proxy:
+                try:
+                    # Special Case for Populating the proxy cache.
+                    signal.alarm(TIMEOUT)
+                    load_page(page, -1, output_dir, False, device, True)
+                    signal.alarm(0) # Reset the alarm
+                except PageLoadException as e:
+                    print 'Timeout for {0}-th load. Append to end of queue...'.format(i)
+                    pages.append(page)
+            i = 0
+            while i < num_repetitions:
+                try:
+                    if start_measurements:
+                        start_tcpdump_and_cpu_measurement(device)
+                        initialize_browser(device)
+
+                    signal.alarm(TIMEOUT)
+                    load_page(page, i, output_dir, start_measurements, device, disable_tracing)
+                    if not disable_tracing:
+                        # Kill the browser.
+                        sleep(BUFFER_FOR_TRACE)
+                        initialize_browser(device)
+                    signal.alarm(0) # Reset the alarm
+                    while check_previous_page_load(i, output_dir, page):
+                        load_page(page, i, output_dir, start_measurements, device, disable_tracing)
+                    i += 1
+                    iteration_path = os.path.join(output_dir, str(i))
+                    if start_measurements:
+                        stop_tcpdump_and_cpu_measurement(page.strip(), device, output_dir_run=iteration_path)
+                except PageLoadException as e:
+                    print 'Timeout for {0}-th load. Append to end of queue...'.format(i)
+                    # Kill the browser and append a page.
+                    chrome_utils.close_all_tabs(get_device_config(device))
+                    initialize_browser(device)
+                    pages.append(page)
+                    break
+                sleep(PAUSE)
+    # shutdown_browser(device)
+
+def load_pages_with_measurement_and_tracing_disabled(pages, output_dir, num_repetitions, device):
     initialize_browser(device)
     while len(pages) > 0:
         page = pages.pop(0)
         print 'page: ' + page
-        if use_caching_proxy:
-            try:
-                # Special Case for Populating the proxy cache.
-                signal.alarm(TIMEOUT)
-                load_page(page, -1, output_dir, False, device, True)
-                signal.alarm(0) # Reset the alarm
-            except PageLoadException as e:
-                print 'Timeout for {0}-th load. Append to end of queue...'.format(i)
-                pages.append(page)
         i = 0
         while i < num_repetitions:
             try:
-                signal.alarm(TIMEOUT)
-                load_page(page, i, output_dir, start_measurements, device, disable_tracing)
-                if not disable_tracing:
-                    # Kill the browser.
-                    sleep(BUFFER_FOR_TRACE)
-                    initialize_browser(device)
+                signal.alarm(TIMEOUT) # Set alarm for TIMEOUT
+                load_page(page, i, output_dir, False, device, True)
                 signal.alarm(0) # Reset the alarm
                 while check_previous_page_load(i, output_dir, page):
-                    load_page(page, i, output_dir, start_measurements, device, disable_tracing)
+                    signal.alarm(TIMEOUT) # Set alarm for TIMEOUT
+                    load_page(page, i, output_dir, False, device, True)
+                    signal.alarm(0) # Reset the alarm
                 i += 1
-                iteration_path = os.path.join(output_dir, str(i - 1))
-                if start_measurements:
-                    stop_tcpdump_and_cpu_measurement(page.strip(), device, output_dir_run=iteration_path)
             except PageLoadException as e:
                 print 'Timeout for {0}-th load. Append to end of queue...'.format(i)
                 # Kill the browser and append a page.
+                chrome_utils.close_all_tabs(get_device_config(device))
                 initialize_browser(device)
                 pages.append(page)
                 break
             sleep(PAUSE)
-    # shutdown_browser(device)
+
+def load_pages_with_measurement_and_tracing_enabled(pages, output_dir, num_repetitions, device):
+    while len(pages) > 0:
+        page = pages.pop(0)
+        print 'page: ' + page
+        i = 0
+        while i < num_repetitions:
+            try:
+                start_tcpdump_and_cpu_measurement(device)
+                initialize_browser(device)
+                signal.alarm(TIMEOUT) # Set alarm for TIMEOUT
+                load_page(page, i, output_dir, True, device, False)
+                signal.alarm(0) # Reset the alarm
+                iteration_path = os.path.join(output_dir, str(i))
+                stop_tcpdump_and_cpu_measurement(page.strip(), device, output_dir_run=iteration_path)
+                while check_previous_page_load(i, output_dir, page):
+                    start_tcpdump_and_cpu_measurement(device)
+                    initialize_browser(device)
+                    signal.alarm(TIMEOUT) # Set alarm for TIMEOUT
+                    load_page(page, i, output_dir, True, device, False)
+                    signal.alarm(0) # Reset the alarm
+                    iteration_path = os.path.join(output_dir, str(i - 1))
+                    stop_tcpdump_and_cpu_measurement(page.strip(), device, output_dir_run=iteration_path)
+                i += 1
+            except PageLoadException as e:
+                print 'Timeout for {0}-th load. Append to end of queue...'.format(i)
+                # Kill the browser and append a page.
+                chrome_utils.close_all_tabs(get_device_config(device))
+                initialize_browser(device)
+                pages.append(page)
+                break
+            sleep(PAUSE)
 
 def get_pages(pages_file):
     pages = []
@@ -131,12 +199,7 @@ def load_page(raw_line, run_index, output_dir, start_measurements, device, disab
     
     # Get the device configuration
     device, device_config = get_device_config(device)
-    if start_measurements:
-        start_cpu_measurement = 'python ./utils/start_cpu_measurement.py {0} {1}'.format(device_config, device)
-        print 'Executing: ' + start_cpu_measurement
-        subprocess.Popen(start_cpu_measurement, shell=True).wait()
-        start_tcpdump = 'python ./utils/start_tcpdump.py {0} {1}'.format(device_config, device)
-        subprocess.Popen(start_tcpdump, shell=True).wait()
+
     line = raw_line.strip()
     cmd = 'python get_chrome_messages.py {1} {2} {0} --output-dir {3}'.format(line, device_config, device, output_dir_run) 
     if disable_tracing:
@@ -144,6 +207,21 @@ def load_page(raw_line, run_index, output_dir, start_measurements, device, disab
     # if run_index > 0:
     #     cmd += ' --reload-page'
     subprocess.Popen(cmd, shell=True).wait()
+
+def start_tcpdump_and_cpu_measurement(device):
+    device, device_config = get_device_config(device)
+    start_cpu_measurement = 'python ./utils/start_cpu_measurement.py {0} {1}'.format(device_config, device)
+    print 'Executing: ' + start_cpu_measurement
+    subprocess.Popen(start_cpu_measurement, shell=True).wait()
+    start_tcpdump = 'python ./utils/start_tcpdump.py {0} {1}'.format(device_config, device)
+    subprocess.Popen(start_tcpdump, shell=True).wait()
+
+    # Get the device configuration and start 
+    # config_reader = ConfigParser()
+    # config_reader.read(device_config)
+    # device_config_obj = phone_connection_utils.get_device_configuration(config_reader, device)
+    # phone_connection_utils.start_chrome(device_config_obj)
+
 
 def stop_tcpdump_and_cpu_measurement(line, device, output_dir_run='.'):
     url = escape_url(line)
@@ -182,6 +260,9 @@ def get_device_config(device):
         return NEXUS_5, NEXUS_5_CONFIG
     elif device == MAC:
         return MAC, MAC_CONFIG
+    else:
+        print 'available devices: {0}, {1}, {2}, {3}'.format(NEXUS_6, NEXUS_6_2, NEXUS_5, MAC)
+        exit()
 
 if __name__ == '__main__':
     parser = ArgumentParser()
