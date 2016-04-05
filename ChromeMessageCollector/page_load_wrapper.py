@@ -16,6 +16,8 @@ from utils import chrome_utils
 
 NEXUS_6_CONFIG = '../device_config/nexus6.cfg'
 NEXUS_6 = 'Nexus_6'
+NEXUS_6_CHROMIUM_CONFIG = '../device_config/nexus6_chromium.cfg'
+NEXUS_6_CHROMIUM = 'Nexus_6_chromium'
 NEXUS_6_2_CONFIG = '../device_config/nexus6_2.cfg'
 NEXUS_6_2 = 'Nexus_6_2'
 NEXUS_5_CONFIG = '../device_config/nexus5.cfg'
@@ -75,7 +77,9 @@ def main(pages_file, num_repetitions, output_dir, use_caching_proxy, start_measu
                 except PageLoadException as e:
                     print 'Timeout for {0}-th load. Append to end of queue...'.format(i)
                     # Kill the browser and append a page.
-                    chrome_utils.close_all_tabs(get_device_config(device))
+                    device, device_config = get_device_config(device)
+                    device_config_obj = get_device_config_obj(device, device_config)
+                    chrome_utils.close_all_tabs(device_config_obj)
                     initialize_browser(device)
                     pages.append(page)
                     break
@@ -101,7 +105,9 @@ def load_pages_with_measurement_and_tracing_disabled(pages, output_dir, num_repe
             except PageLoadException as e:
                 print 'Timeout for {0}-th load. Append to end of queue...'.format(i)
                 # Kill the browser and append a page.
-                chrome_utils.close_all_tabs(get_device_config(device))
+                device, device_config = get_device_config(device)
+                device_config_obj = get_device_config_obj(device, device_config)
+                chrome_utils.close_all_tabs(device_config_obj)
                 initialize_browser(device)
                 pages.append(page)
                 break
@@ -133,7 +139,9 @@ def load_pages_with_measurement_and_tracing_enabled(pages, output_dir, num_repet
             except PageLoadException as e:
                 print 'Timeout for {0}-th load. Append to end of queue...'.format(i)
                 # Kill the browser and append a page.
-                chrome_utils.close_all_tabs(get_device_config(device))
+                device, device_config = get_device_config(device)
+                device_config_obj = get_device_config_obj(device, device_config)
+                chrome_utils.close_all_tabs(device_config_obj)
                 initialize_browser(device)
                 pages.append(page)
                 break
@@ -164,9 +172,7 @@ def check_previous_page_load(current_run_index, base_output_dir, raw_line):
 def initialize_browser(device):
     # Get the device configuration
     device, device_config = get_device_config(device)
-    config_reader = ConfigParser()
-    config_reader.read(device_config)
-    device_config_obj = phone_connection_utils.get_device_configuration(config_reader, device)
+    device_config_obj = get_device_config_obj(device, device_config)
     phone_connection_utils.wake_phone_up(device_config_obj)
     print 'Stopping Chrome...'
     phone_connection_utils.stop_chrome(device_config_obj)
@@ -179,6 +185,12 @@ def initialize_browser(device):
             closed_tabs = True
         except requests.exceptions.ConnectionError as e:
             pass
+
+def get_device_config_obj(device, device_config):
+    config_reader = ConfigParser()
+    config_reader.read(device_config)
+    device_config_obj = phone_connection_utils.get_device_configuration(config_reader, device)
+    return device_config_obj
 
 def shutdown_browser(device):
     device, device_config = get_device_config(device)
@@ -260,8 +272,10 @@ def get_device_config(device):
         return NEXUS_5, NEXUS_5_CONFIG
     elif device == MAC:
         return MAC, MAC_CONFIG
+    elif device == NEXUS_6_CHROMIUM:
+        return NEXUS_6_CHROMIUM, NEXUS_6_CHROMIUM_CONFIG
     else:
-        print 'available devices: {0}, {1}, {2}, {3}'.format(NEXUS_6, NEXUS_6_2, NEXUS_5, MAC)
+        print 'available devices: {0}, {1}, {2}, {3}, {4}'.format(NEXUS_6, NEXUS_6_2, NEXUS_5, NEXUS_6_CHROMIUM, MAC)
         exit()
 
 if __name__ == '__main__':

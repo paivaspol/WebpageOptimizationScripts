@@ -14,11 +14,13 @@ CHROME_MAC_DEBUG_PORT = 'chrome_mac_debugging_port'
 DEVICE_TYPE = 'type'
 CHROME_INSTANCE = 'chrome_instance'
 WEB_SOCKET_DEBUGGER_URL = 'webSocketDebuggerUrl'
+USE_CHROMIUM = 'use_chromium'
 
 DEVICE_PHONE = 'phone'
 DEVICE_MAC = 'mac'
 
 ANDROID_CHROME_INSTANCE = 'com.android.chrome/com.google.android.apps.chrome.Main'
+ANDROID_CHROMIUM_INSTANCE = 'org.chromium.chrome/com.google.android.apps.chrome.Main'
 MAC_CHROME_INSTANCE = '"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"'
 
 def start_chrome(device_configuration):
@@ -26,6 +28,7 @@ def start_chrome(device_configuration):
     Setup and run chrome on Android.
     '''
     if device_configuration[DEVICE_TYPE] == DEVICE_PHONE:
+        print device_configuration.keys()
         # Setup port-forwarding for RDP
         cmd_base = 'adb -s {0} forward tcp:{1} localabstract:chrome_devtools_remote'
         cmd = cmd_base.format(device_configuration[DEVICE_ID], device_configuration[ADB_PORT])
@@ -130,7 +133,7 @@ def get_device_configuration(config_reader, device):
     device_config[DEVICE_TYPE] = device_type
     if device_type == DEVICE_PHONE:
         device_config[ADB_PORT] = int(config_reader.get(device, ADB_PORT))
-        device_config[CHROME_INSTANCE] = ANDROID_CHROME_INSTANCE
+        device_config[CHROME_INSTANCE] = ANDROID_CHROME_INSTANCE if not bool(config_reader.get(device, USE_CHROMIUM)) else ANDROID_CHROMIUM_INSTANCE
         device_config[DEVICE_ID] = config_reader.get(device, DEVICE_ID)
     elif device_type == DEVICE_MAC:
         device_config[CHROME_MAC_DEBUG_PORT] = int(config_reader.get(device, CHROME_MAC_DEBUG_PORT))
