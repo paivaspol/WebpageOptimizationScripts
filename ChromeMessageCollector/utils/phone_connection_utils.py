@@ -28,7 +28,6 @@ def start_chrome(device_configuration):
     Setup and run chrome on Android.
     '''
     if device_configuration[DEVICE_TYPE] == DEVICE_PHONE:
-        print device_configuration.keys()
         # Setup port-forwarding for RDP
         cmd_base = 'adb -s {0} forward tcp:{1} localabstract:chrome_devtools_remote'
         cmd = cmd_base.format(device_configuration[DEVICE_ID], device_configuration[ADB_PORT])
@@ -43,7 +42,7 @@ def start_chrome(device_configuration):
 
         return p
     elif device_configuration[DEVICE_TYPE] == DEVICE_MAC:
-        print 'device config: ' + str(device_configuration)
+        # print 'device config: ' + str(device_configuration)
         # Run Chrome.
         cmd = device_configuration[CHROME_INSTANCE] + ' --incognito --disable-extensions --remote-debugging-port={0} --disable-logging > /dev/null 2>&1 &'.format(device_configuration[CHROME_MAC_DEBUG_PORT])
         p = subprocess.call(cmd, shell=True)
@@ -55,11 +54,15 @@ def stop_chrome(device_configuration):
     Kill the chrome process that is running.
     '''
     if device_configuration[DEVICE_TYPE] == DEVICE_PHONE:
-        cmd_base = 'adb -s {0} shell am force-stop com.android.chrome'
-        cmd = cmd_base.format(device_configuration[DEVICE_ID])
-        os.system(cmd)
+        chrome_instance = "com.android.chrome"
+        if device_configuration[CHROME_INSTANCE] == ANDROID_CHROMIUM_INSTANCE:
+            chrome_instance = "org.chromium.chrome"
+        cmd_base = 'adb -s {0} shell am force-stop {1}'
+        cmd = cmd_base.format(device_configuration[DEVICE_ID], chrome_instance)
+        # print cmd
+        subprocess.call(cmd, shell=True)
     elif device_configuration[DEVICE_TYPE] == DEVICE_MAC:
-        os.system('pkill -9 Chrome')
+        subprocess.call('pkill -9 Chrome', shell=True)
 
 def start_tcpdump(device_configuration):
     '''
@@ -72,7 +75,7 @@ def start_tcpdump(device_configuration):
         retval = subprocess.Popen(cmd, shell=True)
         get_tcp_dump_process = 'adb -s {0} shell \'su -c \'ps | grep tcpdump\'\''.format(device_configuration[DEVICE_ID])
         result = subprocess.check_call(get_tcp_dump_process, shell=True)
-        print result
+        # print result
         tcpdump_started = True
     return retval
 
@@ -85,7 +88,7 @@ def stop_tcpdump(device_configuration, sleep_before_kill=True):
         sleep(45) # Give sometime for tcpdump to be finished.
     cmd_base = 'adb -s {0} shell ps | grep tcpdump | awk \'{{ print $2 }}\' | xargs adb -s {0} shell "su -c kill -9"'
     cmd = cmd_base.format(device_configuration[DEVICE_ID])
-    print cmd
+    # print cmd
     return subprocess.Popen(cmd, shell=True)
 
 def fetch_pcap(device_configuration, pcap_directory=PCAP_DIRECTORY, destination_directory=RESULT_DIRECTORY):
