@@ -15,6 +15,7 @@ def find_failed_pages(root_dir, pages, output_unloadable_resources):
     result = []
     for page in pages:
         url = common_module.escape_page(page)
+        print 'Processing: ' + url + ' for page: ' + page
         directory_path = os.path.join(root_dir, url)
         if os.path.exists(directory_path):
             network_filename = os.path.join(directory_path, 'network_' + url)
@@ -55,6 +56,7 @@ def find_if_load_failed(network_events, page):
     for network_event in network_events:
         if not found_root and network_event[METHOD] == 'Network.requestWillBeSent':
             request_url = network_event[PARAMS]['request']['url']
+            # print 'request url: {0} page: {1}'.format(request_url, page)
             found_root = request_url == page
 
         if not found_root:

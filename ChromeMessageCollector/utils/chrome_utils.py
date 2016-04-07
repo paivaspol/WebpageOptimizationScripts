@@ -24,8 +24,9 @@ def get_debugging_port(device_configuration):
     '''
     if device_configuration[phone_connection_utils.DEVICE_TYPE] == phone_connection_utils.DEVICE_PHONE:
         return device_configuration[phone_connection_utils.ADB_PORT]
-    elif device_configuration[phone_connection_utils.DEVICE_TYPE] == phone_connection_utils.DEVICE_MAC:
-        return device_configuration[phone_connection_utils.CHROME_MAC_DEBUG_PORT]
+    elif device_configuration[phone_connection_utils.DEVICE_TYPE] == phone_connection_utils.DEVICE_MAC or \
+        device_configuration[phone_connection_utils.DEVICE_TYPE] == phone_connection_utils.DEVICE_UBUNTU:
+        return device_configuration[phone_connection_utils.CHROME_DESKTOP_DEBUG_PORT]
 
 def create_tab(device_configuration):
     '''

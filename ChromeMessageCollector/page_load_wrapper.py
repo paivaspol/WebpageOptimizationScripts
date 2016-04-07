@@ -26,6 +26,9 @@ NEXUS_5_CONFIG = '../device_config/nexus5.cfg'
 NEXUS_5 = 'Nexus_5'
 MAC_CONFIG = '../device_config/mac.cfg'
 MAC = 'mac'
+UBUNTU_CONFIG = '../device_config/ubuntu.cfg'
+UBUNTU = 'ubuntu'
+
 HTTP_PREFIX = 'http://'
 HTTPS_PREFIX = 'https://'
 WWW_PREFIX = 'www.'
@@ -41,6 +44,8 @@ def main(pages_file, num_repetitions, output_dir, use_caching_proxy, start_measu
         load_pages_with_measurement_and_tracing_enabled(pages, output_dir, num_repetitions, device)
     elif not start_measurements and disable_tracing:
         load_pages_with_measurement_and_tracing_disabled(pages, output_dir, num_repetitions, device)
+    elif not start_measurements and not disable_tracing:
+        load_pages_with_measurement_disabled_but_tracing_enabled(pages, output_dir, num_repetitions, device)
     else:
         if not start_measurements:
             initialize_browser(device)
@@ -67,6 +72,7 @@ def main(pages_file, num_repetitions, output_dir, use_caching_proxy, start_measu
                     load_page(page, i, output_dir, start_measurements, device, disable_tracing)
                     if not disable_tracing:
                         # Kill the browser.
+                        print 'initializing ' + str(i)
                         sleep(BUFFER_FOR_TRACE)
                         initialize_browser(device)
                     signal.alarm(0) # Reset the alarm
@@ -87,6 +93,36 @@ def main(pages_file, num_repetitions, output_dir, use_caching_proxy, start_measu
                     break
                 sleep(PAUSE)
     # shutdown_browser(device)
+
+def load_pages_with_measurement_disabled_but_tracing_enabled(pages, output_dir, num_repetitions, device):
+    device, device_config = get_device_config(device)
+    device_config_obj = get_device_config_obj(device, device_config)
+    while len(pages) > 0:
+        page = pages.pop(0)
+        print 'page: ' + page
+        i = 0
+        while i < num_repetitions:
+            try:
+                phone_connection_utils.start_chrome(device_config_obj)
+                signal.alarm(TIMEOUT) # Set alarm for TIMEOUT
+                load_page(page, i, output_dir, False, device, False)
+                signal.alarm(0) # Reset the alarm
+                while check_previous_page_load(i, output_dir, page):
+                    signal.alarm(TIMEOUT) # Set alarm for TIMEOUT
+                    load_page(page, i, output_dir, False, device, False)
+                    signal.alarm(0) # Reset the alarm
+                i += 1
+                phone_connection_utils.stop_chrome(device_config_obj)
+            except PageLoadException as e:
+                print 'Timeout for {0}-th load. Append to end of queue...'.format(i)
+                # Kill the browser and append a page.
+                device, device_config = get_device_config(device)
+                device_config_obj = get_device_config_obj(device, device_config)
+                chrome_utils.close_all_tabs(device_config_obj)
+                phone_connection_utils.stop_chrome(device_config_obj)
+                pages.append(page)
+                break
+            sleep(PAUSE)
 
 def load_pages_with_measurement_and_tracing_disabled(pages, output_dir, num_repetitions, device):
     initialize_browser(device)
@@ -159,7 +195,7 @@ def get_pages(pages_file):
 
 def check_previous_page_load(current_run_index, base_output_dir, raw_line):
     if current_run_index > 0:
-        url = common_module.escape_url(raw_line.strip())
+        url = common_module.escape_page(raw_line.strip())
         output_dir_prev_run = os.path.join(os.path.join(base_output_dir, str(current_run_index - 1)), url)
         prev_run_start_end_time = os.path.join(output_dir_prev_run, 'start_end_time_' + url)
         output_dir_cur_run = os.path.join(os.path.join(base_output_dir, str(current_run_index)), url)
@@ -173,6 +209,7 @@ def check_previous_page_load(current_run_index, base_output_dir, raw_line):
 
 def initialize_browser(device):
     # Get the device configuration
+    print 'initializing browser...'
     device, device_config = get_device_config(device)
     device_config_obj = get_device_config_obj(device, device_config)
     phone_connection_utils.wake_phone_up(device_config_obj)
@@ -278,8 +315,10 @@ def get_device_config(device):
         return NEXUS_6_CHROMIUM, NEXUS_6_CHROMIUM_CONFIG
     elif device == NEXUS_6_2_CHROMIUM:
         return NEXUS_6_2_CHROMIUM, NEXUS_6_2_CHROMIUM_CONFIG
+    elif device == UBUNTU:
+        return UBUNTU, UBUNTU_CONFIG
     else:
-        print 'available devices: {0}, {1}, {2}, {3}, {4}'.format(NEXUS_6, NEXUS_6_2, NEXUS_5, NEXUS_6_CHROMIUM, NEXUS_6_2_CHROMIUM, MAC)
+        print 'available devices: {0}, {1}, {2}, {3}, {4}, {5}'.format(NEXUS_6, NEXUS_6_2, NEXUS_5, NEXUS_6_CHROMIUM, NEXUS_6_2_CHROMIUM, MAC, UBUNTU)
         exit()
 
 if __name__ == '__main__':

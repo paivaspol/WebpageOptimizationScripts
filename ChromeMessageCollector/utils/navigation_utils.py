@@ -19,6 +19,10 @@ def reload_page(debug_connection, ignore_cache=True):
     debug_connection.send(reload_page)
     sleep(1.0)
 
+def set_user_agent(debug_connection, user_agent_str):
+    override_user_agent = json.dumps({ "id": 6, "method": "Network.setUserAgentOverride", "params": { "userAgent": user_agent_str }})
+    debug_connection.send(override_user_agent)
+    sleep(0.5)
 
 def get_start_end_time_with_socket(ws):
     start_time = None

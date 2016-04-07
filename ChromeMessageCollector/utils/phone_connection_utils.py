@@ -10,7 +10,7 @@ RESULT_DIRECTORY = '../result/'
 DEVICE_ID = 'id'
 IP = 'ip'
 ADB_PORT = 'adb_port'
-CHROME_MAC_DEBUG_PORT = 'chrome_mac_debugging_port'
+CHROME_DESKTOP_DEBUG_PORT = 'chrome_desktop_debugging_port'
 DEVICE_TYPE = 'type'
 CHROME_INSTANCE = 'chrome_instance'
 WEB_SOCKET_DEBUGGER_URL = 'webSocketDebuggerUrl'
@@ -18,10 +18,16 @@ USE_CHROMIUM = 'use_chromium'
 
 DEVICE_PHONE = 'phone'
 DEVICE_MAC = 'mac'
+DEVICE_UBUNTU = 'ubuntu'
 
 ANDROID_CHROME_INSTANCE = 'com.android.chrome/com.google.android.apps.chrome.Main'
 ANDROID_CHROMIUM_INSTANCE = 'org.chromium.chrome/com.google.android.apps.chrome.Main'
 MAC_CHROME_INSTANCE = '"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"'
+UBUNTU_CHROME_INSTANCE = '"/opt/google/chrome/google-chrome"'
+
+CHANGE_USER_AGENT = 'change_user_agent'
+USER_AGENT = 'user_agent'
+USER_AGENT_STR = 'Mozilla/5.0 (Linux; Android 6.0.1; Nexus 6 Build/MMB29S) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/50.0.2645.0 Mobile Safari/537.36'
 
 def start_chrome(device_configuration):
     '''
@@ -41,13 +47,14 @@ def start_chrome(device_configuration):
         sleep(3) # So we have enough time to forward the port.
 
         return p
-    elif device_configuration[DEVICE_TYPE] == DEVICE_MAC:
+    elif device_configuration[DEVICE_TYPE] == DEVICE_MAC or \
+        device_configuration[DEVICE_TYPE] == DEVICE_UBUNTU:
         # print 'device config: ' + str(device_configuration)
         # Run Chrome.
-        cmd = device_configuration[CHROME_INSTANCE] + ' --incognito --disable-extensions --remote-debugging-port={0} --disable-logging > /dev/null 2>&1 &'.format(device_configuration[CHROME_MAC_DEBUG_PORT])
+        cmd = device_configuration[CHROME_INSTANCE] + ' --incognito --disable-extensions --remote-debugging-port={0} --ignore-certificate-errors --disable-logging > /dev/null 2>&1 &'.format(device_configuration[CHROME_DESKTOP_DEBUG_PORT])
         p = subprocess.call(cmd, shell=True)
+        sleep(3)
         return p
-        
 
 def stop_chrome(device_configuration):
     '''
@@ -63,6 +70,8 @@ def stop_chrome(device_configuration):
         subprocess.call(cmd, shell=True)
     elif device_configuration[DEVICE_TYPE] == DEVICE_MAC:
         subprocess.call('pkill -9 Chrome', shell=True)
+    elif device_configuration[DEVICE_TYPE] == DEVICE_UBUNTU:
+        subprocess.call('pkill -9 chrome', shell=True)
 
 def start_tcpdump(device_configuration):
     '''
@@ -136,11 +145,18 @@ def get_device_configuration(config_reader, device):
     device_config[DEVICE_TYPE] = device_type
     if device_type == DEVICE_PHONE:
         device_config[ADB_PORT] = int(config_reader.get(device, ADB_PORT))
-        device_config[CHROME_INSTANCE] = ANDROID_CHROME_INSTANCE if not bool(config_reader.get(device, USE_CHROMIUM)) else ANDROID_CHROMIUM_INSTANCE
+        device_config[CHROME_INSTANCE] = ANDROID_CHROMIUM_INSTANCE if config_reader.get(device, USE_CHROMIUM) == 'True' else ANDROID_CHROME_INSTANCE
         device_config[DEVICE_ID] = config_reader.get(device, DEVICE_ID)
     elif device_type == DEVICE_MAC:
-        device_config[CHROME_MAC_DEBUG_PORT] = int(config_reader.get(device, CHROME_MAC_DEBUG_PORT))
+        device_config[CHROME_DESKTOP_DEBUG_PORT] = int(config_reader.get(device, CHROME_DESKTOP_DEBUG_PORT))
         device_config[CHROME_INSTANCE] = MAC_CHROME_INSTANCE
+        if config_reader.get(device, CHANGE_USER_AGENT) == 'True':
+            device_config[USER_AGENT] = USER_AGENT_STR
+    elif device_type == DEVICE_UBUNTU:
+        device_config[CHROME_DESKTOP_DEBUG_PORT] = int(config_reader.get(device, CHROME_DESKTOP_DEBUG_PORT))
+        device_config[CHROME_INSTANCE] = UBUNTU_CHROME_INSTANCE
+        if config_reader.get(device, CHANGE_USER_AGENT) == 'True':
+            device_config[USER_AGENT] = USER_AGENT_STR
     return device_config
 
 def get_cpu_running_chrome(device_config):
@@ -150,6 +166,7 @@ def get_cpu_running_chrome(device_config):
     return output.split()[5]
 
 def wake_phone_up(device_config):
-    command = 'adb shell input keyevent KEYCODE_WAKEUP'
-    subprocess.call(command, shell=True)
-    print 'Waking up the phone'
+    if device_config[DEVICE_TYPE] == DEVICE_PHONE:
+        command = 'adb shell input keyevent KEYCODE_WAKEUP'
+        subprocess.call(command, shell=True)
+        print 'Waking up the phone'

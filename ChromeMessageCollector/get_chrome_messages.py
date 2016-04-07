@@ -26,7 +26,8 @@ def main(device_configuration, url, disable_tracing, reload_page):
     '''
     output_directory = create_output_directory_for_url(url)
     
-    if device_configuration[phone_connection_utils.DEVICE_TYPE] != phone_connection_utils.DEVICE_MAC:
+    if device_configuration[phone_connection_utils.DEVICE_TYPE] != phone_connection_utils.DEVICE_MAC and \
+        device_configuration[phone_connection_utils.DEVICE_TYPE] != phone_connection_utils.DEVICE_UBUNTU:
         cpu_chrome_running_on = phone_connection_utils.get_cpu_running_chrome(device_configuration)
         output_cpu_running_chrome(output_directory, cpu_chrome_running_on)
 
@@ -40,14 +41,18 @@ def main(device_configuration, url, disable_tracing, reload_page):
     debugging_url, page_id = chrome_utils.get_debugging_url(device_configuration)
     print 'Connected to Chrome...'
     device_configuration['page_id'] = page_id
-    if not disable_tracing:
-        debugging_socket = ChromeRDPWebsocket(debugging_url, url, device_configuration, reload_page, callback_on_page_done)
-    else:
-        chrome_rdp_object_without_tracing = ChromeRDPWithoutTracing(debugging_url, url)
+    user_agent_str = None
+    if phone_connection_utils.USER_AGENT in device_configuration:
+        user_agent_str = device_configuration[phone_connection_utils.USER_AGENT]
+
+    if disable_tracing:
+        chrome_rdp_object_without_tracing = ChromeRDPWithoutTracing(debugging_url, url, user_agent_str)
         start_time, end_time = chrome_rdp_object_without_tracing.navigate_to_page(url, reload_page)
         print str((start_time, end_time)) + ' ' + str((end_time - start_time))
-        escaped_url = common_module.escape_url(url)
+        escaped_url = common_module.escape_page(url)
         write_page_start_end_time(escaped_url, output_directory, start_time, end_time)
+    else:
+        debugging_socket = ChromeRDPWebsocket(debugging_url, url, device_configuration, reload_page, user_agent_str, callback_on_page_done)
 
 def output_cpu_running_chrome(output_directory, cpu_id):
     '''
@@ -67,7 +72,7 @@ def create_output_directory_for_url(url):
         if not os.path.exists(base_dir):
             os.mkdir(base_dir)
     
-    final_url = common_module.escape_url(url)
+    final_url = common_module.escape_page(url)
 
     base_dir = os.path.join(base_dir, final_url)
     # Create the directory if the directory doesn't exist.

@@ -13,13 +13,17 @@ TIMESTAMP = 'timestamp'
 
 class ChromeRDPWithoutTracing(object):
 
-    def __init__(self, url, target_url):
+    def __init__(self, url, target_url, user_agent):
         self.url = target_url
         self.debugging_url = url
+        self.user_agent = user_agent
         self.ws = websocket.WebSocket()
         self.ws.connect(self.debugging_url)
 
     def navigate_to_page(self, url, reload_page):
+        if self.user_agent is not None:
+            navigation_utils.set_user_agent(self.ws, self.user_agent)
+
         if reload_page:
             navigation_utils.reload_page(self.ws)
         else:

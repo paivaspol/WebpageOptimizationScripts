@@ -13,7 +13,7 @@ TIMESTAMP = 'timestamp'
 
 class ChromeRDPWebsocket(object):
 
-    def __init__(self, url, target_url, device_configuration, should_reload, callback):
+    def __init__(self, url, target_url, device_configuration, should_reload, user_agent_str, callback):
         '''
         Initialize the object. 
         url - the websocket url
@@ -34,6 +34,7 @@ class ChromeRDPWebsocket(object):
         self.device_configuration = device_configuration # The device configuration
         self.should_reload = should_reload
         self.debugging_url = url
+        self.user_agent = user_agent_str
         self.ws = websocket.WebSocketApp(url,\
                                         on_message = self.on_message,\
                                         on_error = self.on_error,\
@@ -102,6 +103,10 @@ class ChromeRDPWebsocket(object):
         '''
         self.enable_network_tracking(self.ws)
         self.enable_page_tracking(self.ws)
+        
+        if self.user_agent is not None:
+            navigation_utils.set_user_agent(self.ws, self.user_agent)
+
         # self.enable_trace_collection(self.ws)
         self.clear_cache(self.ws)
         print 'navigating to url: ' + str(self.url)
@@ -109,7 +114,7 @@ class ChromeRDPWebsocket(object):
             navigation_utils.reload_page(self.ws)
         else:
             navigation_utils.navigate_to_page(self.ws, self.url)
-    
+
     def close_connection(self):
         self.ws.close()
 

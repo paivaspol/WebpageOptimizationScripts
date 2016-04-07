@@ -9,38 +9,47 @@ PARAMS = 'params'
 REQUEST_ID = 'requestId'
 DOCUMENT_URL = 'documentURL'
 REDIRECT_RESPONSE = 'redirectResponse'
+REQUEST = 'request'
 RESPONSE = 'response'
 URL = 'url'
 
 def check_requests(url, network_events_filename):
     with open(network_events_filename, 'rb') as input_file:
-        first_event = json.loads(json.loads(input_file.readline().strip()))
         original_url = None
-        if PARAMS in first_event and DOCUMENT_URL in first_event[PARAMS]:
-            original_url = first_event[PARAMS][DOCUMENT_URL]
+        try:
+            line = input_file.readline()
+            while line != '':
+                first_event = json.loads(json.loads(line.strip()))
+                if first_event[METHOD] == 'Network.requestWillBeSent' or \
+                    (REQUEST in first_event[PARAMS] and \
+                    common_module.escape_page(url) in \
+                        common_module.escape_page(first_event[PARAMS][REQUEST][URL])):
+                    if PARAMS in first_event and REQUEST in first_event[PARAMS]:
+                        original_url = first_event[PARAMS][REQUEST][URL]
+                        if original_url is not None:
+                            break
+                line = input_file.readline()
 
-        while first_event[METHOD] != 'Network.requestWillBeSent' or \
-            (DOCUMENT_URL in first_event[PARAMS] and \
-            url not in first_event[PARAMS][DOCUMENT_URL]):
-            first_event = json.loads(json.loads(input_file.readline().strip()))
-            if PARAMS in first_event and DOCUMENT_URL in first_event[PARAMS]:
-                original_url = first_event[PARAMS][DOCUMENT_URL]
-
-        second_event = json.loads(json.loads(input_file.readline().strip()))
-        final_url = None
-        if PARAMS in second_event and \
-            RESPONSE in second_event[PARAMS] and \
-            URL in second_event[PARAMS][RESPONSE]:
-            final_url = second_event[PARAMS][RESPONSE][URL]
-        while second_event[METHOD] != 'Network.responseReceived' or \
-            (DOCUMENT_URL in second_event[PARAMS] and \
-            url not in second_event[PARAMS][RESPONSE]['url']):
-                second_event = json.loads(json.loads(input_file.readline().strip()))
-                if PARAMS in second_event and \
+            final_url = None
+            line = input_file.readline()
+            while line != '':
+                second_event = json.loads(json.loads(line.strip()))
+                if second_event[METHOD] == 'Network.responseReceived' and \
+                    PARAMS in second_event and \
                     RESPONSE in second_event[PARAMS] and \
                     URL in second_event[PARAMS][RESPONSE]:
                     final_url = second_event[PARAMS][RESPONSE][URL]
-        print original_url + ' ' + final_url
+                    if final_url is not None:
+                        break
+                line = input_file.readline()
+            if final_url is None:
+                print original_url + ' ' + original_url
+            else:
+                print original_url + ' ' + final_url
+
+        except json.scanner.JSONDecodeError as e:
+            print 'error: ' + url
+            pass
 
 def traverse_directories(root_dir):
     for path, dirs, filenames in os.walk(root_dir):
