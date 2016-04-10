@@ -95,7 +95,7 @@ def callback_on_page_done(debugging_socket, network_messages, timeline_messages,
     
     # Get the start and end time of the execution
     start_time, end_time = navigation_utils.get_start_end_time(debugging_url)
-    print 'output dir: ' + base_dir
+    # print 'output dir: ' + base_dir
     write_page_start_end_time(final_url, base_dir, start_time, end_time, original_request_ts, load_event_ts)
 
     network_filename = os.path.join(base_dir, 'network_' + final_url)

@@ -28,6 +28,7 @@ UBUNTU_CHROME_INSTANCE = '"/opt/google/chrome/google-chrome"'
 CHANGE_USER_AGENT = 'change_user_agent'
 USER_AGENT = 'user_agent'
 USER_AGENT_STR = 'Mozilla/5.0 (Linux; Android 6.0.1; Nexus 6 Build/MMB29S) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/50.0.2645.0 Mobile Safari/537.36'
+PAC_FILE_PATH = 'pac_file_path'
 
 def start_chrome(device_configuration):
     '''
@@ -51,7 +52,10 @@ def start_chrome(device_configuration):
         device_configuration[DEVICE_TYPE] == DEVICE_UBUNTU:
         # print 'device config: ' + str(device_configuration)
         # Run Chrome.
-        cmd = device_configuration[CHROME_INSTANCE] + ' --incognito --disable-extensions --remote-debugging-port={0} --ignore-certificate-errors --disable-logging > /dev/null 2>&1 &'.format(device_configuration[CHROME_DESKTOP_DEBUG_PORT])
+        cmd = device_configuration[CHROME_INSTANCE] + '  --disable-extensions --remote-debugging-port={0} --disable-logging'.format(device_configuration[CHROME_DESKTOP_DEBUG_PORT])
+        if PAC_FILE_PATH in device_configuration:
+            cmd += ' --proxy-pac-url={0}'.format(device_configuration[PAC_FILE_PATH])
+        cmd += ' > /dev/null 2>&1 &'
         p = subprocess.call(cmd, shell=True)
         sleep(3)
         return p
@@ -152,11 +156,15 @@ def get_device_configuration(config_reader, device):
         device_config[CHROME_INSTANCE] = MAC_CHROME_INSTANCE
         if config_reader.get(device, CHANGE_USER_AGENT) == 'True':
             device_config[USER_AGENT] = USER_AGENT_STR
+        if config_reader.has_option(device, PAC_FILE_PATH):
+            device_config[PAC_FILE_PATH] = config_reader.get(device, PAC_FILE_PATH)
     elif device_type == DEVICE_UBUNTU:
         device_config[CHROME_DESKTOP_DEBUG_PORT] = int(config_reader.get(device, CHROME_DESKTOP_DEBUG_PORT))
         device_config[CHROME_INSTANCE] = UBUNTU_CHROME_INSTANCE
         if config_reader.get(device, CHANGE_USER_AGENT) == 'True':
             device_config[USER_AGENT] = USER_AGENT_STR
+        if config_reader.has_option(device, PAC_FILE_PATH):
+            device_config[PAC_FILE_PATH] = config_reader.get(device, PAC_FILE_PATH)
     return device_config
 
 def get_cpu_running_chrome(device_config):

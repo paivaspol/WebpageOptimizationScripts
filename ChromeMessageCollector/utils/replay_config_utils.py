@@ -14,9 +14,10 @@ RECORD_PAGES_PATH = 'record_pages_path'
 SERVER_KEY = 'server_key'
 SERVER_HOSTNAME = 'server_hostname'
 SERVER_USERNAME = 'server_username'
+SERVER_PORT = 'server_port'
 
 CONFIG_KEYS = [ PROXY_REPLAY_PATH, NGHTTPX_PATH, NGHTTPX_PORT, NGHTTPX_KEY_PATH, NGHTTPX_CERT_PATH, \
-        RECORD_PAGES_PATH, SERVER_KEY, SERVER_HOSTNAME, SERVER_USERNAME ]
+        RECORD_PAGES_PATH, SERVER_KEY, SERVER_HOSTNAME, SERVER_USERNAME, SERVER_PORT ]
 
 def get_page_replay_config(config_filename):
     configuration = dict()

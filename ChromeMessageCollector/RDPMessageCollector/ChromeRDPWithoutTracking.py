@@ -11,6 +11,8 @@ PARAMS = 'params'
 REQUEST_ID = 'requestId'
 TIMESTAMP = 'timestamp'
 
+WAIT = 3
+
 class ChromeRDPWithoutTracing(object):
 
     def __init__(self, url, target_url, user_agent):
@@ -21,13 +23,14 @@ class ChromeRDPWithoutTracing(object):
         self.ws.connect(self.debugging_url)
 
     def navigate_to_page(self, url, reload_page):
-        if self.user_agent is not None:
-            navigation_utils.set_user_agent(self.ws, self.user_agent)
+        # if self.user_agent is not None:
+        #     navigation_utils.set_user_agent(self.ws, self.user_agent)
 
-        if reload_page:
-            navigation_utils.reload_page(self.ws)
-        else:
-            navigation_utils.navigate_to_page(self.ws, url)
+        # if reload_page:
+        #     navigation_utils.reload_page(self.ws)
+        # else:
+        navigation_utils.navigate_to_page(self.ws, url)
+        sleep(WAIT)
         result = self.ws.recv()
         start_time, end_time = navigation_utils.get_start_end_time_with_socket(self.ws)
         navigation_utils.clear_cache(self.ws)

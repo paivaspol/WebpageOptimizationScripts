@@ -7,6 +7,7 @@ import paramiko
 import os
 import signal
 import subprocess
+import requests
 
 from time import sleep
 from utils import replay_config_utils
@@ -23,11 +24,28 @@ def main(config_filename, pages, iterations, device_name, output_dir):
     for page in pages:
         print 'Page: ' + page
         replay_configurations = replay_config_utils.get_page_replay_config(config_filename)
-        start_proxy_process = subprocess.Popen(['python', \
-                '/home/vaspol/Research/MobileWebOptimization/scripts/ChromeMessageCollector/utils/proxy_service.py', \
-                page, config_filename, 'start'])
-        while not check_proxy_running(replay_configurations):
-            sleep(WAIT)
+        # start_proxy_process = subprocess.Popen(['python', \
+        #         '/home/vaspol/Research/MobileWebOptimization/scripts/ChromeMessageCollector/utils/proxy_service.py', \
+        #         page, config_filename, 'start'])
+        # while not check_proxy_running(replay_configurations):
+        #     sleep(WAIT)
+        # start proxy url: 
+
+        proxy_started = False
+        counter = 0
+        # Ensure that the proxy has started before start loading the page
+        while not proxy_started:
+            proxy_started = check_proxy_running(replay_configurations)
+            if counter % 10 == 0:
+                # Try every 10 iterations
+                start_proxy_url = 'http://{0}:{1}/start_proxy?page={2}'.format( \
+                        replay_configurations[replay_config_utils.SERVER_HOSTNAME], \
+                        replay_configurations[replay_config_utils.SERVER_PORT], \
+                        page)
+                result = requests.get(start_proxy_url)
+                proxy_started = result.status_code == 200 and result.text == 'Proxy Started'
+            sleep(1) # Have a 1 second interval between iterations
+            counter += 1
 
         # Load the page.
         returned_page = load_one_website(page, iterations, output_dir, device_info)
@@ -35,11 +53,25 @@ def main(config_filename, pages, iterations, device_name, output_dir):
             # There was an exception
             pages.append(returned_page)
             common_module.initialize_browser(device_info) # Restart the browser
-        else:
-            print 'Proxy not running...'
 
-        stop_proxy_process = subprocess.Popen(['python', '/home/vaspol/Research/MobileWebOptimization/scripts/ChromeMessageCollector/utils/proxy_service.py', page, config_filename, 'stop'])
-        stop_proxy_process.wait()
+        url = 'http://{0}:{1}/stop_proxy'.format( \
+                    config[replay_config_utils.SERVER_HOSTNAME], \
+                    config[replay_config_utils.SERVER_PORT])
+        result = requests.get(url)
+
+        counter = 0
+        # Ensure that the proxy has stop before start loading the page
+        while not proxy_started:
+            proxy_started = check_proxy_running(replay_configurations)
+            if counter % 10 == 0:
+                # Try every 10 iterations
+                url = 'http://{0}:{1}/stop_proxy'.format( \
+                            config[replay_config_utils.SERVER_HOSTNAME], \
+                            config[replay_config_utils.SERVER_PORT])
+                result = requests.get(url)
+                proxy_started = result.status_code == 200 and result.text == 'Proxy Stopped'
+            sleep(1) # Have a 1 second interval between iterations
+            counter += 1
 
 def load_one_website(page, iterations, output_dir, device_info):
     '''
@@ -68,18 +100,12 @@ def timeout_handler(signum, frame):
 
 def check_proxy_running(config):
     print 'Checking if proxy running'
-    ssh_client = paramiko.SSHClient()
-    private_key = paramiko.RSAKey.from_private_key_file(config[replay_config_utils.SERVER_KEY])
-    ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    ssh_client.connect(hostname=config[replay_config_utils.SERVER_HOSTNAME], \
-                       username=config[replay_config_utils.SERVER_USERNAME], \
-                       pkey=private_key)
-    command = 'pgrep "mm-proxyreplay"'
-    stdin, stdout, stderr = ssh_client.exec_command(command)
-    pid = stdout.read().strip()
-    print pid
-    ssh_client.close()
-    return pid != ''
+    url = 'http://{0}:{1}/is_proxy_started'.format( \
+                config[replay_config_utils.SERVER_HOSTNAME], \
+                config[replay_config_utils.SERVER_PORT])
+    result = requests.get(url)
+    return result.status_code == 200 and \
+            result.text != ''
 
 def load_page(raw_line, run_index, output_dir, start_measurements, device_info, disable_tracing):
     # Create necessary directories
