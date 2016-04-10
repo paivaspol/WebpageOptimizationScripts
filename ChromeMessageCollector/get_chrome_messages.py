@@ -31,14 +31,14 @@ def main(device_configuration, url, disable_tracing, reload_page):
         cpu_chrome_running_on = phone_connection_utils.get_cpu_running_chrome(device_configuration)
         output_cpu_running_chrome(output_directory, cpu_chrome_running_on)
 
-    # got_debugging_url = False
-    # while not got_debugging_url:
-    #     try:
-    #         got_debugging_url = True
-    #     except requests.exceptions.ConnectionError as e:
-    #         pass
+    got_debugging_url = False
+    while not got_debugging_url:
+        try:
+            debugging_url, page_id = chrome_utils.get_debugging_url(device_configuration)
+            got_debugging_url = True
+        except requests.exceptions.ConnectionError as e:
+            pass
             
-    debugging_url, page_id = chrome_utils.get_debugging_url(device_configuration)
     print 'Connected to Chrome...'
     device_configuration['page_id'] = page_id
     user_agent_str = None
@@ -50,6 +50,7 @@ def main(device_configuration, url, disable_tracing, reload_page):
         start_time, end_time = chrome_rdp_object_without_tracing.navigate_to_page(url, reload_page)
         print str((start_time, end_time)) + ' ' + str((end_time - start_time))
         escaped_url = common_module.escape_page(url)
+        print 'output_directory: ' + output_directory
         write_page_start_end_time(escaped_url, output_directory, start_time, end_time)
     else:
         debugging_socket = ChromeRDPWebsocket(debugging_url, url, device_configuration, reload_page, user_agent_str, callback_on_page_done)
@@ -89,9 +90,14 @@ def callback_on_page_done(debugging_socket, network_messages, timeline_messages,
     debugging_socket.close_connection()
     url = debugging_socket.get_navigation_url()
     debugging_url = debugging_socket.get_debugging_url()
-    final_url = common_module.escape_url(url)
+    final_url = common_module.escape_page(url)
     base_dir = create_output_directory_for_url(url)
     
+    # Get the start and end time of the execution
+    start_time, end_time = navigation_utils.get_start_end_time(debugging_url)
+    print 'output dir: ' + base_dir
+    write_page_start_end_time(final_url, base_dir, start_time, end_time, original_request_ts, load_event_ts)
+
     network_filename = os.path.join(base_dir, 'network_' + final_url)
     timeline_filename = os.path.join(base_dir, 'timeline_' + final_url)
     with open(network_filename, 'wb') as output_file:
@@ -102,9 +108,6 @@ def callback_on_page_done(debugging_socket, network_messages, timeline_messages,
         with open(timeline_filename, 'wb') as output_file:
             for message in timeline_messages:
                 output_file.write('{0}\n'.format(json.dumps(message)))
-    # Get the start and end time of the execution
-    start_time, end_time = navigation_utils.get_start_end_time(debugging_url)
-    write_page_start_end_time(final_url, base_dir, start_time, end_time, original_request_ts, load_event_ts)
     # get_resource_tree(debugging_url)
     chrome_utils.close_tab(device_configuration, device_configuration['page_id'])
 

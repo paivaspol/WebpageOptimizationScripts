@@ -6,6 +6,7 @@ import os
 
 def get_request_sizes(network_filename, start_end_time):
     request_size = dict()
+    request_id_to_url = dict()
     start_time, end_time = start_end_time
     with open(network_filename, 'rb') as input_file:
         for raw_line in input_file:
@@ -17,18 +18,20 @@ def get_request_sizes(network_filename, start_end_time):
             if not start_time <= ts <= end_time:
                 # If the event doesn't fall in the page load range.
                 continue
-
+            
+            request_id = network_event['params']['requestId']
             if network_event['method'] == 'Network.requestWillBeSent':
-                request_size[network_event['params']['requestId']] = 0
+                request_size[request_id] = 0
+                request_id_to_url[request_id] = network_event['params']['request']['url']
             elif network_event['method'] == 'Network.dataReceived':
-                request_id = network_event['params']['requestId']
                 if request_id in request_size:
                     request_size[request_id] += network_event['params']['encodedDataLength']
             elif network_event['method'] == 'Network.loadingFinished':
                 request_id = network_event['params']['requestId']
                 if request_id in request_size:
                     cumulative_size = request_size[request_id]
-                    request_size[request_id] = max(network_event['params']['encodedDataLength'], cumulative_size)
+                    request_size[request_id] = (max(network_event['params']['encodedDataLength'], cumulative_size), request_id_to_url[request_id])
+    request_size = { k: v for (k, v) in request_size.iteritems() if not isinstance(v, int) }
     return request_size
 
 def get_request_sizes_in_directory(root_dir, write_results):
@@ -41,7 +44,8 @@ def get_request_sizes_in_directory(root_dir, write_results):
         full_path = os.path.join(path, 'network_' + url)
         page_start_end_time = common_module.parse_page_start_end_time(os.path.join(path, 'start_end_time_' + url))
         page_request_sizes = get_request_sizes(full_path, page_start_end_time[2])
-        request_sizes.extend(page_request_sizes.values())
+        page_request_size_values = [ size[0] for size in page_request_sizes.values() ]
+        request_sizes.extend(page_request_size_values)
         if write_results:
             full_path = os.path.join(path, 'request_sizes.txt')
             output_to_file(page_request_sizes, full_path)
@@ -55,7 +59,7 @@ def print_results(results):
 def output_to_file(results, output_filename):
     with open(output_filename, 'wb') as output_file:
         for key in results:
-            output_file.write('{0} {1}\n'.format(key, results[key]))
+            output_file.write('{0} {1} {2}\n'.format(key, results[key][0], results[key][1]))
 
 if __name__ == '__main__':
     parser = ArgumentParser()

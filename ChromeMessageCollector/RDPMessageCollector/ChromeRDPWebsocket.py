@@ -117,6 +117,7 @@ class ChromeRDPWebsocket(object):
 
     def close_connection(self):
         self.ws.close()
+        print 'Connection closed'
 
     def get_navigation_url(self):
         return self.url
