@@ -56,5 +56,29 @@ def clear_cache(debug_connection):
     '''
     clear_cache = { "id": 4, "method": "Network.clearBrowserCache" }
     debug_connection.send(json.dumps(clear_cache))
+    # result = json.loads(debug_connection.recv())
+    # print result
     print 'Cleared browser cache'
-    sleep(0.5)
+    sleep(1.0)
+
+def set_device_screen_size(debug_connection, screen_size_options, page_id):
+    '''
+    Sets the screen size options
+    '''
+    set_screen_size = { "method": "Page.setDeviceMetricsOverride" }
+    set_screen_size['id'] = page_id
+    set_screen_size['params'] = { \
+        'width': screen_size_options['width'], \
+        'height': screen_size_options['height'], \
+        'deviceScaleFactor': screen_size_options['density'], \
+        'mobile': screen_size_options['mobile'], \
+        'fitWindow': screen_size_options['fitWindow'] \
+        # 'fitWindow': screen_size_options['fitWindow'], \
+        # 'screenWidth': screen_size_options['width'], \
+        # 'screenHeight': screen_size_options['height'] \
+    }
+    print 'Setting screen size... ' + str(set_screen_size)
+    debug_connection.send(json.dumps(set_screen_size))
+    # result = json.loads(debug_connection.recv())
+    # print result
+    sleep(1.5)

@@ -1,5 +1,5 @@
-http://www.cbsnews.com/
 http://www.usatoday.com/
+http://www.cbsnews.com/
 https://www.wunderground.com/
 https://www.yahoo.com/news/
 http://www.eenadu.net/

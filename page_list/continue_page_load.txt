@@ -1,8 +1,23 @@
-http://www.espncricinfo.com/ http://www.espncricinfo.com/
-http://www.latimes.com/ http://www.latimes.com/
-http://www.forbes.com/forbes/welcome http://www.forbes.com/forbes/welcome/
-http://www.manoramaonline.com/ http://www.manoramaonline.com/
-http://www.wwe.com/ http://www.wwe.com/
-http://fortune.com/ http://fortune.com/
-http://news.yahoo.com/ https://www.yahoo.com/news/
-http://www.bleacherreport.com/ http://m.bleacherreport.com/
+https://www.yahoo.com/
+http://www.verizonwireless.com/vzw/homepage/
+https://m.ups.com/mDot/
+http://m.yelp.com/
+http://www.ask.com/
+http://www.buzzfeed.com/
+http://www.microsoft.com/en-us/
+http://www.walmart.com/
+http://slickdeals.net/
+https://www.chase.com/
+http://conservativetribune.com/
+http://www.adobe.com/
+http://www.intuit.com/
+http://m.aol.com/
+https://m.washingtonpost.com/
+https://www.netflix.com/
+http://www.m.webmd.com/default.htm
+http://allrecipes.com/
+http://www.amazon.com/
+http://www.hulu.com/
+http://m.foxnews.com/
+http://mobile.nytimes.com/?referer=
+http://m.accuweather.com/

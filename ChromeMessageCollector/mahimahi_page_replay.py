@@ -24,28 +24,7 @@ def main(config_filename, pages, iterations, device_name, output_dir):
     for page in pages:
         print 'Page: ' + page
         replay_configurations = replay_config_utils.get_page_replay_config(config_filename)
-        # start_proxy_process = subprocess.Popen(['python', \
-        #         '/home/vaspol/Research/MobileWebOptimization/scripts/ChromeMessageCollector/utils/proxy_service.py', \
-        #         page, config_filename, 'start'])
-        # while not check_proxy_running(replay_configurations):
-        #     sleep(WAIT)
-        # start proxy url: 
 
-        proxy_started = False
-        counter = 0
-        # Ensure that the proxy has started before start loading the page
-        while not proxy_started:
-            proxy_started = check_proxy_running(replay_configurations)
-            if counter % 10 == 0:
-                # Try every 10 iterations
-                start_proxy_url = 'http://{0}:{1}/start_proxy?page={2}'.format( \
-                        replay_configurations[replay_config_utils.SERVER_HOSTNAME], \
-                        replay_configurations[replay_config_utils.SERVER_PORT], \
-                        page)
-                result = requests.get(start_proxy_url)
-                proxy_started = result.status_code == 200 and result.text == 'Proxy Started'
-            sleep(1) # Have a 1 second interval between iterations
-            counter += 1
 
         # Load the page.
         returned_page = load_one_website(page, iterations, output_dir, device_info)
@@ -54,24 +33,47 @@ def main(config_filename, pages, iterations, device_name, output_dir):
             pages.append(returned_page)
             common_module.initialize_browser(device_info) # Restart the browser
 
-        url = 'http://{0}:{1}/stop_proxy'.format( \
-                    config[replay_config_utils.SERVER_HOSTNAME], \
-                    config[replay_config_utils.SERVER_PORT])
-        result = requests.get(url)
+        stop_proxy(replay_configurations)
 
-        counter = 0
-        # Ensure that the proxy has stop before start loading the page
-        while not proxy_started:
-            proxy_started = check_proxy_running(replay_configurations)
-            if counter % 10 == 0:
-                # Try every 10 iterations
-                url = 'http://{0}:{1}/stop_proxy'.format( \
-                            config[replay_config_utils.SERVER_HOSTNAME], \
-                            config[replay_config_utils.SERVER_PORT])
-                result = requests.get(url)
-                proxy_started = result.status_code == 200 and result.text == 'Proxy Stopped'
-            sleep(1) # Have a 1 second interval between iterations
-            counter += 1
+def start_proxy(replay_configurations):
+    '''
+    Starts the proxy
+    '''
+    counter = 0
+    proxy_started = check_proxy_running(replay_configurations)
+    # Ensure that the proxy has started before start loading the page
+    while not proxy_started:
+        if counter % 10 == 0:
+            # Try every 10 iterations
+            start_proxy_url = 'http://{0}:{1}/start_proxy?page={2}'.format( \
+                    replay_configurations[replay_config_utils.SERVER_HOSTNAME], \
+                    replay_configurations[replay_config_utils.SERVER_PORT], \
+                    page)
+            result = requests.get(start_proxy_url)
+            proxy_started = result.status_code == 200 and result.text == 'Proxy Started' \
+                    and check_proxy_running(replay_configurations)
+            print 'request result: ' + result.text
+        sleep(1) # Have a 1 second interval between iterations
+        counter += 1
+
+def stop_proxy(replay_configurations):
+    '''
+    Stops the proxy
+    '''
+    counter = 0
+    proxy_started = check_proxy_running(replay_configurations)
+    while proxy_started:
+        if counter % 10 == 0:
+            # Try every 10 iterations
+            url = 'http://{0}:{1}/stop_proxy'.format( \
+                        replay_configurations[replay_config_utils.SERVER_HOSTNAME], \
+                        replay_configurations[replay_config_utils.SERVER_PORT])
+            result = requests.get(url)
+            proxy_started = not (result.status_code == 200 and result.text == 'Proxy Stopped') \
+                    and check_proxy_running(replay_configurations)
+            print 'request result: ' + result.text
+        sleep(1) # Have a 1 second interval between iterations
+        counter += 1
 
 def load_one_website(page, iterations, output_dir, device_info):
     '''

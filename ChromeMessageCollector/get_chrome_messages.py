@@ -42,18 +42,21 @@ def main(device_configuration, url, disable_tracing, reload_page):
     print 'Connected to Chrome...'
     device_configuration['page_id'] = page_id
     user_agent_str = None
+    screen_size_config = None
     if phone_connection_utils.USER_AGENT in device_configuration:
         user_agent_str = device_configuration[phone_connection_utils.USER_AGENT]
+    if phone_connection_utils.SCREEN_SIZE in device_configuration:
+        screen_size_config = device_configuration[phone_connection_utils.SCREEN_SIZE]
 
     if disable_tracing:
-        chrome_rdp_object_without_tracing = ChromeRDPWithoutTracing(debugging_url, url, user_agent_str)
+        chrome_rdp_object_without_tracing = ChromeRDPWithoutTracing(debugging_url, url, user_agent_str, screen_size_config)
         start_time, end_time = chrome_rdp_object_without_tracing.navigate_to_page(url, reload_page)
         print str((start_time, end_time)) + ' ' + str((end_time - start_time))
         escaped_url = common_module.escape_page(url)
         print 'output_directory: ' + output_directory
         write_page_start_end_time(escaped_url, output_directory, start_time, end_time)
     else:
-        debugging_socket = ChromeRDPWebsocket(debugging_url, url, device_configuration, reload_page, user_agent_str, callback_on_page_done)
+        debugging_socket = ChromeRDPWebsocket(debugging_url, url, device_configuration, reload_page, user_agent_str, screen_size_config, callback_on_page_done)
 
 def output_cpu_running_chrome(output_directory, cpu_id):
     '''

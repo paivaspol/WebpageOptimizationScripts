@@ -10,6 +10,7 @@ CONFIG = 'CONFIG'
 MM_REPLAY_PATH = 'mm-replay-path'
 PAGE_LOAD_SCRIPT_PATH = 'page_load_script_path'
 RECORD_DIR = 'record_dir'
+SCREEN_SIZE = 'screen_size'
 
 def record_pages(pages, record_dir, page_load_config):
     for page in pages:

@@ -26,7 +26,9 @@ MAC_CHROME_INSTANCE = '"/Applications/Google Chrome.app/Contents/MacOS/Google Ch
 UBUNTU_CHROME_INSTANCE = '"/opt/google/chrome/google-chrome"'
 
 CHANGE_USER_AGENT = 'change_user_agent'
+SCREEN_SIZE = 'screen_size'
 USER_AGENT = 'user_agent'
+IGNORE_CERTIFICATE_ERRORS = 'ignore_certificate_errors'
 USER_AGENT_STR = 'Mozilla/5.0 (Linux; Android 6.0.1; Nexus 6 Build/MMB29S) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/50.0.2645.0 Mobile Safari/537.36'
 PAC_FILE_PATH = 'pac_file_path'
 
@@ -55,6 +57,8 @@ def start_chrome(device_configuration):
         cmd = device_configuration[CHROME_INSTANCE] + '  --disable-extensions --remote-debugging-port={0} --disable-logging'.format(device_configuration[CHROME_DESKTOP_DEBUG_PORT])
         if PAC_FILE_PATH in device_configuration:
             cmd += ' --proxy-pac-url={0}'.format(device_configuration[PAC_FILE_PATH])
+        if IGNORE_CERTIFICATE_ERRORS in device_configuration:
+            cmd += ' --ignore-certificate-errors'
         cmd += ' > /dev/null 2>&1 &'
         p = subprocess.call(cmd, shell=True)
         sleep(3)
@@ -165,6 +169,15 @@ def get_device_configuration(config_reader, device):
             device_config[USER_AGENT] = USER_AGENT_STR
         if config_reader.has_option(device, PAC_FILE_PATH):
             device_config[PAC_FILE_PATH] = config_reader.get(device, PAC_FILE_PATH)
+        if config_reader.has_option(device, SCREEN_SIZE):
+            screen_configs = config_reader.get(device, SCREEN_SIZE).split('$')
+            screen_config_dict = dict()
+            for screen_config in screen_configs:
+                key, value = screen_config.split("=")
+                screen_config_dict[key] = value
+            device_config[SCREEN_SIZE] = screen_config_dict
+        if config_reader.has_option(device, IGNORE_CERTIFICATE_ERRORS):
+            device_config[IGNORE_CERTIFICATE_ERRORS] = config_reader.get(device, IGNORE_CERTIFICATE_ERRORS)
     return device_config
 
 def get_cpu_running_chrome(device_config):
