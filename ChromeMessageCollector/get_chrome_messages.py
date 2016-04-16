@@ -11,6 +11,7 @@ from utils import chrome_utils
 
 from argparse import ArgumentParser
 from ConfigParser import ConfigParser   # Parsing configuration file.
+from bs4 import BeautifulSoup # Beautify HTML
 from time import sleep
 from RDPMessageCollector.ChromeRDPWebsocket import ChromeRDPWebsocket # The websocket
 from RDPMessageCollector.ChromeRDPWithoutTracking import ChromeRDPWithoutTracing
@@ -84,11 +85,11 @@ def create_output_directory_for_url(url):
         os.mkdir(base_dir)
     return base_dir
 
-def callback_on_page_done(debugging_socket, network_messages, timeline_messages, original_request_ts, load_event_ts, device_configuration):
+def callback_on_page_done(debugging_socket, network_messages, timeline_messages, original_request_ts, load_event_ts, request_ids, device_configuration):
     '''
     Sets up the call back once the page is done loading.
     '''
-    print 'Page load done.' 
+    print 'Page load done. len(request_ids): ' + str(len(request_ids))
     # First, close the connection.
     debugging_socket.close_connection()
     url = debugging_socket.get_navigation_url()
@@ -96,11 +97,23 @@ def callback_on_page_done(debugging_socket, network_messages, timeline_messages,
     final_url = common_module.escape_page(url)
     base_dir = create_output_directory_for_url(url)
     
+    debugging_websocket = websocket.create_connection(debugging_url)
+
+    if args.record_content:
+        output_dir = os.path.join(base_dir, 'response_body')
+        if not os.path.exists(output_dir):
+            os.mkdir(output_dir)
+        output_response_body(debugging_websocket, request_ids, output_dir)
+        modified_html = navigation_utils.get_modified_html(debugging_websocket)
+        modified_html_filename = os.path.join(output_dir, 'modified_html.html')
+        with open(modified_html_filename, 'wb') as output_file:
+            output_file.write(beautify_html(modified_html))
+
     # Get the start and end time of the execution
-    start_time, end_time = navigation_utils.get_start_end_time(debugging_url)
+    start_time, end_time = navigation_utils.get_start_end_time_with_socket(debugging_websocket)
     # print 'output dir: ' + base_dir
     write_page_start_end_time(final_url, base_dir, start_time, end_time, original_request_ts, load_event_ts)
-
+    
     network_filename = os.path.join(base_dir, 'network_' + final_url)
     timeline_filename = os.path.join(base_dir, 'timeline_' + final_url)
     with open(network_filename, 'wb') as output_file:
@@ -112,12 +125,35 @@ def callback_on_page_done(debugging_socket, network_messages, timeline_messages,
             for message in timeline_messages:
                 output_file.write('{0}\n'.format(json.dumps(message)))
     # get_resource_tree(debugging_url)
+
     chrome_utils.close_tab(device_configuration, device_configuration['page_id'])
+
+def beautify_html(original_html):
+    return BeautifulSoup(original_html, 'html.parser').prettify().encode('utf-8')
 
 def write_page_start_end_time(escaped_url, base_dir, start_time, end_time, original_request_ts=-1, load_event_ts=-1):
     start_end_time_filename = os.path.join(base_dir, 'start_end_time_' + escaped_url)
     with open(start_end_time_filename, 'wb') as output_file:
         output_file.write('{0} {1} {2} {3} {4}\n'.format(escaped_url, start_time, end_time, original_request_ts, load_event_ts))
+
+def output_response_body(debugging_websocket, request_ids, output_dir):
+    '''
+    Writes the responses of all the requests to files. Also write the mapping
+    between request id to url to another file.
+    '''
+    print 'len response body: ' + str(len(request_ids))
+    responses_output_dir = output_dir 
+    request_id_mapping_filename = os.path.join(responses_output_dir, 'request_id_to_url.txt')
+    with open(request_id_mapping_filename, 'wb') as output_file:
+        for request_id in request_ids:
+            request_id, url, response_body = request_ids[request_id]
+            output_file.write('{0} {1}\n'.format(request_id, url))
+            response_filename = os.path.join(responses_output_dir, request_id)
+            if common_module.escape_page(url) == common_module.escape_page(args.url):
+                response_filename = os.path.join(responses_output_dir, 'index.html')
+                
+            with open(response_filename, 'wb') as response_output_file:
+                response_output_file.write(beautify_html(response_body))
 
 def get_resource_tree(debugging_url):
     try:
@@ -141,6 +177,7 @@ if __name__ == '__main__':
     argparser.add_argument('--output-dir', help='The output directory of the generated files', default=None)
     argparser.add_argument('--disable-tracing', default=False, action='store_true')
     argparser.add_argument('--reload-page', default=False, action='store_true')
+    argparser.add_argument('--record-content', default=False, action='store_true')
     args = argparser.parse_args()
 
     # Setup the config filename

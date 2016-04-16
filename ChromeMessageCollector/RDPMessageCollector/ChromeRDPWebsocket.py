@@ -31,6 +31,9 @@ class ChromeRDPWebsocket(object):
 
         self.network_messages = []      # A list containing all the messages.
         self.timeline_messages = []     # A list containing all the timeline messages.
+        self.response_body = dict()
+        self.request_id_to_url = dict()
+        self.outstanding_response_body_request = dict()
         self.url = target_url       # The URL to navigate to.
         self.callback = callback    # The callback method
         self.device_configuration = device_configuration # The device configuration
@@ -51,11 +54,18 @@ class ChromeRDPWebsocket(object):
         '''
         message_obj = json.loads(message)
         # self.tracingCollectionCompleted = True
-        # print 'msg: ' + message
+        print message
         if METHOD in message_obj and message_obj[METHOD].startswith('Network'):
             if message_obj[METHOD] == 'Network.requestWillBeSent' and \
                 message_obj[PARAMS]['initiator']['type'] == 'other':
                 self.originalRequestMs = message_obj[PARAMS][TIMESTAMP] * 1000
+            elif message_obj[METHOD] == 'Network.responseReceived':
+                request_id = message_obj[PARAMS]['requestId']
+                self.request_id_to_url[request_id] = message_obj[PARAMS]['response']['url']
+            elif message_obj[METHOD] == 'Network.loadingFinished':
+                request_id = message_obj[PARAMS]['requestId']
+                body_request_id = navigation_utils.get_request_body(self.ws, request_id)
+                self.outstanding_response_body_request[body_request_id] = request_id
             self.network_messages.append(message)
         elif METHOD in message_obj and message_obj[METHOD].startswith('Page'):
             if message_obj[METHOD] == 'Page.domContentEventFired':
@@ -70,6 +80,13 @@ class ChromeRDPWebsocket(object):
             self.tracingCollectionCompleted = True
         elif METHOD in message_obj and message_obj[METHOD].startswith('Emulate'):
             print message
+        elif METHOD not in message_obj:
+            if 'result' in message_obj and 'id' in message_obj and \
+                message_obj['id'] in self.outstanding_response_body_request:
+                request_id = self.outstanding_response_body_request[message_obj['id']]
+                if 'base64Encoded' in message_obj['result'] and not message_obj['result']['base64Encoded']:
+                    self.response_body[request_id] = (request_id, self.request_id_to_url[request_id], message_obj['result']['body'].encode('utf8'))
+                del self.outstanding_response_body_request[message_obj['id']]
 
         # if self.originalRequestMs is not None and \
         #     self.domContentEventFiredMs is not None and \
@@ -84,11 +101,12 @@ class ChromeRDPWebsocket(object):
 
         if self.originalRequestMs is not None and \
             self.domContentEventFiredMs is not None and \
-            self.loadEventFiredMs is not None:
+            self.loadEventFiredMs is not None and \
+            len(self.outstanding_response_body_request) == 0:
             self.disable_network_tracking(self.ws)
             self.disable_page_tracking(self.ws)
             print 'Start time {0}, Load completed: {1}'.format(self.originalRequestMs, self.loadEventFiredMs)
-            self.callback(self, self.network_messages, self.timeline_messages, self.originalRequestMs, self.loadEventFiredMs, self.device_configuration)
+            self.callback(self, self.network_messages, self.timeline_messages, self.originalRequestMs, self.loadEventFiredMs, self.response_body, self.device_configuration)
 
     def on_error(self, ws, error):
         '''

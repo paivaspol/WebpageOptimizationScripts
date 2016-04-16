@@ -45,6 +45,32 @@ def get_start_end_time_with_socket(ws):
             pass
     return start_time, end_time
 
+def get_request_body(ws, request_id):
+    '''
+    Gets the request body for the request_id
+    '''
+    split_request_id = request_id.split('.')
+    request_id_number = int(split_request_id[0] + split_request_id[1])
+    get_request_body = json.dumps({ "id": request_id_number, "method": "Network.getResponseBody", "params": { "requestId": request_id }})
+    print get_request_body
+    ws.send(get_request_body)
+    return request_id_number
+    # request_body_object = json.loads(ws.recv())
+    # print str(request_id) + ' ' + str(request_body_object)
+    # if request_body_object['error'] is not None:
+    #     return None
+    # else:
+    #     return request_body_object['result']['body'].encode('utf-8')
+
+def get_modified_html(ws):
+    '''
+    Gets the result HTML after DOM modifications from scripts.
+    '''
+    get_modified_html = json.dumps({ "id": 6, "method": "Runtime.evaluate", "params": { "expression": "document.body.parentNode.outerHTML", "returnByValue": True }})
+    ws.send(get_modified_html)
+    result_object = json.loads(ws.recv())
+    return result_object['result']['result']['value'].encode('utf-8')
+
 def get_start_end_time(debugging_url):
     # print 'debugging_url: ' + debugging_url
     ws = websocket.create_connection(debugging_url)

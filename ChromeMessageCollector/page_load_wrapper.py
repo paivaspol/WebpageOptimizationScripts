@@ -37,15 +37,15 @@ TIMEOUT = 5 * 60 # set to 5 minutes
 PAUSE = 2
 BUFFER_FOR_TRACE = 5
 
-def main(pages_file, num_repetitions, output_dir, use_caching_proxy, start_measurements, device, disable_tracing):
+def main(pages_file, num_repetitions, output_dir, use_caching_proxy, start_measurements, device, disable_tracing, record_contents):
     signal.signal(signal.SIGALRM, timeout_handler) # Setup the timeout handler
     pages = common_module.get_pages(pages_file)
     if start_measurements and not disable_tracing:
-        load_pages_with_measurement_and_tracing_enabled(pages, output_dir, num_repetitions, device)
+        load_pages_with_measurement_and_tracing_enabled(pages, output_dir, num_repetitions, device, record_contents)
     elif not start_measurements and disable_tracing:
-        load_pages_with_measurement_and_tracing_disabled(pages, output_dir, num_repetitions, device)
+        load_pages_with_measurement_and_tracing_disabled(pages, output_dir, num_repetitions, device, record_contents)
     elif not start_measurements and not disable_tracing:
-        load_pages_with_measurement_disabled_but_tracing_enabled(pages, output_dir, num_repetitions, device)
+        load_pages_with_measurement_disabled_but_tracing_enabled(pages, output_dir, num_repetitions, device, record_contents)
     else:
         if not start_measurements:
             initialize_browser(device)
@@ -77,7 +77,7 @@ def main(pages_file, num_repetitions, output_dir, use_caching_proxy, start_measu
                         initialize_browser(device)
                     signal.alarm(0) # Reset the alarm
                     while common_module.check_previous_page_load(i, output_dir, page):
-                        load_page(page, i, output_dir, start_measurements, device, disable_tracing)
+                        load_page(page, i, output_dir, start_measurements, device, disable_tracing, record_contents)
                     i += 1
                     iteration_path = os.path.join(output_dir, str(i))
                     if start_measurements:
@@ -94,7 +94,7 @@ def main(pages_file, num_repetitions, output_dir, use_caching_proxy, start_measu
                 sleep(PAUSE)
     # shutdown_browser(device)
 
-def load_pages_with_measurement_disabled_but_tracing_enabled(pages, output_dir, num_repetitions, device):
+def load_pages_with_measurement_disabled_but_tracing_enabled(pages, output_dir, num_repetitions, device, record_contents):
     device, device_config = get_device_config(device)
     device_config_obj = get_device_config_obj(device, device_config)
     while len(pages) > 0:
@@ -107,11 +107,11 @@ def load_pages_with_measurement_disabled_but_tracing_enabled(pages, output_dir, 
                 phone_connection_utils.start_chrome(device_config_obj)
                 sleep(1)
                 signal.alarm(TIMEOUT) # Set alarm for TIMEOUT
-                load_page(page, i, output_dir, False, device, False)
+                load_page(page, i, output_dir, False, device, False, record_contents)
                 signal.alarm(0) # Reset the alarm
                 while common_module.check_previous_page_load(i, output_dir, page):
                     signal.alarm(TIMEOUT) # Set alarm for TIMEOUT
-                    load_page(page, i, output_dir, False, device, False)
+                    load_page(page, i, output_dir, False, device, False, record_contents)
                     signal.alarm(0) # Reset the alarm
                 i += 1
                 print 'Stopping Chrome...'
@@ -126,7 +126,7 @@ def load_pages_with_measurement_disabled_but_tracing_enabled(pages, output_dir, 
                 break
             sleep(PAUSE)
 
-def load_pages_with_measurement_and_tracing_disabled(pages, output_dir, num_repetitions, device):
+def load_pages_with_measurement_and_tracing_disabled(pages, output_dir, num_repetitions, device, record_contents):
     initialize_browser(device)
     while len(pages) > 0:
         page = pages.pop(0)
@@ -135,11 +135,11 @@ def load_pages_with_measurement_and_tracing_disabled(pages, output_dir, num_repe
         while i < num_repetitions:
             try:
                 signal.alarm(TIMEOUT) # Set alarm for TIMEOUT
-                load_page(page, i, output_dir, False, device, True)
+                load_page(page, i, output_dir, False, device, True, record_contents)
                 signal.alarm(0) # Reset the alarm
                 while common_module.check_previous_page_load(i, output_dir, page):
                     signal.alarm(TIMEOUT) # Set alarm for TIMEOUT
-                    load_page(page, i, output_dir, False, device, True)
+                    load_page(page, i, output_dir, False, device, True, record_contents)
                     signal.alarm(0) # Reset the alarm
                 i += 1
             except PageLoadException as e:
@@ -153,7 +153,7 @@ def load_pages_with_measurement_and_tracing_disabled(pages, output_dir, num_repe
                 break
             sleep(PAUSE)
 
-def load_pages_with_measurement_and_tracing_enabled(pages, output_dir, num_repetitions, device):
+def load_pages_with_measurement_and_tracing_enabled(pages, output_dir, num_repetitions, device, record_contents):
     while len(pages) > 0:
         page = pages.pop(0)
         print 'page: ' + page
@@ -163,7 +163,7 @@ def load_pages_with_measurement_and_tracing_enabled(pages, output_dir, num_repet
                 start_tcpdump_and_cpu_measurement(device)
                 initialize_browser(device)
                 signal.alarm(TIMEOUT) # Set alarm for TIMEOUT
-                load_page(page, i, output_dir, True, device, False)
+                load_page(page, i, output_dir, True, device, False, record_contents)
                 signal.alarm(0) # Reset the alarm
                 iteration_path = os.path.join(output_dir, str(i))
                 stop_tcpdump_and_cpu_measurement(page.strip(), device, output_dir_run=iteration_path)
@@ -171,7 +171,7 @@ def load_pages_with_measurement_and_tracing_enabled(pages, output_dir, num_repet
                     start_tcpdump_and_cpu_measurement(device)
                     initialize_browser(device)
                     signal.alarm(TIMEOUT) # Set alarm for TIMEOUT
-                    load_page(page, i, output_dir, True, device, False)
+                    load_page(page, i, output_dir, True, device, False, record_contents)
                     signal.alarm(0) # Reset the alarm
                     iteration_path = os.path.join(output_dir, str(i - 1))
                     stop_tcpdump_and_cpu_measurement(page.strip(), device, output_dir_run=iteration_path)
@@ -219,7 +219,7 @@ def shutdown_browser(device):
     print 'Stopping Chrome...'
     phone_connection_utils.stop_chrome(device_config_obj)
 
-def load_page(raw_line, run_index, output_dir, start_measurements, device, disable_tracing):
+def load_page(raw_line, run_index, output_dir, start_measurements, device, disable_tracing, record_contents=False):
     # Create necessary directories
     base_output_dir = output_dir
     if not os.path.exists(base_output_dir):
@@ -235,6 +235,8 @@ def load_page(raw_line, run_index, output_dir, start_measurements, device, disab
     cmd = 'python get_chrome_messages.py {1} {2} {0} --output-dir {3}'.format(line, device_config, device, output_dir_run) 
     if disable_tracing:
         cmd += ' --disable-tracing'
+    if record_contents:
+        cmd += ' --record-content'
     # if run_index > 0:
     #     cmd += ' --reload-page'
     subprocess.Popen(cmd, shell=True).wait()
@@ -304,6 +306,7 @@ if __name__ == '__main__':
     parser.add_argument('--dont-start-measurements', default=False, action='store_true')
     parser.add_argument('--use-device', default=NEXUS_6_2)
     parser.add_argument('--disable-tracing', default=False, action='store_true')
+    parser.add_argument('--record-content', default=False, action='store_true')
     args = parser.parse_args()
     start_measurements = not args.dont_start_measurements
-    main(args.pages_file, args.num_repetitions, args.output_dir, args.use_caching_proxy, start_measurements, args.use_device, args.disable_tracing)
+    main(args.pages_file, args.num_repetitions, args.output_dir, args.use_caching_proxy, start_measurements, args.use_device, args.disable_tracing, args.record_content)
