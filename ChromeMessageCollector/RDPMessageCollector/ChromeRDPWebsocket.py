@@ -13,6 +13,20 @@ TIMESTAMP = 'timestamp'
 
 WAIT = 1.0
 
+HTTP_PREFIX = 'http://'
+HTTPS_PREFIX = 'https://'
+WWW_PREFIX = 'www.'
+def escape_page(url):
+    if url.endswith('/'):
+        url = url[:len(url) - 1]
+    if url.startswith(HTTPS_PREFIX):
+        url = url[len(HTTPS_PREFIX):]
+    elif url.startswith(HTTP_PREFIX):
+        url = url[len(HTTP_PREFIX):]
+    if url.startswith(WWW_PREFIX):
+        url = url[len(WWW_PREFIX):]
+    return url.replace('/', '_')
+
 class ChromeRDPWebsocket(object):
 
     def __init__(self, url, target_url, device_configuration, should_reload, user_agent_str, screen_size_config, callback):
@@ -21,7 +35,7 @@ class ChromeRDPWebsocket(object):
         url - the websocket url
         target_url - the url to navigate to
         '''
-        websocket.enableTrace(True)       
+        # websocket.enableTrace(True)       
 
         # Conditions for a page to finish loading.
         self.originalRequestMs = None
@@ -54,11 +68,12 @@ class ChromeRDPWebsocket(object):
         '''
         message_obj = json.loads(message)
         # self.tracingCollectionCompleted = True
-        print message
         if METHOD in message_obj and message_obj[METHOD].startswith('Network'):
             if message_obj[METHOD] == 'Network.requestWillBeSent' and \
                 message_obj[PARAMS]['initiator']['type'] == 'other':
                 self.originalRequestMs = message_obj[PARAMS][TIMESTAMP] * 1000
+                if escape_page(message_obj[PARAMS]['request']['url']) == escape_page(self.url):
+                    self.page_index_request_id = message_obj[PARAMS]['requestId']
             elif message_obj[METHOD] == 'Network.responseReceived':
                 request_id = message_obj[PARAMS]['requestId']
                 self.request_id_to_url[request_id] = message_obj[PARAMS]['response']['url']
@@ -79,15 +94,19 @@ class ChromeRDPWebsocket(object):
             # Tracing completed
             self.tracingCollectionCompleted = True
         elif METHOD in message_obj and message_obj[METHOD].startswith('Emulate'):
-            print message
+            # print message
+            pass
         elif METHOD not in message_obj:
             if 'result' in message_obj and 'id' in message_obj and \
                 message_obj['id'] in self.outstanding_response_body_request:
                 request_id = self.outstanding_response_body_request[message_obj['id']]
                 if 'base64Encoded' in message_obj['result'] and not message_obj['result']['base64Encoded']:
-                    self.response_body[request_id] = (request_id, self.request_id_to_url[request_id], message_obj['result']['body'].encode('utf8'))
+                    is_page_index_request = request_id == self.page_index_request_id
+                    self.response_body[request_id] = (request_id, self.request_id_to_url[request_id], message_obj['result']['body'].encode('utf8'), is_page_index_request)
                 del self.outstanding_response_body_request[message_obj['id']]
-
+            elif 'error' in message_obj and 'id' in message_obj and \
+                message_obj['id'] in self.outstanding_response_body_request:
+                del self.outstanding_response_body_request[message_obj['id']]
         # if self.originalRequestMs is not None and \
         #     self.domContentEventFiredMs is not None and \
         #     self.loadEventFiredMs is not None and \

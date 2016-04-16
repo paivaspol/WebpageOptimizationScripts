@@ -52,7 +52,6 @@ def get_request_body(ws, request_id):
     split_request_id = request_id.split('.')
     request_id_number = int(split_request_id[0] + split_request_id[1])
     get_request_body = json.dumps({ "id": request_id_number, "method": "Network.getResponseBody", "params": { "requestId": request_id }})
-    print get_request_body
     ws.send(get_request_body)
     return request_id_number
     # request_body_object = json.loads(ws.recv())

@@ -141,15 +141,14 @@ def output_response_body(debugging_websocket, request_ids, output_dir):
     Writes the responses of all the requests to files. Also write the mapping
     between request id to url to another file.
     '''
-    print 'len response body: ' + str(len(request_ids))
     responses_output_dir = output_dir 
     request_id_mapping_filename = os.path.join(responses_output_dir, 'request_id_to_url.txt')
     with open(request_id_mapping_filename, 'wb') as output_file:
         for request_id in request_ids:
-            request_id, url, response_body = request_ids[request_id]
+            request_id, url, response_body, is_request_to_index = request_ids[request_id]
             output_file.write('{0} {1}\n'.format(request_id, url))
             response_filename = os.path.join(responses_output_dir, request_id)
-            if common_module.escape_page(url) == common_module.escape_page(args.url):
+            if is_request_to_index:
                 response_filename = os.path.join(responses_output_dir, 'index.html')
                 
             with open(response_filename, 'wb') as response_output_file:

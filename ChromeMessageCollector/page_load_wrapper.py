@@ -33,9 +33,11 @@ HTTP_PREFIX = 'http://'
 HTTPS_PREFIX = 'https://'
 WWW_PREFIX = 'www.'
 
-TIMEOUT = 5 * 60 # set to 5 minutes
+TIMEOUT = 3 * 60 # set to 3 minutes
+# TIMEOUT = 1
 PAUSE = 2
 BUFFER_FOR_TRACE = 5
+TRY_LIMIT = 5
 
 def main(pages_file, num_repetitions, output_dir, use_caching_proxy, start_measurements, device, disable_tracing, record_contents):
     signal.signal(signal.SIGALRM, timeout_handler) # Setup the timeout handler
@@ -97,10 +99,15 @@ def main(pages_file, num_repetitions, output_dir, use_caching_proxy, start_measu
 def load_pages_with_measurement_disabled_but_tracing_enabled(pages, output_dir, num_repetitions, device, record_contents):
     device, device_config = get_device_config(device)
     device_config_obj = get_device_config_obj(device, device_config)
+    tried_counter = dict()
+    failed_pages = []
     while len(pages) > 0:
         page = pages.pop(0)
         print 'page: ' + page
         i = 0
+        if page not in tried_counter:
+            tried_counter[page] = 0
+        tried_counter[page] += 1
         while i < num_repetitions:
             try:
                 print 'Starting Chrome...'
@@ -122,9 +129,19 @@ def load_pages_with_measurement_disabled_but_tracing_enabled(pages, output_dir, 
                 device, device_config = get_device_config(device)
                 device_config_obj = get_device_config_obj(device, device_config)
                 initialize_browser(device)
-                pages.append(page)
+                if tried_counter[page] <= TRY_LIMIT:
+                    pages.append(page)
+                else:
+                    failed_pages.append(page)
                 break
             sleep(PAUSE)
+    print_failed_pages(output_dir, failed_pages)
+
+def print_failed_pages(output_dir, failed_pages):
+    output_filename = os.path.join(output_dir, 'failed_pages.txt')
+    with open(output_filename, 'wb') as output_file:
+        for failed_page in failed_pages:
+            output_file.write(failed_page + '\n')
 
 def load_pages_with_measurement_and_tracing_disabled(pages, output_dir, num_repetitions, device, record_contents):
     initialize_browser(device)
