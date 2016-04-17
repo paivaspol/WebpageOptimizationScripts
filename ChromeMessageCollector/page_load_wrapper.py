@@ -101,6 +101,7 @@ def load_pages_with_measurement_disabled_but_tracing_enabled(pages, output_dir, 
     device_config_obj = get_device_config_obj(device, device_config)
     tried_counter = dict()
     failed_pages = []
+    num_pages = len(pages)
     while len(pages) > 0:
         page = pages.pop(0)
         print 'page: ' + page
@@ -135,6 +136,7 @@ def load_pages_with_measurement_disabled_but_tracing_enabled(pages, output_dir, 
                     failed_pages.append(page)
                 break
             sleep(PAUSE)
+        print '\033[92m' + str(num_pages - len(pages)) + '/' + str(num_pages) + ' completed' + '\033[0m'
     print_failed_pages(output_dir, failed_pages)
 
 def print_failed_pages(output_dir, failed_pages):
