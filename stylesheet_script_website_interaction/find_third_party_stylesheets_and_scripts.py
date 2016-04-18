@@ -52,7 +52,7 @@ def print_for_plotting(page, total_resources, num_external_scripts, num_external
 ##################################################################
 # Find third party stats.
 def find_third_party_resources_for_site(page_url, request_id_mapping_filename):
-    page_domain = extract_domain(page_url)
+    page_domain = common_module.extract_domain(page_url)
     external_scripts = defaultdict(lambda: 0)
     external_stylesheets = defaultdict(lambda: 0)
     total_resources = 0
@@ -61,7 +61,7 @@ def find_third_party_resources_for_site(page_url, request_id_mapping_filename):
         for raw_line in input_file:
             request_id, url = process_line_tokens(raw_line.strip().split())
             url_path = extract_path(url)
-            resource_domain = extract_domain(url)
+            resource_domain = common_module.extract_domain(url)
             total_resources += 1
             if page_domain != resource_domain:
                 if url_path.endswith('.js'):
@@ -77,20 +77,9 @@ def process_line_tokens(line_tokens):
         url += line_tokens[i]
     return line_tokens[0], url
 
-def extract_domain(url):
-    parsed_uri = tldextract.extract(url)
-    return parsed_uri.domain + '.' + parsed_uri.suffix
-
 def extract_path(url):
     parsed_uri = urlparse(url)
     return parsed_uri.path
-
-def parse_pages_file(pages_filename):
-    pages = []
-    with open(pages_filename, 'rb') as input_file:
-        for raw_line in input_file:
-            pages.append(raw_line.strip())
-    return pages
 
 if __name__ == '__main__':
     parser = ArgumentParser()
@@ -98,5 +87,5 @@ if __name__ == '__main__':
     parser.add_argument('pages_file')
     parser.add_argument('--print-for-plotting', default=False, action='store_true')
     args = parser.parse_args()
-    pages = parse_pages_file(args.pages_file)
+    pages = common_module.parse_pages_file(args.pages_file)
     process_pages(pages, args.root_dir, args.print_for_plotting)

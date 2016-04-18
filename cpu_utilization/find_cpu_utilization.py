@@ -73,13 +73,16 @@ def parse_interval(interval_filename):
         line = input_file.readline().strip().split()
         return line[0], (int(line[1]), int(line[2]))
 
-def open_output_files(output_directory):
+def open_output_files(output_directory, target_cpu=None):
     result = []
     for i in range(0, 5):
-        if i == 0:
-            filename = 'average_cpu_usage.txt'
+        if target_cpu is not None:
+            filename = 'cpu_{0}_usage.txt'.format(target_cpu)
         else:
-            filename = 'cpu_{0}_usage.txt'.format(i)
+            if i == 0:
+                filename = 'average_cpu_usage.txt'
+            else:
+                filename = 'cpu_{0}_usage.txt'.format(i - 1)
         output_filename = os.path.join(output_directory, filename)
         result.append(open(output_filename, 'wb'))
     return result
@@ -88,12 +91,19 @@ def close_output_files(output_files):
     for output_file in output_files:
         output_file.close()
 
+def parse_target_cpu_file(target_cpu_filename):
+    with open(target_cpu_filename, 'rb') as input_file:
+        return int(input_file.readline().strip())
+
 if __name__ == '__main__':
     parser = ArgumentParser()
     parser.add_argument('log_filename')
     parser.add_argument('interval_filename')
     parser.add_argument('output_directory')
+    parser.add_argument('--target-cpu', default=None)
     args = parser.parse_args()
+    if args.target_cpu is not None:
+        target_cpu = parse_target_cpu_file(args.target_cpu)
     _, interval = parse_interval(args.interval_filename)
     output_files = open_output_files(args.output_directory)
     parse_file(args.log_filename, interval, output_files)

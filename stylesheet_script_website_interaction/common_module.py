@@ -1,3 +1,6 @@
+import tldextract
+import os
+
 def extract_url_from_path(path):
     '''
     Extracts the url from the path.
@@ -24,3 +27,19 @@ def escape_page(url):
     if url.startswith(WWW_PREFIX):
         url = url[len(WWW_PREFIX):]
     return url.replace('/', '_')
+
+def parse_pages_file(pages_filename):
+    pages = []
+    with open(pages_filename, 'rb') as input_file:
+        for raw_line in input_file:
+            pages.append(raw_line.strip())
+    return pages
+
+def extract_domain(url):
+    parsed_uri = tldextract.extract(url)
+    return parsed_uri.domain + '.' + parsed_uri.suffix
+
+def create_directory_if_not_exists(directory):
+    if not os.path.exists(directory):
+        os.mkdir(directory)
+    return directory
