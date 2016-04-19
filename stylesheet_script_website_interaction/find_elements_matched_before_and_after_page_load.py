@@ -1,6 +1,7 @@
 from argparse import ArgumentParser
 from bs4 import BeautifulSoup
 from multiprocessing import Pool, freeze_support
+from urlparse import urlparse
 
 import common_module
 import itertools
@@ -17,8 +18,7 @@ def find_matched_difference_in_directory(root_dir, output_dir):
 
 def find_matched_difference(root_dir, directory, output_dir):
     print 'Processing: ' + directory
-    if not os.path.exists(os.path.join(output_dir, directory)):
-        common_module.create_directory_if_not_exists(os.path.join(output_dir, directory))
+    common_module.create_directory_if_not_exists(os.path.join(output_dir, directory))
     html_before_page_load = os.path.join(root_dir, directory, 'before_page_load.html')
     html_after_page_load = os.path.join(root_dir, directory, 'after_page_load.html')
     request_id_to_url_mapping_filename = os.path.join(root_dir, directory, 'request_id_to_url.txt')
@@ -34,6 +34,8 @@ def find_matched_difference(root_dir, directory, output_dir):
     summary_dict = dict()
     for css_file in css_files:
         css_full_path = os.path.join(root_dir, directory, css_file)
+        if not os.path.exists(css_full_path):
+            continue
         selectors = parse_css(css_full_path)
         # print 'css_file: ' + css_file + ' selector len: ' + str(len(selectors))
         before_page_load_matched = find_elements_matched_by_selectors(before_page_load_html, \
@@ -119,7 +121,8 @@ def get_css_files(request_id_to_url_mapping_filename):
     with open(request_id_to_url_mapping_filename, 'rb') as input_file:
         for raw_line in input_file:
             line = raw_line.strip().split()
-            if line[1].endswith('.css'):    
+            parsed_url = urlparse(line[1])
+            if parsed_url.path.endswith('.css'):
                 css_files.append(line[0] + '.beautified')
     return css_files
 
