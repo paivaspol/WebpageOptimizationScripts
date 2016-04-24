@@ -129,6 +129,7 @@ def load_pages_with_measurement_disabled_but_tracing_enabled(pages, output_dir, 
                 # Kill the browser and append a page.
                 device, device_config = get_device_config(device)
                 device_config_obj = get_device_config_obj(device, device_config)
+                chrome_utils.close_all_tabs(device_config_obj)
                 initialize_browser(device)
                 if tried_counter[page] <= TRY_LIMIT:
                     pages.append(page)
