@@ -38,8 +38,8 @@ def beautify_file(base_dir, request_id, request_id_to_url):
         cmd = 'html'
     elif parsed_url.path.endswith('css'):
         cmd = 'css'
-    elif parsed_url.path.endswith('js'):
-        cmd = 'js'
+    # elif parsed_url.path.endswith('js'):
+    #     cmd = 'js'
     else:
         return
 

@@ -42,6 +42,7 @@ def extract_domain(url):
 def extract_domain_with_subdomain(url):
     parsed_uri = tldextract.extract(url)
     return parsed_uri.subdomain + '.' + parsed_uri.domain + '.' + parsed_uri.suffix
+
 def extract_domain(url):
     parsed_uri = tldextract.extract(url)
     return parsed_uri.domain + '.' + parsed_uri.suffix
@@ -50,6 +51,10 @@ def create_directory_if_not_exists(directory):
     if not os.path.exists(directory):
         os.mkdir(directory)
     return directory
+
+def remove_file_if_exists(filename):
+    if os.path.exists(filename):
+        os.remove(filename)
 
 def remove_non_external_domain(domain, dict_to_remove, request_to_url):
     copy = dict(dict_to_remove)
@@ -105,4 +110,12 @@ def get_pages_without_pages_to_ignore(base_pages, pages_to_ignore_filename):
             pages_to_ignore.add(raw_line.strip())
     base_pages_set = set(base_pages)
     return base_pages_set - pages_to_ignore
+
+def parse_page_id_to_domain_mapping(page_to_domain_mapping_filename):
+    result = dict()
+    with open(page_to_domain_mapping_filename, 'rb') as input_file:
+        for raw_line in input_file:
+            line = raw_line.strip().split()
+            result[line[1]] = line[0]
+    return result
 
