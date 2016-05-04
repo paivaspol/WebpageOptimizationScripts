@@ -19,6 +19,14 @@ def reload_page(debug_connection, ignore_cache=True):
     debug_connection.send(reload_page)
     sleep(1.0)
 
+def handle_js_dialog(debug_connection, accept=True):
+    '''
+    Navigates to the url.
+    '''
+    handle_js_dialog = json.dumps({ "id": 0, "method": "Page.handleJavaScriptDialog", "params": { "accept": accept }})
+    debug_connection.send(handle_js_dialog)
+    sleep(1.0)
+
 def set_user_agent(debug_connection, user_agent_str):
     override_user_agent = json.dumps({ "id": 6, "method": "Network.setUserAgentOverride", "params": { "userAgent": user_agent_str }})
     debug_connection.send(override_user_agent)

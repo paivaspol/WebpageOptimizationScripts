@@ -117,6 +117,8 @@ def callback_on_page_done_streaming(debugging_socket):
     start_time, end_time = navigation_utils.get_start_end_time_with_socket(debugging_websocket)
     # print 'output dir: ' + base_dir
     write_page_start_end_time(final_url, base_dir, start_time, end_time, -1, -1)
+    debugging_websocket.close()
+    chrome_utils.close_tab(debugging_socket.device_configuration, debugging_socket.device_configuration['page_id'])
 
 def callback_on_page_done(debugging_socket, network_messages, timeline_messages, original_request_ts, load_event_ts, request_ids, device_configuration):
     '''
@@ -159,7 +161,7 @@ def callback_on_page_done(debugging_socket, network_messages, timeline_messages,
                 output_file.write('{0}\n'.format(json.dumps(message)))
     # get_resource_tree(debugging_url)
 
-    chrome_utils.close_tab(device_configuration, device_configuration['page_id'])
+    chrome_utils.close_tab(debugging_socket.device_configuration, debugging_socket.device_configuration['page_id'])
 
 def beautify_html(original_html):
     return BeautifulSoup(original_html, 'html.parser').prettify().encode('utf-8')

@@ -73,6 +73,13 @@ class ChromeRDPWebsocketStreaming(object):
                 self.domContentEventFiredMs = message_obj[PARAMS][TIMESTAMP] * 1000
             elif message_obj[METHOD] == 'Page.loadEventFired':
                 self.loadEventFiredMs = message_obj[PARAMS][TIMESTAMP] * 1000
+            elif message_obj[METHOD] == 'Page.javascriptDialogOpening':
+                if message_obj[PARAMS]['type'] == 'alert' or \
+                    message_obj[PARAMS]['type'] == 'beforeunload':
+                    navigation_utils.handle_js_dialog(self.ws)
+                elif message_obj[PARAMS]['type'] == 'confirm' or \
+                    message_obj[PARAMS]['type'] == 'prompt':
+                    navigation_utils.handle_js_dialog(self.ws, accept=False)
 
         if self.originalRequestMs is not None and \
             self.domContentEventFiredMs is not None and \

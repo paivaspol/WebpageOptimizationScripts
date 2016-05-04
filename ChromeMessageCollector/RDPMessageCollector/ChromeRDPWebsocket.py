@@ -87,6 +87,13 @@ class ChromeRDPWebsocket(object):
                 self.domContentEventFiredMs = message_obj[PARAMS][TIMESTAMP] * 1000
             elif message_obj[METHOD] == 'Page.loadEventFired':
                 self.loadEventFiredMs = message_obj[PARAMS][TIMESTAMP] * 1000
+            elif message_obj[METHOD] == 'Page.javascriptDialogOpening':
+                if message_obj[PARAMS]['type'] == 'alert' or \
+                    message_obj[PARAMS]['type'] == 'beforeunload':
+                    navigation_utils.handle_js_dialog(self.ws)
+                elif message_obj[PARAMS]['type'] == 'confirm' or \
+                    message_obj[PARAMS]['type'] == 'prompt':
+                    navigation_utils.handle_js_dialog(self.ws, accept=False)
         elif METHOD in message_obj and message_obj[METHOD] == 'Tracing.dataCollected':
             # Data collected.
             self.timeline_messages.extend(message_obj[PARAMS]['value'])
