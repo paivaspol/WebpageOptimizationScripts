@@ -19,7 +19,7 @@ def beautify_page_wrapper(args):
 
 def beautify_page(root_dir, directory):
     print 'processing: ' + directory
-    base_dir = os.path.join(root_dir, directory, 'response_body')
+    base_dir = os.path.join(root_dir, directory)
     request_id_to_url_mapping_filename = os.path.join(base_dir, 'request_id_to_url.txt')
     if not os.path.exists(request_id_to_url_mapping_filename):
         return;
@@ -34,12 +34,12 @@ def beautify_file(base_dir, request_id, request_id_to_url):
     input_filename = os.path.join(base_dir, request_id)
     url = request_id_to_url[request_id]
     parsed_url = urlparse(url)
-    if parsed_url.path.endswith('html'):
-        cmd = 'html'
-    elif parsed_url.path.endswith('css'):
-        cmd = 'css'
-    # elif parsed_url.path.endswith('js'):
-    #     cmd = 'js'
+    # if parsed_url.path.endswith('html'):
+    #     cmd = 'html'
+    # elif parsed_url.path.endswith('css'):
+    #     cmd = 'css'
+    if '.js' in parsed_url.path:
+          cmd = 'js'
     else:
         return
 

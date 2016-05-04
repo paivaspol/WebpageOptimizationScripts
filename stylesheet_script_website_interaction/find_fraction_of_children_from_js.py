@@ -43,8 +43,7 @@ def process_page(root_dir, experiment_result_root_dir, page):
         else:
             cross_domain_js_children += len(children_from_js)
         total_js_children += len(children_from_js)
-    if total_js_children > 0:
-        print '{0} {1} {2} {3}'.format(page, same_domain_js_children, cross_domain_js_children, total_js_children)
+    print '{0} {1} {2} {3}'.format(page, same_domain_js_children, cross_domain_js_children, total_js_children)
 
 def process_network_file(network_filename, page, subpage):
     first_request = DIRECTORY.format(page, subpage)
@@ -70,9 +69,11 @@ def process_network_file(network_filename, page, subpage):
                     stack_trace = network_event[PARAMS][INITIATOR][STACK_TRACE]
                     if len(stack_trace) > 0:
                         url = stack_trace[0][URL]
-                        parsed_url = urlparse(url)
-                        if '.js' in parsed_url.path:
-                            request_id = network_event[PARAMS]['requestId']
+                        request_url = network_event[PARAMS]['request']['url']
+                        parsed_url = urlparse(request_url)
+                        request_id = network_event[PARAMS]['requestId']
+                        if args.resource_type is None or \
+                            (args.resource_type is not None and args.resource_type in parsed_url.path):
                             children_from_js.add(request_id)
             elif network_event[METHOD] == 'Network.responseReceived':
                 all_requests.add(network_event[PARAMS]['requestId'])
@@ -85,5 +86,6 @@ if __name__ == '__main__':
     parser.add_argument('root_dir')
     parser.add_argument('experiment_result_root_dir')
     parser.add_argument('--ignore-pages', default=None)
+    parser.add_argument('--resource-type', default=None)
     args = parser.parse_args()
     process_directories(args.root_dir, args.experiment_result_root_dir)

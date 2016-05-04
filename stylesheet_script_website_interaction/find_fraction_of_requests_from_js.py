@@ -55,9 +55,11 @@ def find_requests_from_initiator(network_filename, page):
                     stack_trace = network_event[PARAMS][INITIATOR][STACK_TRACE]
                     if len(stack_trace) > 0:
                         url = stack_trace[0][URL]
-                        parsed_url = urlparse.urlparse(url)
-                        if '.js' in parsed_url.path:
-                            request_id = network_event[PARAMS]['requestId']
+                        request_url = network_event[PARAMS]['request']['url']
+                        parsed_url = urlparse.urlparse(request_url)
+                        request_id = network_event[PARAMS]['requestId']
+                        if args.resource_type is None or \
+                            (args.resource_type is not None and args.resource_type in parsed_url.path):
                             children_from_js.add(request_id)
                             if page == common_module.extract_domain(url):
                                 same_domain.add(request_id)
@@ -78,5 +80,6 @@ if __name__ == '__main__':
     parser = ArgumentParser()
     parser.add_argument('root_dir')
     parser.add_argument('--ignore-pages', default=None)
+    parser.add_argument('--resource-type', default=None)
     args = parser.parse_args()
     process_pages(args.root_dir)

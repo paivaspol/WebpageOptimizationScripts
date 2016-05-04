@@ -1,5 +1,8 @@
+from urlparse import urlparse
+
 import tldextract
 import os
+import simplejson as json
 
 def extract_url_from_path(path):
     '''
@@ -119,3 +122,57 @@ def parse_page_id_to_domain_mapping(page_to_domain_mapping_filename):
             result[line[1]] = line[0]
     return result
 
+PARAMS = 'params'
+METHOD = 'method'
+REQUEST = 'request'
+
+# Javascript Constants
+INITIATOR = 'initiator'
+TYPE = 'type'
+SCRIPT = 'script'
+STACK_TRACE = 'stackTrace'
+URL = 'url'
+
+def process_network_file(network_filename, page):
+    children_from_js = set()
+    same_domain_js = set()
+    external_domain_js = set()
+    seen_in_will_be_sent = set()
+    all_requests = set()
+    request_id_to_url_map = dict()
+    with open(network_filename, 'rb') as input_file:
+        found_first_request = False
+        for raw_line in input_file:
+            network_event = json.loads(json.loads(raw_line.strip()))
+            if not found_first_request and \
+                network_event[METHOD] == 'Network.requestWillBeSent':
+                if escape_page(network_event[PARAMS][REQUEST]['url']) \
+                    == page:
+                    found_first_request = True
+            if not found_first_request:
+                continue
+            if network_event[METHOD] == 'Network.requestWillBeSent':
+                seen_in_will_be_sent.add(network_event[PARAMS]['requestId'])
+                if INITIATOR in network_event[PARAMS] and \
+                    network_event[PARAMS][INITIATOR][TYPE] == SCRIPT and \
+                    STACK_TRACE in network_event[PARAMS][INITIATOR]:
+                    stack_trace = network_event[PARAMS][INITIATOR][STACK_TRACE]
+                    if len(stack_trace) > 0:
+                        url = stack_trace[0][URL]
+                        parsed_url = urlparse(url)
+                        if '.js' in parsed_url.path:
+                            request_id = network_event[PARAMS]['requestId']
+                            if extract_domain(url) != page:
+                                external_domain_js.add(request_id)
+                            else:
+                                same_domain_js.add(request_id)
+                            children_from_js.add(request_id)
+            elif network_event[METHOD] == 'Network.responseReceived':
+                request_id = network_event[PARAMS]['requestId']
+                all_requests.add(request_id)
+                request_id_to_url_map[request_id] = network_event[PARAMS]['response']['url']
+    all_requests = all_requests & seen_in_will_be_sent
+    real_children_from_js = children_from_js & all_requests
+    same_domain_js = same_domain_js & all_requests
+    external_domain_js = external_domain_js & all_requests
+    return real_children_from_js, same_domain_js, external_domain_js, all_requests, request_id_to_url_map

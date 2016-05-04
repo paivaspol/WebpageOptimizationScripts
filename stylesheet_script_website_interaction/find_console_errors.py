@@ -22,12 +22,14 @@ def process_directories(root_dir, experiment_result_root_dir):
     for page in pages:
         page_histogram = process_page(root_dir, experiment_result_root_dir, page)
         populate_histogram(overall_histogram, page_histogram)
-    print_histogram(overall_histogram)
+    # print_histogram(overall_histogram)
 
-def print_histogram(histogram):
+def print_histogram(histogram, prefix=''):
     sorted_histogram = sorted(histogram.items(), key=lambda x: x[1], reverse=True)
     for key, value in sorted_histogram:
-        print '{0} {1}'.format(key.encode('ascii', 'ignore'), value)
+        key_str = key.encode('ascii', 'ignore')
+        if len(key_str) < 100:
+            print '{0}{1} {2}'.format(prefix, key_str, value)
 
 def process_page(root_dir, experiment_result_root_dir, page):
     page_to_domain_mapping_filename = os.path.join(root_dir, page, 'page_id_to_domain_mapping.txt')
@@ -44,6 +46,8 @@ def process_page(root_dir, experiment_result_root_dir, page):
             continue
         histogram = parse_console_file(console_filename)
         populate_histogram(page_histogram, histogram)
+    print page
+    print_histogram(page_histogram, prefix='\t')
     return page_histogram
 
 def populate_histogram(base_histogram, new_histogram):
