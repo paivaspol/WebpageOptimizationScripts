@@ -4,18 +4,23 @@ import common_module
 import os
 import simplejson as json
 
+PARAMS = 'params'
+METHOD = 'method'
+
 def main(root_dir):
     '''
     Traverse the directory and prints the page size.
     '''
-    for path, dirs, filenames in os.walk(root_dir):
-        if len(filenames) == 0:
+    pages = os.listdir(root_dir)
+    if args.ignore_pages:
+        pages = common_module.get_pages_without_pages_to_ignore(pages, args.ignore_pages)
+    for page in pages:
+        network_trace_filename = os.path.join(root_dir, page, 'network_' + page)
+        if not os.path.exists(network_trace_filename):
             continue
-        url = common_module.extract_url_from_path(path)
-        network_trace_filename = os.path.join(path, 'network_' + url)
-        page_request_sizes = get_request_sizes(network_trace_filename, url)
+        page_request_sizes = get_request_sizes(network_trace_filename, page)
         page_size = sum([size for _, size in page_request_sizes.items()])
-        print '{0} {1}'.format(url, page_size)
+        print '{0} {1}'.format(page, page_size)
 
 def get_request_sizes(network_filename, page):
     request_size = dict()
@@ -32,24 +37,25 @@ def get_request_sizes(network_filename, page):
                 continue
 
             request_id = network_event[PARAMS]['requestId']
-            if network_event['method'] == 'Network.requestWillBeSent':
+            if network_event[METHOD] == 'Network.requestWillBeSent':
                 request_size[request_id] = 0
             elif network_event[METHOD] == 'Network.responseReceived':
                 status = int(network_event[PARAMS]['response']['status'])
                 if status == 403:
                     del request_size[request_id]
-            elif network_event['method'] == 'Network.dataReceived':
+            elif network_event[METHOD] == 'Network.dataReceived':
                 if request_id in request_size:
-                    request_size[request_id] += network_event['params']['encodedDataLength']
-            elif network_event['method'] == 'Network.loadingFinished':
-                request_id = network_event['params']['requestId']
+                    request_size[request_id] += network_event[PARAMS]['encodedDataLength']
+            elif network_event[METHOD] == 'Network.loadingFinished':
+                request_id = network_event[PARAMS]['requestId']
                 if request_id in request_size:
                     cumulative_size = request_size[request_id]
-                    request_size[request_id] = max(network_event['params']['encodedDataLength'], cumulative_size)
+                    request_size[request_id] = max(network_event[PARAMS]['encodedDataLength'], cumulative_size)
     return request_size
 
 if __name__ == '__main__':
     parser = ArgumentParser()
     parser.add_argument('root_dir')
+    parser.add_argument('--ignore-pages', default=None)
     args = parser.parse_args()
     main(args.root_dir)

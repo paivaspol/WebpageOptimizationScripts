@@ -18,6 +18,8 @@ def main(root_dir, output_dir):
             os.mkdir(page_output_dir)
         command = 'python find_cpu_utilization.py {0} {1} {2}'.format(cpu_utilization_filename, interval_filename, page_output_dir, cpu_running_chrome_filename)
         subprocess.call(command, shell=True)
+        cp_command = 'cp {0} {1}'.format(cpu_running_chrome_filename, page_output_dir)
+        subprocess.call(cp_command, shell=True)
 
 if __name__ == '__main__':
     parser = ArgumentParser()

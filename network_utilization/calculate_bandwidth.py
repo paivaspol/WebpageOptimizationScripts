@@ -20,7 +20,8 @@ def iterate_pcap(pcap_filename, start_time, end_time):
 
             ip = eth.data
             tcp = ip.data
-            if int(ip.p) != int(dpkt.ip.IP_PROTO_TCP) or not common_module.check_web_port(True, tcp.sport):
+            if int(ip.p) != int(dpkt.ip.IP_PROTO_TCP) or \
+                not common_module.check_web_port(True, tcp.sport):
                 # We only care about HTTP or HTTPS
                 continue
             bytes_received += ip.len
@@ -28,7 +29,7 @@ def iterate_pcap(pcap_filename, start_time, end_time):
             bytes_slots[bytes_slots_index] += ip.len
         bandwidth = common_module.convert_to_mbits(bytes_received) / (end_time - start_time)
     print 'bandwidth: ' + str(bandwidth) + ' utilization: ' + str(bandwidth / 6.0)
-    print 'utilization: ' + str(generate_utilizations(bytes_slots, last_slot_interval))
+    # print 'utilization: ' + str(generate_utilizations(bytes_slots, last_slot_interval))
 
 def generate_expected_slots(start_time, end_time):
     load_time = (end_time - start_time) * 1000
@@ -44,7 +45,7 @@ def generate_utilizations(bandwidth_list, last_slot_interval):
     for i in range(0, len(bandwidth_list)):
         bandwidth = common_module.convert_to_mbits(bandwidth_list[i]) * 10
         expected_utilization = 6.0 / (1000 / 100)
-        if i == len(bandwidth_list) - 1:
+        if i == len(bandwidth_list) - 1 and last_slot_interval > 0:
             expected_utilization = 6.0 / (1000 / last_slot_interval)
         utilizations.append(bandwidth / 6.0)
     return utilizations
@@ -54,6 +55,7 @@ if __name__ == '__main__':
     parser.add_argument('pcap_filename')
     parser.add_argument('start_time', type=float)
     parser.add_argument('end_time', type=float)
+    parser.add_argument('expected_bandwidth', type=float)
     args = parser.parse_args()
     print 'load time: ' + str((args.end_time - args.start_time) * 1000)
     iterate_pcap(args.pcap_filename, args.start_time, args.end_time)
