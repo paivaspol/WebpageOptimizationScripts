@@ -257,6 +257,10 @@ def load_page(raw_line, run_index, output_dir, start_measurements, device, disab
         cmd += ' --disable-tracing'
     if record_contents:
         cmd += ' --record-content'
+    if args.collect_streaming:
+        cmd += ' --collect-streaming'
+    if args.collect_console:
+        cmd += ' --collect-console'
     # if run_index > 0:
     #     cmd += ' --reload-page'
     subprocess.Popen(cmd, shell=True).wait()
@@ -327,6 +331,8 @@ if __name__ == '__main__':
     parser.add_argument('--use-device', default=NEXUS_6_2)
     parser.add_argument('--disable-tracing', default=False, action='store_true')
     parser.add_argument('--record-content', default=False, action='store_true')
+    parser.add_argument('--collect-streaming', default=False, action='store_true')
+    parser.add_argument('--collect-console', default=False, action='store_true')
     args = parser.parse_args()
     start_measurements = not args.dont_start_measurements
     main(args.pages_file, args.num_repetitions, args.output_dir, args.use_caching_proxy, start_measurements, args.use_device, args.disable_tracing, args.record_content)

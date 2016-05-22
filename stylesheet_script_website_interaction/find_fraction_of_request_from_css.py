@@ -50,7 +50,8 @@ def find_requests(network_filename, page):
                     if parsed_referer.path.endswith('.css'):
                         result.add(network_event[PARAMS][RESPONSE][URL])
                 total_requests += 1
-    print page + ' ' + str(len(result)) + ' ' + str(total_requests)
+    if total_requests > 0:
+        print page + ' ' + str(len(result)) + ' ' + str(total_requests)
     return result, total_requests
 
 if __name__ == '__main__':

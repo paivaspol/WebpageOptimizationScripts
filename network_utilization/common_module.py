@@ -40,7 +40,7 @@ def compute_utilization(bytes_received, bandwidth=6, interval=100):
 
 def check_web_port(use_spdyproxy, tcp_port):
     if use_spdyproxy:
-        return tcp_port == 44300
+        return tcp_port == 44300 or tcp_port == 3000
     else:
         return tcp_port == 443 or tcp_port == 80
 

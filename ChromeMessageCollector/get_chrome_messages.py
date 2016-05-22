@@ -14,6 +14,7 @@ from ConfigParser import ConfigParser   # Parsing configuration file.
 from bs4 import BeautifulSoup # Beautify HTML
 from time import sleep
 from RDPMessageCollector.ChromeRDPWebsocket import ChromeRDPWebsocket # The websocket
+from RDPMessageCollector.ChromeRDPWebsocketStreaming import ChromeRDPWebsocketStreaming # The websocket
 from RDPMessageCollector.ChromeRDPWithoutTracking import ChromeRDPWithoutTracing
 
 HTTP_PREFIX = 'http://'
@@ -56,6 +57,8 @@ def main(device_configuration, url, disable_tracing, reload_page):
         escaped_url = common_module.escape_page(url)
         print 'output_directory: ' + output_directory
         write_page_start_end_time(escaped_url, output_directory, start_time, end_time)
+    elif args.collect_streaming:
+        debugging_socket = ChromeRDPWebsocketStreaming(debugging_url, url, device_configuration, user_agent_str, args.collect_console, callback_on_received_event, callback_on_page_done_streaming)
     else:
         debugging_socket = ChromeRDPWebsocket(debugging_url, url, device_configuration, reload_page, user_agent_str, screen_size_config, callback_on_page_done)
 
@@ -84,6 +87,38 @@ def create_output_directory_for_url(url):
     if not os.path.exists(base_dir):
         os.mkdir(base_dir)
     return base_dir
+
+def callback_on_received_event(debugging_socket, network_message, network_message_string):
+    if 'method' in network_message and network_message['method'].startswith('Network'):
+        url = debugging_socket.get_navigation_url()
+        base_dir = create_output_directory_for_url(url)
+        final_url = common_module.escape_page(url)
+        network_filename = os.path.join(base_dir, 'network_' + final_url)
+        with open(network_filename, 'ab') as output_file:
+            output_file.write('{0}\n'.format(json.dumps(network_message_string)))
+    elif 'method' in network_message and network_message['method'].startswith('Console'):
+        url = debugging_socket.get_navigation_url()
+        base_dir = create_output_directory_for_url(url)
+        final_url = common_module.escape_page(url)
+        network_filename = os.path.join(base_dir, 'console_' + final_url)
+        with open(network_filename, 'ab') as output_file:
+            output_file.write('{0}\n'.format(json.dumps(network_message_string)))
+
+def callback_on_page_done_streaming(debugging_socket):
+    debugging_socket.close_connection()
+
+    url = debugging_socket.get_navigation_url()
+    debugging_url = debugging_socket.get_debugging_url()
+    final_url = common_module.escape_page(url)
+    base_dir = create_output_directory_for_url(url)
+    
+    debugging_websocket = websocket.create_connection(debugging_url)
+    # Get the start and end time of the execution
+    start_time, end_time = navigation_utils.get_start_end_time_with_socket(debugging_websocket)
+    # print 'output dir: ' + base_dir
+    write_page_start_end_time(final_url, base_dir, start_time, end_time, -1, -1)
+    debugging_websocket.close()
+    chrome_utils.close_tab(debugging_socket.device_configuration, debugging_socket.device_configuration['page_id'])
 
 def callback_on_page_done(debugging_socket, network_messages, timeline_messages, original_request_ts, load_event_ts, request_ids, device_configuration):
     '''
@@ -126,7 +161,7 @@ def callback_on_page_done(debugging_socket, network_messages, timeline_messages,
                 output_file.write('{0}\n'.format(json.dumps(message)))
     # get_resource_tree(debugging_url)
 
-    chrome_utils.close_tab(device_configuration, device_configuration['page_id'])
+    chrome_utils.close_tab(debugging_socket.device_configuration, debugging_socket.device_configuration['page_id'])
 
 def beautify_html(original_html):
     return BeautifulSoup(original_html, 'html.parser').prettify().encode('utf-8')
@@ -177,6 +212,8 @@ if __name__ == '__main__':
     argparser.add_argument('--disable-tracing', default=False, action='store_true')
     argparser.add_argument('--reload-page', default=False, action='store_true')
     argparser.add_argument('--record-content', default=False, action='store_true')
+    argparser.add_argument('--collect-streaming', default=False, action='store_true')
+    argparser.add_argument('--collect-console', default=False, action='store_true')
     args = argparser.parse_args()
 
     # Setup the config filename

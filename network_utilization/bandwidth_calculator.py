@@ -5,7 +5,7 @@ import math
 import os
 
 INTERVAL_SIZE = 100
-OUTPUT_FILENAME = 'bandwidth.txt'
+OUTPUT_FILENAME = 'utilizations.txt'
 
 def parse_file(trace_filename, page_load_intervals, output_directory, use_spdyproxy):
     exception_counter = 0
@@ -108,7 +108,7 @@ def output_to_file(bytes_received_per_interval, interval_timestamps, output_file
     for i in range(0, len(bytes_received_per_interval)):
         bytes_received = bytes_received_per_interval[i]  # 100ms per one slot
         running_sum += bytes_received
-        utilization = convert_to_mbits(bytes_received) / 0.6 # each 100ms can handle 6mbps * 0.1(s/100ms) = 0.6 mbits
+        utilization = convert_to_mbits(bytes_received) / (args.expected_bandwidth * (0.1)) # each 100ms can handle 6mbps * 0.1(s/100ms) = 0.6 mbits
         # utilization = convert_to_mbits(bytes_received) # just the actual speed.
         line = '{0} {1} {2} {3}\n'.format((i * INTERVAL_SIZE), utilization, interval_timestamps[i][0], interval_timestamps[i][1])
         output_file.write(line)
@@ -134,6 +134,7 @@ if __name__ == '__main__':
     parser.add_argument('trace_filename')
     parser.add_argument('page_load_interval_filename')
     parser.add_argument('output_directory')
+    parser.add_argument('expected_bandwidth', type=float)
     parser.add_argument('--use-spdyproxy', default=False, action='store_true')
     args = parser.parse_args()
     page_load_intervals = get_page_load_intervals(args.page_load_interval_filename)
