@@ -29,7 +29,6 @@ http://www.usatoday.com/ http://www.usatoday.com/
 http://www.cnn.com/ http://www.cnn.com/
 http://www.breitbart.com/ http://www.breitbart.com/
 http://www.livescore.com/ http://www.livescore.com/
-http://www.alarabiya.net/favicon.ico data:text/html,chromewebdata
 http://abcnews.go.com/ http://abcnews.go.com/
 http://www.sbnation.com/ http://www.sbnation.com/
 http://www.si.com/ http://www.si.com/

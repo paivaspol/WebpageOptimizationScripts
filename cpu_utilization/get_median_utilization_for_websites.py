@@ -19,10 +19,11 @@ def process_page(root_dir, page):
             line = raw_line.strip().split()
             utilization = float(line[1])
             utilizations.append(utilization)
-    median_utilization = numpy.median(utilizations)
-    max_utilization = max(utilizations)
-    min_utilization = min(utilizations)
-    print '{0} {1} {2} {3}'.format(page, median_utilization, min_utilization, max_utilization)
+    if len(utilizations) > 0:
+        median_utilization = numpy.median(utilizations)
+        max_utilization = max(utilizations)
+        min_utilization = min(utilizations)
+        print '{0} {1} {2} {3}'.format(page, median_utilization, min_utilization, max_utilization)
 
 def get_cpu_running_chrome(cpu_running_chrome_filename):
     with open(cpu_running_chrome_filename, 'rb') as input_file:

@@ -41,12 +41,7 @@ def start_chrome(device_configuration):
         cmd_base = 'adb -s {0} forward tcp:{1} localabstract:chrome_devtools_remote'
         cmd = cmd_base.format(device_configuration[DEVICE_ID], device_configuration[ADB_PORT])
         p = subprocess.Popen(cmd, shell=True)
-
-        # Run chrome
-        cmd_base = 'adb -s {0} shell "am start -a android.intent.action.VIEW -n {1}"'
-        cmd = cmd_base.format(device_configuration[DEVICE_ID], device_configuration[CHROME_INSTANCE])
-        p = subprocess.Popen(cmd, shell=True)
-
+        bring_chrome_to_foreground(device_configuration)
         sleep(3) # So we have enough time to forward the port.
 
         return p
@@ -63,6 +58,12 @@ def start_chrome(device_configuration):
         p = subprocess.call(cmd, shell=True)
         sleep(3)
         return p
+
+def bring_chrome_to_foreground(device_configuration):
+    # Run chrome
+    cmd_base = 'adb -s {0} shell "am start -a android.intent.action.VIEW -n {1}"'
+    cmd = cmd_base.format(device_configuration[DEVICE_ID], device_configuration[CHROME_INSTANCE])
+    p = subprocess.Popen(cmd, shell=True)
 
 def stop_chrome(device_configuration):
     '''

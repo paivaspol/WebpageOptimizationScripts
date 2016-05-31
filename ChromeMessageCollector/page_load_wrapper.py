@@ -49,9 +49,8 @@ def main(pages_file, num_repetitions, output_dir, use_caching_proxy, start_measu
     elif not start_measurements and not disable_tracing:
         load_pages_with_measurement_disabled_but_tracing_enabled(pages, output_dir, num_repetitions, device, record_contents)
     else:
-        if not start_measurements:
-            initialize_browser(device)
         while len(pages) > 0:
+            initialize_browser(device)
             page = pages.pop(0)
             print 'page: ' + page
             if use_caching_proxy:
@@ -66,10 +65,8 @@ def main(pages_file, num_repetitions, output_dir, use_caching_proxy, start_measu
             i = 0
             while i < num_repetitions:
                 try:
-                    if start_measurements:
-                        start_tcpdump_and_cpu_measurement(device)
-                        initialize_browser(device)
-
+                    start_tcpdump_and_cpu_measurement(device)
+                    bring_chrome_to_foreground(device)
                     signal.alarm(TIMEOUT)
                     load_page(page, i, output_dir, start_measurements, device, disable_tracing)
                     if not disable_tracing:
@@ -80,10 +77,9 @@ def main(pages_file, num_repetitions, output_dir, use_caching_proxy, start_measu
                     signal.alarm(0) # Reset the alarm
                     while common_module.check_previous_page_load(i, output_dir, page):
                         load_page(page, i, output_dir, start_measurements, device, disable_tracing, record_contents)
-                    i += 1
                     iteration_path = os.path.join(output_dir, str(i))
-                    if start_measurements:
-                        stop_tcpdump_and_cpu_measurement(page.strip(), device, output_dir_run=iteration_path)
+                    stop_tcpdump_and_cpu_measurement(page.strip(), device, output_dir_run=iteration_path)
+                    i += 1
                 except PageLoadException as e:
                     print 'Timeout for {0}-th load. Append to end of queue...'.format(i)
                     # Kill the browser and append a page.
@@ -273,6 +269,10 @@ def start_tcpdump_and_cpu_measurement(device):
     start_tcpdump = 'python ./utils/start_tcpdump.py {0} {1}'.format(device_config, device)
     subprocess.Popen(start_tcpdump, shell=True).wait()
 
+def bring_chrome_to_foreground(device):
+    device, device_config = get_device_config(device)
+    device_config_obj = get_device_config_obj(device, device_config)
+    phone_connection_utils.bring_chrome_to_foreground(device_config_obj)
 
 def stop_tcpdump_and_cpu_measurement(line, device, output_dir_run='.'):
     url = escape_url(line)

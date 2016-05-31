@@ -24,8 +24,8 @@ class WhoIsDictionary:
     def get_registrant_for_domain(self, domain):
         if domain not in self.whois_org_dict:
             # Fetch from network.
+            sleep(WAIT)
             self.fetch_whois_record_from_network(domain)
-        sleep(WAIT)
         return self.whois_org_dict[domain]
     
     def domain_exists(self, domain):
@@ -68,5 +68,6 @@ class WhoIsDictionary:
             with open(whois_map_path, 'rb') as input_file:
                 for raw_line in input_file:
                     line = raw_line.strip().split()
-                    result[line[0]] = line[1]
+                    if len(line) > 1:
+                        result[line[0]] = line[1:]
         return result

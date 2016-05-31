@@ -15,6 +15,7 @@ def process_pages(root_dir):
         if result is not None:
             if result:
                 use_service += 1
+                print page
             total_pages += 1
     print '{0} {1} {2}'.format(args.domain, use_service, total_pages)
 
