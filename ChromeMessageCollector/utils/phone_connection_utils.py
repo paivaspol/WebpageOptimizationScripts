@@ -189,6 +189,6 @@ def get_cpu_running_chrome(device_config):
 
 def wake_phone_up(device_config):
     if device_config[DEVICE_TYPE] == DEVICE_PHONE:
-        command = 'adb shell input keyevent KEYCODE_WAKEUP'
+        command = 'adb -s {0} shell input keyevent KEYCODE_WAKEUP'.format(device_config[DEVICE_ID])
         subprocess.call(command, shell=True)
         print 'Waking up the phone'
