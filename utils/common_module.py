@@ -20,7 +20,7 @@ def parse_pages_to_ignore(pages_to_ignore_filename):
     if pages_to_ignore_filename is not None:
         with open(pages_to_ignore_filename, 'rb') as input_file:
             for raw_line in input_file:
-                line = raw_line.strip()
+                line = raw_line.strip().split()[0]
                 pages.add(escape_page(line))
     print pages
     return pages
