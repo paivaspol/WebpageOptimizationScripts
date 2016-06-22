@@ -91,16 +91,16 @@ $BUILD_DIRECTORY/sbin/squid -z
 
 cd ~
 
-#######################################################
-#  apache
-#######################################################
+#####################################################
+ apache
+#####################################################
 
-# First get httpd
-sudo apt-get -y install libpcre3 libpcre3-dev
+First get httpd
+do apt-get -y install libpcre3 libpcre3-dev libapr1-dev libaprutil1-dev
 
-wget http://apache.mirrors.tds.net//httpd/httpd-2.4.20.tar.gz
-tar xvzf httpd-2.4.20.tar.gz
-rm httpd-2.4.20.tar.gz
+et http://apache.mirrors.tds.net//httpd/httpd-2.4.20.tar.gz
+r xvzf httpd-2.4.20.tar.gz
+ httpd-2.4.20.tar.gz
 
 wget http://www.carfab.com/apachesoftware//apr/apr-1.5.2.tar.gz
 tar xvzf apr-1.5.2.tar.gz
@@ -113,7 +113,7 @@ rm apr-util-1.5.4.tar.gz
 mv apr-util-1.5.4 httpd-2.4.20/srclib/apr-util
 
 cd httpd-2.4.20
-./configure --prefix=$BUILD_DIRECTORY --enable-mpms-shared=all --with-included-apr
+./configure --prefix=$BUILD_DIRECTORY --enable-mpms-shared=all
 if [ $? -eq 0 ]
 then
     echo "httpd configured."
