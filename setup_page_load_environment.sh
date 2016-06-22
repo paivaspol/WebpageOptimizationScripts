@@ -8,8 +8,9 @@ cd ~
 mkdir ~
 
 # Requirements for running this script: git
-sudo apt-get -y install git
+sudo apt-get -y install git python
 
+sudo pip install Flask
 
 # Create the default build directory.
 mkdir $BUILD_DIRECTORY
