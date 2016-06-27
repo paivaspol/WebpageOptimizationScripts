@@ -1,41 +1,9 @@
-http://www.livescore.com/ http://www.livescore.com/
-http://abcnews.go.com/ http://abcnews.go.com/
-http://www.sbnation.com/ http://www.sbnation.com/
-http://www.si.com/ http://www.si.com/
-http://www.cnbc.com/ http://www.cnbc.com/
-http://m.shutterstock.com/ http://m.shutterstock.com/
-http://www.time.com/ http://time.com/
-http://www.cbc.ca/news/ http://www.cbc.ca/beta/news
-http://news.google.com/ http://news.google.com/
-http://m.economictimes.com/ http://m.economictimes.com/
-http://m.navbharattimes.indiatimes.com/ http://m.navbharattimes.indiatimes.com/
-http://www.nbcnews.com/ http://www.nbcnews.com/
-http://www.smh.com.au/ http://www.smh.com.au/
-http://www.rei.com/ https://www.rei.com/
-http://www.aljazeera.com/ http://www.aljazeera.com/
-http://espn.go.com/nfl/ http://espn.go.com/nfl/
-http://m.fantasy.nfl.com/ http://m.fantasy.nfl.com/
-http://deadspin.com/ http://deadspin.com/
-http://www.eenadu.net/ http://www.eenadu.net/
-http://mweb.cbssports.com/ http://mweb.cbssports.com/
-http://www.wunderground.com/ https://www.wunderground.com/
-http://www.theatlantic.com/ http://www.theatlantic.com/
-http://www.soccerway.com/ http://www.soccerway.com/
-http://m.goal.com/s/en-us http://m.goal.com/s/en-us
-http://www.nhl.com/ https://www.nhl.com/
-http://nypost.com/ http://nypost.com/
-http://mobile.reuters.com/ http://mobile.reuters.com/
-http://m.chron.com/ http://m.chron.com/
-http://www.skysports.com/ http://www.skysports.com/
-http://m.sfgate.com/ http://m.sfgate.com/
-http://m.timesofindia.com/ http://m.timesofindia.com/
-http://www.nbcsports.com/ http://www.nbcsports.com/
-http://money.cnn.com/ http://money.cnn.com/
-http://www.espncricinfo.com/ http://www.espncricinfo.com/
-http://www.latimes.com/ http://www.latimes.com/
-http://www.forbes.com/forbes/welcome http://www.forbes.com/forbes/welcome/
-http://www.manoramaonline.com/ http://www.manoramaonline.com/
-http://www.wwe.com/ http://www.wwe.com/
-http://fortune.com/ http://fortune.com/
-http://news.yahoo.com/ https://www.yahoo.com/news/
-http://www.bleacherreport.com/ http://m.bleacherreport.com/
+https://m.washingtonpost.com/
+https://www.netflix.com/
+http://www.m.webmd.com/default.htm
+http://allrecipes.com/
+http://www.amazon.com/
+http://www.hulu.com/
+http://m.foxnews.com/
+http://mobile.nytimes.com/?referer=
+http://m.accuweather.com/

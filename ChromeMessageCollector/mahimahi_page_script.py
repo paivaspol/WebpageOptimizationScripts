@@ -8,6 +8,7 @@ import paramiko
 import os
 import signal
 import subprocess
+import sys
 import requests
 import time
 
@@ -41,7 +42,8 @@ def main(config_filename, pages, iterations, device_name, mode, output_dir):
         stop_proxy(mode, replay_configurations)
         print 'Stopped Proxy'
         sleep(5) # Default shutdown wait for squid
-    done(replay_configurations)
+    if mode == 'record':
+        done(replay_configurations)
 
 def done(replay_configurations):
     start_proxy_url = 'http://{0}:{1}/done'.format( \
@@ -50,7 +52,7 @@ def done(replay_configurations):
     result = requests.get(start_proxy_url)
     print 'Done'
 
-def start_proxy(mode, page, time, replay_configurations):
+def start_proxy(mode, page, time, replay_configurations, delay=0):
     '''
     Starts the proxy
     '''
@@ -62,11 +64,19 @@ def start_proxy(mode, page, time, replay_configurations):
             server_mode = 'start_recording'
         elif mode == 'replay':
             server_mode = 'start_proxy'
+        elif mode == 'delay_replay':
+            server_mode = 'start_delay_replay_proxy'
 
         start_proxy_url = 'http://{0}:{1}/{2}?page={3}&time={4}'.format( \
                 replay_configurations[replay_config_utils.SERVER_HOSTNAME], \
                 replay_configurations[replay_config_utils.SERVER_PORT], \
                 server_mode, page, time)
+
+        if mode == 'delay_replay':
+            start_proxy_url += '&delay={0}'.format(args.delay)
+            if args.http_version == 1:
+                start_proxy_url += '&http={0}'.format(args.http_version)
+
         result = requests.get(start_proxy_url)
         # proxy_started = result.status_code == 200 and result.text.strip() == 'Proxy Started' \
         #         and check_proxy_running(replay_configurations, mode)
@@ -84,6 +94,8 @@ def stop_proxy(mode, replay_configurations):
         server_mode = 'stop_recording'
     elif mode == 'replay':
         server_mode = 'stop_proxy'
+    elif mode == 'delay_replay':
+        server_mode = 'stop_delay_replay_proxy'
 
     # proxy_started = check_proxy_running(replay_configurations, mode)
     proxy_started = True
@@ -153,7 +165,7 @@ def load_page(raw_line, run_index, output_dir, start_measurements, device_info, 
         os.mkdir(output_dir_run)
     
     line = raw_line.strip()
-    cmd = 'python /home/vaspol/Research/MobileWebOptimization/scripts/ChromeMessageCollector/get_chrome_messages.py {1} {2} {0} --output-dir {3}'.format(line, device_info[1], device_info[0], output_dir_run) 
+    cmd = 'python get_chrome_messages.py {1} {2} {0} --output-dir {3}'.format(line, device_info[1], device_info[0], output_dir_run) 
     if disable_tracing:
         cmd += ' --disable-tracing'
     # if run_index > 0:
@@ -166,9 +178,13 @@ if __name__ == '__main__':
     parser.add_argument('replay_config_filename')
     parser.add_argument('device_name')
     parser.add_argument('iterations', type=int)
-    parser.add_argument('mode')
+    parser.add_argument('mode', choices=[ 'replay', 'delay_replay', 'record' ])
     parser.add_argument('output_dir')
     parser.add_argument('--time', default=None)
+    parser.add_argument('--delay', default=None)
+    parser.add_argument('--http-version', default=2, type=int)
     args = parser.parse_args()
+    if args.mode == 'delay_replay' and args.delay is None:
+        sys.exit("Must specify delay")
     pages = common_module.get_pages(args.pages_filename)
     main(args.replay_config_filename, pages, args.iterations, args.device_name, args.mode, args.output_dir)
