@@ -33,8 +33,9 @@ def main(config_filename, pages, iterations, device_name, mode, output_dir):
         print 'Page: ' + page
         start_proxy(mode, page, current_time, replay_configurations)
         print 'Started Proxy'
+        sleep(5) # Just to make sure that the proxy has been started. 
         # Load the page.
-        returned_page = load_one_website(page, iterations, output_dir, device_info)
+        returned_page = load_one_website(page, iterations, output_dir, device_info, mode, replay_configurations)
         if returned_page is not None:
             # There was an exception
             pages.append(returned_page)
@@ -114,20 +115,21 @@ def stop_proxy(mode, replay_configurations):
         print 'request result: ' + result.text
         sleep(10)
 
-def load_one_website(page, iterations, output_dir, device_info):
+def load_one_website(page, iterations, output_dir, device_info, mode, replay_configurations):
     '''
     Loads one website
     '''
     for run_index in range(0, iterations):
         try:
             signal.alarm(TIMEOUT)
-            load_page(page, run_index, output_dir, False, device_info, True)
+            load_page(page, run_index, output_dir, False, device_info, not args.start_tracing)
             while common_module.check_previous_page_load(run_index, output_dir, page):
-                load_page(page, run_index, output_dir, False, device_info, True)
+                load_page(page, run_index, output_dir, False, device_info, not args.start_tracing)
             signal.alarm(0)
         except PageLoadException as e:
             print 'Timeout for {0}-th load. Append to end of queue...'.format(run_index)
             # Kill the browser and append a page.
+            stop_proxy(mode, replay_configurations)
             chrome_utils.close_all_tabs(device_info[2])
             common_module.initialize_browser(device_info) # Start the browser
             return page
@@ -165,11 +167,14 @@ def load_page(raw_line, run_index, output_dir, start_measurements, device_info, 
         os.mkdir(output_dir_run)
     
     line = raw_line.strip()
-    cmd = 'python get_chrome_messages.py {1} {2} {0} --output-dir {3}'.format(line, device_info[1], device_info[0], output_dir_run) 
+    cmd = 'python /home/vaspol/Research/MobileWebOptimization/scripts/ChromeMessageCollector/get_chrome_messages.py {1} {2} {0} --output-dir {3}'.format(line, device_info[1], device_info[0], output_dir_run) 
     if disable_tracing:
         cmd += ' --disable-tracing'
+    if args.collect_streaming:
+        cmd += ' --collect-streaming'
     # if run_index > 0:
     #     cmd += ' --reload-page'
+    print cmd
     subprocess.Popen(cmd, shell=True).wait()
 
 if __name__ == '__main__':
@@ -183,6 +188,8 @@ if __name__ == '__main__':
     parser.add_argument('--time', default=None)
     parser.add_argument('--delay', default=None)
     parser.add_argument('--http-version', default=2, type=int)
+    parser.add_argument('--start-tracing', default=False, action='store_true')
+    parser.add_argument('--collect-streaming', default=False, action='store_true')
     args = parser.parse_args()
     if args.mode == 'delay_replay' and args.delay is None:
         sys.exit("Must specify delay")

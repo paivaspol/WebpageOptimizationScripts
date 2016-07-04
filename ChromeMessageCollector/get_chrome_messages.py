@@ -50,15 +50,15 @@ def main(device_configuration, url, disable_tracing, reload_page):
     if phone_connection_utils.SCREEN_SIZE in device_configuration:
         screen_size_config = device_configuration[phone_connection_utils.SCREEN_SIZE]
 
-    if disable_tracing:
+    if args.collect_streaming:
+        debugging_socket = ChromeRDPWebsocketStreaming(debugging_url, url, device_configuration, user_agent_str, args.collect_console, callback_on_received_event, callback_on_page_done_streaming)
+    elif disable_tracing:
         chrome_rdp_object_without_tracing = ChromeRDPWithoutTracing(debugging_url, url, user_agent_str, screen_size_config)
         start_time, end_time = chrome_rdp_object_without_tracing.navigate_to_page(url, reload_page)
         print str((start_time, end_time)) + ' ' + str((end_time - start_time))
         escaped_url = common_module.escape_page(url)
         print 'output_directory: ' + output_directory
         write_page_start_end_time(escaped_url, output_directory, start_time, end_time)
-    elif args.collect_streaming:
-        debugging_socket = ChromeRDPWebsocketStreaming(debugging_url, url, device_configuration, user_agent_str, args.collect_console, callback_on_received_event, callback_on_page_done_streaming)
     else:
         debugging_socket = ChromeRDPWebsocket(debugging_url, url, device_configuration, reload_page, user_agent_str, screen_size_config, callback_on_page_done)
 
@@ -116,6 +116,7 @@ def callback_on_page_done_streaming(debugging_socket):
     # Get the start and end time of the execution
     start_time, end_time = navigation_utils.get_start_end_time_with_socket(debugging_websocket)
     # print 'output dir: ' + base_dir
+    print 'Load time: ' + str((start_time, end_time)) + ' ' + str((end_time - start_time))
     write_page_start_end_time(final_url, base_dir, start_time, end_time, -1, -1)
     debugging_websocket.close()
     chrome_utils.close_tab(debugging_socket.device_configuration, debugging_socket.device_configuration['page_id'])
@@ -220,6 +221,8 @@ if __name__ == '__main__':
     config_reader = ConfigParser()
     config_reader.read(args.config_filename)
     OUTPUT_DIR = args.output_dir
+
+    print 'collect streaming: ' + str(args.collect_streaming)
 
     # Get the device configuration.
     device_config = phone_connection_utils.get_device_configuration(config_reader, args.device)

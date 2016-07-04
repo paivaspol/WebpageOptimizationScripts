@@ -139,6 +139,7 @@ def get_pages(pages_file):
     pages = []
     with open(pages_file, 'rb') as input_file:
         for raw_line in input_file:
-            line = raw_line.strip().split()
-            pages.append(line[len(line) - 1])
+            if not raw_line.startswith('#'):
+                line = raw_line.strip().split()
+                pages.append(line[len(line) - 1])
     return pages
