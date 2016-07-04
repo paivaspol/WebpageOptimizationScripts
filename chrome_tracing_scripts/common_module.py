@@ -1,4 +1,5 @@
 import simplejson as json
+import os
 
 PARAMS = 'params'
 
@@ -34,6 +35,11 @@ def get_requestid_and_timestamp(event):
     requestId = event[PARAMS]['requestId']
     timestamp = convert_to_ms_precision(float(event[PARAMS]['timestamp']))
     return requestId, timestamp
+
+def create_directory_if_not_exists(directory):
+    if not os.path.exists(directory):
+        os.mkdir(directory)
+    return directory
 
 def convert_to_ms_precision(timestamp):
     '''

@@ -1,4 +1,4 @@
 #!/bin/bash
-adb shell input keyevent 82
-adb shell input text 1111
-adb shell input keyevent 66
+adb -s $1 shell input keyevent 82
+adb -s $1 shell input text 1111
+adb -s $1 shell input keyevent 66

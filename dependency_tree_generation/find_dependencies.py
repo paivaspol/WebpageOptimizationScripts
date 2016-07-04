@@ -13,10 +13,11 @@ RESPONSE = 'response'
 REQUEST_HEADERS = 'requestHeaders'
 REFERER = 'referer'
 URL = 'url'
-STACKTRACE = 'stackTrace'
+STACKTRACE = 'stack'
 TYPE = 'type'
 TIMESTAMP = 'timestamp'
 WALLTIME = 'wallTime'
+CALL_FRAMES = 'callFrames'
 
 DEFAULT_REQUESTER = '##default'
 
@@ -56,20 +57,22 @@ def find_dependencies(page, network_activities, page_start_end_time):
             # print INITIATOR + ': ' + str(network_activity[PARAMS][INITIATOR]) + '\n'
             requester = None
             if network_activity[PARAMS][INITIATOR][TYPE] == 'script' and STACKTRACE in network_activity[PARAMS][INITIATOR]:
-                call_stack = network_activity[PARAMS][INITIATOR][STACKTRACE]
-                requester = call_stack[len(call_stack) - 1][URL]
+                call_stack = network_activity[PARAMS][INITIATOR][STACKTRACE][CALL_FRAMES]
+                if len(call_stack) > 0:
+                    requester = call_stack[len(call_stack) - 1][URL]
             elif network_activity[PARAMS][INITIATOR][TYPE] == 'parser' and URL in network_activity[PARAMS][INITIATOR]:
                 requester = network_activity[PARAMS][INITIATOR][URL]
             else:
                 # Case where there isn't either URL or STACKTRACE
-                 requester = DEFAULT_REQUESTER
-            request_id = network_activity[PARAMS][REQUEST_ID]
-            request_id_to_resource_map[request_id] = network_activity[PARAMS][REQUEST][URL]
-            request_id_to_initiator_map[request_id] = requester
-            request_id_to_document_url[request_id] = network_activity[PARAMS]['documentURL']
-            request_id_to_request_object[request_id] = network_activity
-            request_id_to_order_found[request_id] = counter
-            counter += 1
+                requester = DEFAULT_REQUESTER
+            if requester is not None:
+                request_id = network_activity[PARAMS][REQUEST_ID]
+                request_id_to_resource_map[request_id] = network_activity[PARAMS][REQUEST][URL]
+                request_id_to_initiator_map[request_id] = requester
+                request_id_to_document_url[request_id] = network_activity[PARAMS]['documentURL']
+                request_id_to_request_object[request_id] = network_activity
+                request_id_to_order_found[request_id] = counter
+                counter += 1
         elif METHOD in network_activity and \
             network_activity[METHOD] == 'Network.responseReceived':
             request_id = network_activity[PARAMS][REQUEST_ID]

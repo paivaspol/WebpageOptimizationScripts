@@ -1,4 +1,5 @@
 import simplejson as json
+import os
 
 PARAMS = 'params'
 
@@ -112,3 +113,8 @@ def parse_page_start_end_time(filename):
 
 def convert_to_ms(time_in_seconds):
     return time_in_seconds * 1000
+
+def create_directory_if_not_exists(directory):
+    if not os.path.exists(directory):
+        os.mkdir(directory)
+    return directory
