@@ -135,6 +135,16 @@ def check_previous_page_load(current_run_index, base_output_dir, raw_line):
         return prev_line == cur_line
     return False
 
+def get_start_end_time(current_run_index, base_output_dir, page_url):
+    url = escape_page(page_url.strip())
+    output_dir_cur_run = os.path.join(os.path.join(base_output_dir, str(current_run_index)), url)
+    cur_run_start_end_time = os.path.join(output_dir_cur_run, 'start_end_time_' + url)
+    with open(cur_run_start_end_time, 'rb') as input_file:
+        cur_line = input_file.readline().strip().split()
+        start_time = int(cur_line[1])
+        end_time = int(cur_line[2])
+    return start_time, end_time
+
 def get_pages(pages_file):
     pages = []
     with open(pages_file, 'rb') as input_file:

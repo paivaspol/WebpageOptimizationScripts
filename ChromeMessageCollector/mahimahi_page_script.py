@@ -4,6 +4,7 @@ from ConfigParser import ConfigParser
 from PageLoadException import PageLoadException
 
 import common_module
+import datetime
 import paramiko
 import os
 import signal
@@ -120,19 +121,13 @@ def load_one_website(page, iterations, output_dir, device_info, mode, replay_con
     Loads one website
     '''
     for run_index in range(0, iterations):
-        try:
-            signal.alarm(TIMEOUT)
-            load_page(page, run_index, output_dir, False, device_info, not args.start_tracing)
-            while common_module.check_previous_page_load(run_index, output_dir, page):
-                load_page(page, run_index, output_dir, False, device_info, not args.start_tracing)
-            signal.alarm(0)
-        except PageLoadException as e:
-            print 'Timeout for {0}-th load. Append to end of queue...'.format(run_index)
-            # Kill the browser and append a page.
-            stop_proxy(mode, replay_configurations)
-            chrome_utils.close_all_tabs(device_info[2])
-            common_module.initialize_browser(device_info) # Start the browser
-            return page
+        clear_chromium_logs(device_info[2]['id'])
+        load_page(page, run_index, output_dir, False, device_info, not args.start_tracing)
+        while common_module.check_previous_page_load(run_index, output_dir, page):
+            result = load_page(page, run_index, output_dir, False, device_info, not args.start_tracing)
+            if result is None:
+                return result
+        get_chromium_logs(run_index, output_dir, page, device_info[2]['id'])
     return None
 
 def timeout_handler(signum, frame):
@@ -158,24 +153,66 @@ def check_proxy_running(config, mode):
             result.text != ''
 
 def load_page(raw_line, run_index, output_dir, start_measurements, device_info, disable_tracing):
-    # Create necessary directories
-    base_output_dir = output_dir
-    if not os.path.exists(base_output_dir):
-        os.mkdir(base_output_dir)
-    output_dir_run = os.path.join(base_output_dir, str(run_index))
-    if not os.path.exists(output_dir_run):
-        os.mkdir(output_dir_run)
-    
-    line = raw_line.strip()
-    cmd = 'python /home/vaspol/Research/MobileWebOptimization/scripts/ChromeMessageCollector/get_chrome_messages.py {1} {2} {0} --output-dir {3}'.format(line, device_info[1], device_info[0], output_dir_run) 
-    if disable_tracing:
-        cmd += ' --disable-tracing'
-    if args.collect_streaming:
-        cmd += ' --collect-streaming'
-    # if run_index > 0:
-    #     cmd += ' --reload-page'
-    print cmd
-    subprocess.Popen(cmd, shell=True).wait()
+    try:
+        signal.alarm(TIMEOUT)
+        # Create necessary directories
+        base_output_dir = output_dir
+        if not os.path.exists(base_output_dir):
+            os.mkdir(base_output_dir)
+        output_dir_run = os.path.join(base_output_dir, str(run_index))
+        if not os.path.exists(output_dir_run):
+            os.mkdir(output_dir_run)
+        
+        line = raw_line.strip()
+        cmd = 'python get_chrome_messages.py {1} {2} {0} --output-dir {3}'.format(line, device_info[1], device_info[0], output_dir_run) 
+        if disable_tracing:
+            cmd += ' --disable-tracing'
+        if args.collect_streaming:
+            cmd += ' --collect-streaming'
+        if args.get_chromium_logs:
+            cmd += ' --get-chromium-logs'
+        # if run_index > 0:
+        #     cmd += ' --reload-page'
+        print cmd
+        subprocess.call(cmd.split())
+        signal.alarm(0)
+    except PageLoadException as e:
+        print 'Timeout for {0}-th load. Append to end of queue...'.format(run_index)
+        # Kill the browser and append a page.
+        stop_proxy(mode, replay_configurations)
+        chrome_utils.close_all_tabs(device_info[2])
+        common_module.initialize_browser(device_info) # Start the browser
+        process.kill()
+        return page
+    return None
+
+def clear_chromium_logs(device_id):
+    cmd = 'adb -s {0} logcat -c'.format(device_id)
+    subprocess.call(cmd.split())
+
+def get_chromium_logs(run_index, output_dir, page_url, device_id):
+    log_lines = []
+    cmd = 'adb -s {0} logcat chromium:I'.format(device_id)
+    adb_process = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
+    ms_since_epoch = common_module.get_start_end_time(run_index, output_dir, page_url)[1]
+    while True:
+        line = adb_process.stdout.readline()
+        log_line = line.strip().split()
+        log_lines.append(line)
+        timestamp = '2016-' + log_line[0] + ' ' + log_line[1]
+        # 07-12 10:50:01.674 10179 10237 I chromium: [INFO:spdy_stream.cc(128)] Started a SPDY stream.
+        try:
+            date_object = datetime.datetime.strptime(timestamp, '%Y-%m-%d %H:%M:%S.%f')
+            date_since_epoch = int(date_object.strftime('%s')) * 1000
+            if date_since_epoch > ms_since_epoch:
+                adb_process.kill()
+                break
+        except Exception as e:
+            pass
+    output_filename = os.path.join(output_dir, str(run_index), common_module.escape_page(page_url.strip()), 'chromium_log.txt')
+    with open(output_filename, 'wb') as output_file:
+        for log_line in log_lines:
+            output_file.write(log_line)
 
 if __name__ == '__main__':
     parser = ArgumentParser()
@@ -190,6 +227,7 @@ if __name__ == '__main__':
     parser.add_argument('--http-version', default=2, type=int)
     parser.add_argument('--start-tracing', default=False, action='store_true')
     parser.add_argument('--collect-streaming', default=False, action='store_true')
+    parser.add_argument('--get-chromium-logs', default=False, action='store_true')
     args = parser.parse_args()
     if args.mode == 'delay_replay' and args.delay is None:
         sys.exit("Must specify delay")

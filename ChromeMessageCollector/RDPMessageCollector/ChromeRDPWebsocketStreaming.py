@@ -35,7 +35,7 @@ class ChromeRDPWebsocketStreaming(object):
         url - the websocket url
         target_url - the url to navigate to
         '''
-        # websocket.enableTrace(True)       
+        # websocket.enableTrace(True)
 
         # Conditions for a page to finish loading.
         self.originalRequestMs = None

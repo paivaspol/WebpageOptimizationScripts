@@ -215,6 +215,7 @@ if __name__ == '__main__':
     argparser.add_argument('--record-content', default=False, action='store_true')
     argparser.add_argument('--collect-streaming', default=False, action='store_true')
     argparser.add_argument('--collect-console', default=False, action='store_true')
+    argparser.add_argument('--get-chromium-logs', default=False, action='store_true')
     args = argparser.parse_args()
 
     # Setup the config filename
