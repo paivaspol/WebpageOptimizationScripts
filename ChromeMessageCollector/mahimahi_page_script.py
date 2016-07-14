@@ -155,6 +155,7 @@ def check_proxy_running(config, mode):
             result.text != ''
 
 def load_page(raw_line, run_index, output_dir, start_measurements, device_info, disable_tracing, mode, replay_configurations):
+    page_load_process = None
     try:
         # Create necessary directories
         base_output_dir = output_dir
@@ -165,7 +166,7 @@ def load_page(raw_line, run_index, output_dir, start_measurements, device_info, 
             os.mkdir(output_dir_run)
         
         line = raw_line.strip()
-        cmd = 'python /home/vaspol/Research/MobileWebOptimization/scripts/ChromeMessageCollector/get_chrome_messages.py {1} {2} {0} --output-dir {3}'.format(line, device_info[1], device_info[0], output_dir_run) 
+        cmd = 'python get_chrome_messages.py {1} {2} {0} --output-dir {3}'.format(line, device_info[1], device_info[0], output_dir_run) 
         signal.alarm(TIMEOUT)
         if disable_tracing:
             cmd += ' --disable-tracing'
@@ -188,7 +189,8 @@ def load_page(raw_line, run_index, output_dir, start_measurements, device_info, 
         stop_proxy(mode, replay_configurations)
         chrome_utils.close_all_tabs(device_info[2])
         common_module.initialize_browser(device_info) # Start the browser
-        page_load_process.kill()
+        if page_load_process is not None:
+            page_load_process.terminate()
         return line
     return None
 

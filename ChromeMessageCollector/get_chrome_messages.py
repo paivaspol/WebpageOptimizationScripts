@@ -1,6 +1,7 @@
 import common_module
 import json
 import requests
+import signal
 import subprocess
 import os
 import websocket
@@ -63,9 +64,12 @@ def main(device_configuration, url, disable_tracing, reload_page):
         debugging_socket = ChromeRDPWebsocket(debugging_url, url, device_configuration, reload_page, user_agent_str, screen_size_config, callback_on_page_done)
 
     if args.get_dependency_baseline:
-        signal.signal(signal.SIGKILL, timeout_handler)
-        def timeout_handler():
+        def timeout_handler(*args):
             callback_on_page_done_streaming(debugging_socket)
+            signal.signal(0)
+            sys.exit(0)
+
+        signal.signal(signal.SIGTERM, timeout_handler)
 
 def output_cpu_running_chrome(output_directory, cpu_id):
     '''
