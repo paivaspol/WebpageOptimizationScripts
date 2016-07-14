@@ -128,6 +128,8 @@ def check_previous_page_load(current_run_index, base_output_dir, raw_line):
         prev_run_start_end_time = os.path.join(output_dir_prev_run, 'start_end_time_' + url)
         output_dir_cur_run = os.path.join(os.path.join(base_output_dir, str(current_run_index)), url)
         cur_run_start_end_time = os.path.join(output_dir_cur_run, 'start_end_time_' + url)
+        if not os.path.exists(prev_run_start_end_time) or not os.path.exists(cur_run_start_end_time):
+            return False
         with open(prev_run_start_end_time, 'rb') as input_file:
             prev_line = input_file.readline()
         with open(cur_run_start_end_time, 'rb') as input_file:
@@ -139,6 +141,9 @@ def get_start_end_time(current_run_index, base_output_dir, page_url):
     url = escape_page(page_url.strip())
     output_dir_cur_run = os.path.join(os.path.join(base_output_dir, str(current_run_index)), url)
     cur_run_start_end_time = os.path.join(output_dir_cur_run, 'start_end_time_' + url)
+    if not os.path.exists(cur_run_start_end_time):
+        return -1, -1
+
     with open(cur_run_start_end_time, 'rb') as input_file:
         cur_line = input_file.readline().strip().split()
         start_time = int(cur_line[1])

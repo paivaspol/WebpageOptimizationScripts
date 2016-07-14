@@ -40,7 +40,7 @@ def main(device_configuration, url, disable_tracing, reload_page):
             got_debugging_url = True
         except requests.exceptions.ConnectionError as e:
             pass
-            
+
     print 'Connected to Chrome...'
     device_configuration['page_id'] = page_id
     user_agent_str = None
@@ -61,6 +61,11 @@ def main(device_configuration, url, disable_tracing, reload_page):
         write_page_start_end_time(escaped_url, output_directory, start_time, end_time)
     else:
         debugging_socket = ChromeRDPWebsocket(debugging_url, url, device_configuration, reload_page, user_agent_str, screen_size_config, callback_on_page_done)
+
+    if args.get_dependency_baseline:
+        signal.signal(signal.SIGKILL, timeout_handler)
+        def timeout_handler():
+            callback_on_page_done_streaming(debugging_socket)
 
 def output_cpu_running_chrome(output_directory, cpu_id):
     '''
@@ -107,6 +112,7 @@ def callback_on_received_event(debugging_socket, network_message, network_messag
 def callback_on_page_done_streaming(debugging_socket):
     debugging_socket.close_connection()
 
+    sleep(1)
     url = debugging_socket.get_navigation_url()
     debugging_url = debugging_socket.get_debugging_url()
     final_url = common_module.escape_page(url)
@@ -204,6 +210,7 @@ def get_resource_tree(debugging_url):
     finally:
         ws.close()
 
+
 if __name__ == '__main__':
     argparser = ArgumentParser()
     argparser.add_argument('config_filename')
@@ -216,6 +223,7 @@ if __name__ == '__main__':
     argparser.add_argument('--collect-streaming', default=False, action='store_true')
     argparser.add_argument('--collect-console', default=False, action='store_true')
     argparser.add_argument('--get-chromium-logs', default=False, action='store_true')
+    argparser.add_argument('--get-dependency-baseline', default=False, action='store_true')
     args = argparser.parse_args()
 
     # Setup the config filename
