@@ -19,6 +19,7 @@ from utils import chrome_utils
 
 WAIT = 2
 TIMEOUT = 3 * 60
+TIMEOUT_DEPENDENCY_BASELINE = 0.5 * 60
 
 def main(config_filename, pages, iterations, device_name, mode, output_dir):
     signal.signal(signal.SIGALRM, timeout_handler) # Setup the timeout handler
@@ -123,19 +124,22 @@ def load_one_website(page, iterations, output_dir, device_info, mode, replay_con
     Loads one website
     '''
     for run_index in range(0, iterations):
-        clear_chromium_logs(device_info[2]['id'])
+        if args.get_chromium_logs:
+            clear_chromium_logs(device_info[2]['id'])
+
         load_page(page, run_index, output_dir, False, device_info, not args.start_tracing, mode, replay_configurations)
         while common_module.check_previous_page_load(run_index, output_dir, page):
+            clear_chromium_logs(device_info[2]['id'])
             result = load_page(page, run_index, output_dir, False, device_info, not args.start_tracing, mode, replay_configurations)
             if result is None:
                 return result
-        get_chromium_logs(run_index, output_dir, page, device_info[2]['id'])
     return None
 
 def timeout_handler(signum, frame):
     '''
     Handle the case where the page fails to load
     '''
+    print 'Raised PageLoadException'
     raise PageLoadException('Time\'s up for this load.')
 
 def check_proxy_running(config, mode):
@@ -156,42 +160,49 @@ def check_proxy_running(config, mode):
 
 def load_page(raw_line, run_index, output_dir, start_measurements, device_info, disable_tracing, mode, replay_configurations):
     page_load_process = None
+    # Create necessary directories
+    base_output_dir = output_dir
+    if not os.path.exists(base_output_dir):
+        os.mkdir(base_output_dir)
+    output_dir_run = os.path.join(base_output_dir, str(run_index))
+    if not os.path.exists(output_dir_run):
+        os.mkdir(output_dir_run)
+    
+    page = raw_line.strip()
+    cmd = 'python get_chrome_messages.py {1} {2} {0} --output-dir {3}'.format(page, device_info[1], device_info[0], output_dir_run) 
+    signal.alarm(TIMEOUT)
+    if disable_tracing:
+        cmd += ' --disable-tracing'
+    if args.collect_streaming:
+        cmd += ' --collect-streaming'
+    if args.get_chromium_logs:
+        cmd += ' --get-chromium-logs'
+    if args.get_dependency_baseline:
+        signal.alarm(0)
+        signal.alarm(int(TIMEOUT_DEPENDENCY_BASELINE))
+        cmd += ' --get-dependency-baseline'
+    # if run_index > 0:
+    #     cmd += ' --reload-page'
+    print cmd
+    page_load_process = subprocess.Popen(cmd.split())
+
     try:
-        # Create necessary directories
-        base_output_dir = output_dir
-        if not os.path.exists(base_output_dir):
-            os.mkdir(base_output_dir)
-        output_dir_run = os.path.join(base_output_dir, str(run_index))
-        if not os.path.exists(output_dir_run):
-            os.mkdir(output_dir_run)
-        
-        line = raw_line.strip()
-        cmd = 'python get_chrome_messages.py {1} {2} {0} --output-dir {3}'.format(line, device_info[1], device_info[0], output_dir_run) 
-        signal.alarm(TIMEOUT)
-        if disable_tracing:
-            cmd += ' --disable-tracing'
-        if args.collect_streaming:
-            cmd += ' --collect-streaming'
-        if args.get_chromium_logs:
-            cmd += ' --get-chromium-logs'
-        if args.get_dependency_baseline:
-            signal.alarm(0)
-            signal.alarm(30)
-            cmd += ' --get-dependency-baseline'
-        # if run_index > 0:
-        #     cmd += ' --reload-page'
-        print cmd
-        page_load_process = subprocess.call(cmd.split())
+        page_load_process.communicate()
         signal.alarm(0)
     except PageLoadException as e:
         print 'Timeout for {0}-th load. Append to end of queue...'.format(run_index)
+        signal.alarm(0)
+        if page_load_process is not None:
+            print 'terminating'
+            page_load_process.terminate()
+            if args.get_chromium_logs:
+                get_chromium_logs(run_index, output_dir, page, device_info[2]['id'])
         # Kill the browser and append a page.
-        stop_proxy(mode, replay_configurations)
+        if not args.get_dependency_baseline:
+            stop_proxy(mode, replay_configurations)
         chrome_utils.close_all_tabs(device_info[2])
         common_module.initialize_browser(device_info) # Start the browser
-        if page_load_process is not None:
-            page_load_process.terminate()
-        return line
+        return page
     return None
 
 def clear_chromium_logs(device_id):
@@ -202,7 +213,7 @@ def get_chromium_logs(run_index, output_dir, page_url, device_id):
     log_lines = []
     cmd = 'adb -s {0} logcat chromium:I'.format(device_id)
     adb_process = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
-    ms_since_epoch = common_module.get_start_end_time(run_index, output_dir, page_url)[1]
+    ms_since_epoch = common_module.get_start_end_time(run_index, output_dir, page_url)[1] if not args.get_dependency_baseline else time.time() * 1000
     if ms_since_epoch != -1:
         while True:
             line = adb_process.stdout.readline()
@@ -213,8 +224,9 @@ def get_chromium_logs(run_index, output_dir, page_url, device_id):
             try:
                 date_object = datetime.datetime.strptime(timestamp, '%Y-%m-%d %H:%M:%S.%f')
                 date_since_epoch = int(date_object.strftime('%s')) * 1000
-                if date_since_epoch > ms_since_epoch:
-                    adb_process.kill()
+                print str(date_since_epoch) + ' ' + str(ms_since_epoch)
+                if int(date_since_epoch) > int(ms_since_epoch):
+                    adb_process.terminate()
                     break
             except Exception as e:
                 pass

@@ -3,6 +3,7 @@ import json
 import requests
 import signal
 import subprocess
+import sys
 import os
 import websocket
 
@@ -53,6 +54,16 @@ def main(device_configuration, url, disable_tracing, reload_page):
 
     if args.collect_streaming:
         debugging_socket = ChromeRDPWebsocketStreaming(debugging_url, url, device_configuration, user_agent_str, args.collect_console, callback_on_received_event, callback_on_page_done_streaming)
+        print 'here'
+        if args.get_dependency_baseline:
+            def timeout_handler(a, b):
+                callback_on_page_done_streaming(debugging_socket)
+                sys.exit(0)
+
+            print 'Setting SIGTERM handler'
+            signal.signal(signal.SIGTERM, timeout_handler)
+        debugging_socket.start()
+
     elif disable_tracing:
         chrome_rdp_object_without_tracing = ChromeRDPWithoutTracing(debugging_url, url, user_agent_str, screen_size_config)
         start_time, end_time = chrome_rdp_object_without_tracing.navigate_to_page(url, reload_page)
@@ -62,15 +73,7 @@ def main(device_configuration, url, disable_tracing, reload_page):
         write_page_start_end_time(escaped_url, output_directory, start_time, end_time)
     else:
         debugging_socket = ChromeRDPWebsocket(debugging_url, url, device_configuration, reload_page, user_agent_str, screen_size_config, callback_on_page_done)
-
-    if args.get_dependency_baseline:
-        def timeout_handler(*args):
-            callback_on_page_done_streaming(debugging_socket)
-            signal.signal(0)
-            sys.exit(0)
-
-        signal.signal(signal.SIGTERM, timeout_handler)
-
+    
 def output_cpu_running_chrome(output_directory, cpu_id):
     '''
     Outputs the CPU id that is running chrome.

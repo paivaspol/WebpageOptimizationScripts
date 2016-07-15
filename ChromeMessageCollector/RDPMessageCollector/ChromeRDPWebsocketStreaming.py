@@ -55,6 +55,8 @@ class ChromeRDPWebsocketStreaming(object):
                                         on_error = self.on_error,\
                                         on_close = self.on_close)
         self.ws.on_open = self.on_open
+
+    def start(self):
         self.ws.run_forever() # start running this socket.
 
     def on_message(self, ws, message):
