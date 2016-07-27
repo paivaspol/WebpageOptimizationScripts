@@ -169,7 +169,7 @@ def load_page(raw_line, run_index, output_dir, start_measurements, device_info, 
         os.mkdir(output_dir_run)
     
     page = raw_line.strip()
-    cmd = 'python get_chrome_messages.py {1} {2} {0} --output-dir {3}'.format(page, device_info[1], device_info[0], output_dir_run) 
+    cmd = 'python /home/vaspol/Research/MobileWebOptimization/scripts/ChromeMessageCollector/get_chrome_messages.py {1} {2} {0} --output-dir {3}'.format(page, device_info[1], device_info[0], output_dir_run) 
     signal.alarm(TIMEOUT)
     if disable_tracing:
         cmd += ' --disable-tracing'

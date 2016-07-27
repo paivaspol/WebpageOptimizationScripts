@@ -55,7 +55,7 @@ def output_to_file(result_dependencies, url, output_dir, given_dependencies):
             if not origin_url.endswith('/'):
                 origin_url += '/'
             parent_url = result_dependency[1]
-            if not parent_url.endswith('/'):
+            if parent_url.endswith('.js') and parent_url.endswith('.css') and parent_url.endswith('.html') and not parent_url.endswith('/'):
                 parent_url += '/'
             if given_dependencies is not None and result_dependency[2] not in given_dependencies:
                 continue

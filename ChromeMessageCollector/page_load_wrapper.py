@@ -144,10 +144,15 @@ def print_failed_pages(output_dir, failed_pages):
 
 def load_pages_with_measurement_and_tracing_disabled(pages, output_dir, num_repetitions, device, record_contents):
     initialize_browser(device)
+    tried_counter = dict()
+    failed_pages = []
     while len(pages) > 0:
         page = pages.pop(0)
         print 'page: ' + page
         i = 0
+        if page not in tried_counter:
+            tried_counter[page] = 0
+        tried_counter[page] += 1
         while i < num_repetitions:
             try:
                 signal.alarm(TIMEOUT) # Set alarm for TIMEOUT
@@ -165,9 +170,13 @@ def load_pages_with_measurement_and_tracing_disabled(pages, output_dir, num_repe
                 device_config_obj = get_device_config_obj(device, device_config)
                 chrome_utils.close_all_tabs(device_config_obj)
                 initialize_browser(device)
-                pages.append(page)
+                if tried_counter[page] <= TRY_LIMIT:
+                    pages.append(page)
+                else:
+                    failed_pages.append(page)
                 break
             sleep(PAUSE)
+    print_failed_pages(output_dir, failed_pages)
 
 def load_pages_with_measurement_and_tracing_enabled(pages, output_dir, num_repetitions, device, record_contents):
     while len(pages) > 0:

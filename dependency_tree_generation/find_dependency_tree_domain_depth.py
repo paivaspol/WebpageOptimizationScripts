@@ -8,6 +8,8 @@ import simplejson as json
 def main(root_dir):
     pages = os.listdir(root_dir)
     for page in pages:
+        if 'accuweather.com' not in page:
+            continue
         dependency_tree_filename = os.path.join(root_dir, page)
         page = get_page_name(page)
         try:
@@ -26,18 +28,22 @@ def find_dependency_tree_depth(dependency_tree_filename, page):
     return -1
 
 def bfs(dependency_tree, parent_node, current_node, current_depth):
-    children = current_node['children']
+    children = set(current_node['children'])
     max_depth = current_depth
     for child in children:
-        child_node = dependency_tree[child]
-        if parent_node is None:
-            max_depth = max(max_depth, bfs(dependency_tree, current_node, child_node, current_depth + 1))
-        else:
-            parsed_current_node = urlparse(current_node['url'])
-            parsed_parent_node = urlparse(parent_node['url'])
-            next_depth = current_depth + 1 if parsed_current_node.netloc != parsed_parent_node else current_depth
-            max_depth = max(max_depth, bfs(dependency_tree, current_node, child_node, next_depth))
-
+        if not child.startswith('data') and current_node is not None:
+            child_node = dependency_tree[child]
+            if parent_node is not None:
+                print 'parent: {0} current: {1} depth: {2}'.format(parent_node['url'], child_node['url'], current_depth)
+            if child.startswith('data'):
+                return current_depth
+            elif parent_node is None:
+                max_depth = max(max_depth, bfs(dependency_tree, current_node, child_node, current_depth + 1))
+            else:
+                parsed_current_node = urlparse(current_node['url'])
+                parsed_parent_node = urlparse(parent_node['url'])
+                next_depth = current_depth + 1 if parsed_current_node.netloc != parsed_parent_node.netloc else current_depth
+                max_depth = max(max_depth, bfs(dependency_tree, current_node, child_node, next_depth))
     return max_depth
 
 def find_root_node(page, dependency_tree):
