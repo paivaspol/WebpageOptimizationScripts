@@ -12,6 +12,7 @@ def traverse_root_directory(root_dir, pages, aggregate_dir):
         print 'processing: ' + url
         page_start_end_time_filename = os.path.join(path, 'start_end_time_' + url)
         if not os.path.exists(page_start_end_time_filename):
+            print 'here'
             continue
         network_events_filename = os.path.join(path, 'network_' + url)
         command = 'python find_dependencies.py {0} {1} {2} --output-dir {3}'.format(page, network_events_filename, page_start_end_time_filename, path)

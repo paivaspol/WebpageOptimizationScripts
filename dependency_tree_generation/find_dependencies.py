@@ -41,9 +41,9 @@ def find_dependencies(page, network_activities, page_start_end_time):
         if METHOD in network_activity and \
             network_activity[METHOD] == 'Network.requestWillBeSent':
             ts = common_module.convert_to_ms(network_activity[PARAMS][WALLTIME])
-            document_url = network_activity[PARAMS]['documentURL']
+            document_url = network_activity[PARAMS][REQUEST][URL]
             # print 'page: ' + page + ' document_url: ' + document_url
-            if not found_page and document_url == page:
+            if not found_page and common_module.escape_url(document_url) == common_module.escape_url(page):
                 found_page = True
 
             # if not start_time <= ts <= end_time:
@@ -153,7 +153,7 @@ def convert_graph_to_json(dep_graph, request_id_to_order_found):
             node_info = result_dict[node[0]]
             node_info['isRoot'] = True
             node_info['parent'] = None
-            node_info['url'] = node[0]
+            node_info['url'] = remove_trailing_slash(node[0])
             node_info['request_id'] = node[1]
             node_info['found_index'] = request_id_to_order_found[node[1]]
 
@@ -190,6 +190,11 @@ def sanity_check(result_dict):
             found_root_node = node
     if not found_root:
         print '\tDid not see any root...'
+
+def remove_trailing_slash(url):
+    while url.endswith('/'):
+        url = url[:len(url) - 1]
+    return url
 
 def dump_object_to_json(result_obj, output_dir):
     output_filename = os.path.join(output_dir, 'dependency_graph.json')

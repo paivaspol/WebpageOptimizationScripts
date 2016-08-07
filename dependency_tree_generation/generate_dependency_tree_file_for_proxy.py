@@ -10,26 +10,36 @@ JSON_SUFFIX = '.json'
 def generate_dependencies_for_proxy(root_dir, pages, output_dir):
     for page in pages:
         url = common_module.escape_url(page)
-        path = os.path.join(root_dir, url)
-        dependency_tree_path = os.path.join(path, "dependency_graph.json")
-        print 'path: ' + dependency_tree_path + ' url: ' + url
-        if not os.path.exists(dependency_tree_path):
-            continue
-        given_dependencies = None
-        if args.use_only_given_dependencies != '':
-            given_dependencies = get_given_dependencies(os.path.join(args.use_only_given_dependencies, common_module.escape_url(page)))
 
-        result_dependencies = [] # A list containing dependency lines
-        dependency_tree_object = get_dependency_objects(dependency_tree_path)
-        try:
-            generate_file_from_dependency_tree_object(dependency_tree_object, \
-                                                      page, page, page, \
-                                                      result_dependencies)
-        except RuntimeError as e:
-            print str(e) + ' page: ' + page
-            pass
+        if not args.use_aggregated_directory:
+            dependency_tree_path = os.path.join(root_dir, page, "dependency_graph.json")
+            print 'path: ' + dependency_tree_path + ' url: ' + url
+            generate_dependencies_for_proxy_main(dependency_tree_path, page, output_dir)
+        else:
+            dependency_tree_path = os.path.join(root_dir, common_module.escape_url(page) + ".json")
+            print 'path: ' + dependency_tree_path + ' url: ' + url
+            generate_dependencies_for_proxy_main(dependency_tree_path, page, output_dir)
+
+
+def generate_dependencies_for_proxy_main(dependency_tree_path, page, output_dir):
+    if not os.path.exists(dependency_tree_path):
+        return
+    given_dependencies = None
+    if args.use_only_given_dependencies != '':
+        given_dependencies = get_given_dependencies(os.path.join(args.use_only_given_dependencies, common_module.escape_url(page)))
+
+    result_dependencies = [] # A list containing dependency lines
+    dependency_tree_object = get_dependency_objects(dependency_tree_path)
+    try:
+        print 'here ' + page
+        generate_file_from_dependency_tree_object(dependency_tree_object, \
+                                                  page, page, page, \
+                                                  result_dependencies)
         result_dependencies.sort(key=lambda x: x[3])
-        output_to_file(result_dependencies, url, output_dir, given_dependencies)
+        output_to_file(result_dependencies, common_module.escape_url(page), output_dir, given_dependencies)
+    except RuntimeError as e:
+        print str(e) + ' page: ' + page
+        pass
 
 
 def get_given_dependencies(given_dependencies_filename):
@@ -72,20 +82,30 @@ def generate_file_from_dependency_tree_object(dependency_tree_object, \
     '''
     Recursive method for generating the dependency graph.
     '''
+    if dependency_url == 'http://ec2-54-237-249-55.compute-1.amazonaws.com':
+        dependency_url += '/'
+
     if dependency_url not in dependency_tree_object:
+        print str(dependency_tree_object) + ' ' + dependency_url
         return
 
     dependency_node = dependency_tree_object[dependency_url]
     children = dependency_node['children']
+    cur_domain = extract_domain(dependency_url)
     for child in children:
         child_found_index = dependency_tree_object[child]['found_index']
-        dependency_line = (origin_url, parent_url, child, child_found_index)
+        dependency_line = (origin_url, dependency_url, child, child_found_index)
         result_dependencies.append(dependency_line)
-        next_domain = extract_domain(dependency_url)
+        next_domain = extract_domain(child)
+        # print 'current: {0} child: {1}'.format(dependency_url, child)
+        # print 'origin_url: {0}'.format(origin_url)
+        # print 'next domain: {0} current domain: {1}'.format(next_domain, cur_domain)
+        # print ''
+        next_origin_url = origin_url if next_domain == cur_domain else child
         generate_file_from_dependency_tree_object(dependency_tree_object, \
                                                    child, \
                                                    dependency_url, \
-                                                   next_domain, \
+                                                   next_origin_url, \
                                                    result_dependencies)
 
 def extract_domain(url):
@@ -98,7 +118,8 @@ def extract_domain(url):
     elif url.startswith(common_module.HTTP_PREFIX):
         url = url[len(common_module.HTTP_PREFIX):]
     url = url[:url.find('/')]
-    return result_url[:result_url.find(url) + len(url)]
+    index = result_url.find(url)
+    return result_url[index : index + len(url)]
 
 def get_dependency_objects(filename):
     with open(filename, 'rb') as input_file:
@@ -115,6 +136,7 @@ if __name__ == '__main__':
     parser.add_argument('pages_file')
     parser.add_argument('--output-dir', default='.')
     parser.add_argument('--use-only-given-dependencies', default='')
+    parser.add_argument('--use-aggregated-directory', default=False, action='store_true')
     args = parser.parse_args()
     pages = common_module.get_pages(args.pages_file)
     generate_dependencies_for_proxy(args.root_dir, pages, args.output_dir)
