@@ -82,6 +82,18 @@ def stop_chrome(device_configuration):
     elif device_configuration[DEVICE_TYPE] == DEVICE_UBUNTU:
         subprocess.call('pkill -9 chrome', shell=True)
 
+def bring_openvpn_connect_foreground(device_configuration):
+    # Run chrome
+    cmd_base = 'adb -s {0} shell "am start -a android.intent.action.VIEW -n net.openvpn.openvpn/net.openvpn.openvpn.OpenVPNClient"'
+    cmd = cmd_base.format(device_configuration[DEVICE_ID], device_configuration[CHROME_INSTANCE])
+    subprocess.call(cmd, shell=True)
+    sleep(2)
+
+def toggle_openvpn_button(device_configuration):
+    cmd = 'adb -s {0} shell input tap 706 780'.format(device_configuration[DEVICE_ID])
+    subprocess.call(cmd, shell=True)
+    sleep(1)
+
 def start_tcpdump(device_configuration):
     '''
     Starts tcpdump on the phone.
@@ -128,6 +140,10 @@ def fetch_file(device_configuration, file_location_on_phone, destination_directo
         cmd_base = 'adb -s {0} shell rm {1}'
         cmd = cmd_base.format(device_configuration[DEVICE_ID], file_location_on_phone)
         os.system(cmd)
+
+def push_file(device_configuration, source, destination):
+    cmd = 'adb -s {0} push {1} {2}'.format(device_configuration[DEVICE_ID], source, destination)
+    subprocess.call(cmd.split())
 
 def kill_cpu_measurement(device_configuration):
     command = 'adb -s {0} shell am force-stop edu.michigan.pageloadcpumeasurement'

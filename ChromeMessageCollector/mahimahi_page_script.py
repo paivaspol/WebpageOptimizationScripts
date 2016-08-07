@@ -16,6 +16,7 @@ import time
 from time import sleep
 from utils import replay_config_utils
 from utils import chrome_utils
+from utils import phone_connection_utils
 
 WAIT = 2
 TIMEOUT = 3 * 60
@@ -34,15 +35,29 @@ def main(config_filename, pages, iterations, device_name, mode, output_dir):
     for page in pages:
         print 'Page: ' + page
         start_proxy(mode, page, current_time, replay_configurations)
+        while not check_proxy_running(replay_configurations, mode):
+            # Keep on spinning when the proxy hasn't started yet.
+            sleep(1.5)
         print 'Started Proxy'
-        sleep(5) # Just to make sure that the proxy has been started. 
+        if args.use_openvpn:
+            phone_connection_utils.bring_openvpn_connect_foreground(device_info[2])
+            phone_connection_utils.toggle_openvpn_button(device_info[2])
+        if args.pac_file_location is not None:
+            fetch_and_push_pac_file(args.pac_file_location, device_info)
+            common_module.initialize_browser(device_info) # Restart the browser
         # Load the page.
         returned_page = load_one_website(page, iterations, output_dir, device_info, mode, replay_configurations)
         if returned_page is not None:
             # There was an exception
             pages.append(returned_page)
             common_module.initialize_browser(device_info) # Restart the browser
+        if args.use_openvpn:
+            common_module.initialize_browser(device_info) # Restart the browser
+            phone_connection_utils.bring_openvpn_connect_foreground(device_info[2])
+            phone_connection_utils.toggle_openvpn_button(device_info[2])
         stop_proxy(mode, replay_configurations)
+        while not check_proxy_stopped(replay_configurations, mode):
+            sleep(1)
         print 'Stopped Proxy'
         sleep(5) # Default shutdown wait for squid
     if mode == 'record':
@@ -54,6 +69,19 @@ def done(replay_configurations):
             replay_configurations[replay_config_utils.SERVER_PORT])
     result = requests.get(start_proxy_url)
     print 'Done'
+
+def fetch_and_push_pac_file(pac_file_location, device_config):
+    wget_cmd = 'wget {0} -O temp.pac'.format(pac_file_location)
+    subprocess.call(wget_cmd.split())
+    phone_connection_utils.push_file(device_config[2], 'temp.pac', '/sdcard/Research/config_testing.pac')
+    rm_cmd = 'rm temp.pac'
+    subprocess.call(rm_cmd.split())
+
+def toogle_vpn(device_config):
+    # Brings the OpenVPN Connect app to foreground and toggle the connect button.
+    phone_connection_utils.bring_openvpn_connect_foreground(device_config[2])
+    sleep(0.5)
+    phone_connection_utils.toggle_openvpn_button(device_config[2])
 
 def start_proxy(mode, page, time, replay_configurations, delay=0):
     '''
@@ -102,22 +130,19 @@ def stop_proxy(mode, replay_configurations):
     elif mode == 'delay_replay':
         server_mode = 'stop_delay_replay_proxy'
 
-    # proxy_started = check_proxy_running(replay_configurations, mode)
-    proxy_started = True
-    while proxy_started:
-        # Try every 10 iterations
-        url = 'http://{0}:{1}/{2}'.format( \
-                    replay_configurations[replay_config_utils.SERVER_HOSTNAME], \
-                    replay_configurations[replay_config_utils.SERVER_PORT], \
-                    server_mode)
-        result = requests.get(url)
-        # proxy_started = not (result.status_code == 200 and result.text.strip() == 'Proxy Stopped') \
-        #         and check_proxy_running(replay_configurations, mode)
-        proxy_started = not (result.status_code == 200 and result.text.strip() == 'Proxy Stopped')
-        if proxy_started:
-            return proxy_started
-        print 'request result: ' + result.text
-        sleep(10)
+    # Try every 10 iterations
+    url = 'http://{0}:{1}/{2}'.format( \
+                replay_configurations[replay_config_utils.SERVER_HOSTNAME], \
+                replay_configurations[replay_config_utils.SERVER_PORT], \
+                server_mode)
+    result = requests.get(url)
+    # proxy_started = not (result.status_code == 200 and result.text.strip() == 'Proxy Stopped') \
+    #         and check_proxy_running(replay_configurations, mode)
+    proxy_started = not (result.status_code == 200 and result.text.strip() == 'Proxy Stopped')
+    if proxy_started:
+        return proxy_started
+    print 'request result: ' + result.text
+    sleep(10)
 
 def load_one_website(page, iterations, output_dir, device_info, mode, replay_configurations):
     '''
@@ -145,18 +170,44 @@ def timeout_handler(signum, frame):
 def check_proxy_running(config, mode):
     print 'Checking if proxy running'
     if mode == 'record':
-        server_check = 'is_recording'
+        server_check = 'is_record_proxy_running'
     elif mode == 'replay':
-        server_check = 'is_proxy_running'
+        server_check = 'is_replay_proxy_running'
 
     url = 'http://{0}:{1}/{2}'.format( \
                 config[replay_config_utils.SERVER_HOSTNAME], \
                 config[replay_config_utils.SERVER_PORT], \
                 server_check)
     result = requests.get(url)
-    print 'proxy_running: ' + result.text
-    return result.status_code == 200 and \
-            result.text != ''
+    return parse_check_result(result.text)
+
+def check_proxy_stopped(config, mode):
+    print 'Checking if proxy running'
+    if mode == 'record':
+        server_check = 'is_record_proxy_running'
+    elif mode == 'replay':
+        server_check = 'is_replay_proxy_running'
+
+    url = 'http://{0}:{1}/{2}'.format( \
+                config[replay_config_utils.SERVER_HOSTNAME], \
+                config[replay_config_utils.SERVER_PORT], \
+                server_check)
+    result = requests.get(url)
+    return parse_check_result(result.text, 'stopped')
+
+def parse_check_result(result_str, mode='running'):
+    '''
+    Parses the results.
+    '''
+    print result_str
+    splitted_result_str = result_str.split('\n')
+    for line in splitted_result_str:
+        splitted_line = line.split(' ')
+        if mode == 'running' and splitted_line[1] == 'NO':
+            return False
+        elif mode == 'stopped' and splitted_line[1] == 'YES':
+            return False
+    return True
 
 def load_page(raw_line, run_index, output_dir, start_measurements, device_info, disable_tracing, mode, replay_configurations):
     page_load_process = None
@@ -169,7 +220,7 @@ def load_page(raw_line, run_index, output_dir, start_measurements, device_info, 
         os.mkdir(output_dir_run)
     
     page = raw_line.strip()
-    cmd = 'python /home/vaspol/Research/MobileWebOptimization/scripts/ChromeMessageCollector/get_chrome_messages.py {1} {2} {0} --output-dir {3}'.format(page, device_info[1], device_info[0], output_dir_run) 
+    cmd = 'python get_chrome_messages.py {1} {2} {0} --output-dir {3}'.format(page, device_info[1], device_info[0], output_dir_run) 
     signal.alarm(TIMEOUT)
     if disable_tracing:
         cmd += ' --disable-tracing'
@@ -201,7 +252,8 @@ def load_page(raw_line, run_index, output_dir, start_measurements, device_info, 
         if not args.get_dependency_baseline:
             stop_proxy(mode, replay_configurations)
         chrome_utils.close_all_tabs(device_info[2])
-        common_module.initialize_browser(device_info) # Start the browser
+        if not args.get_chromium_logs:
+            common_module.initialize_browser(device_info) # Start the browser
         return page
     return None
 
@@ -224,7 +276,6 @@ def get_chromium_logs(run_index, output_dir, page_url, device_id):
             try:
                 date_object = datetime.datetime.strptime(timestamp, '%Y-%m-%d %H:%M:%S.%f')
                 date_since_epoch = int(date_object.strftime('%s')) * 1000
-                print str(date_since_epoch) + ' ' + str(ms_since_epoch)
                 if int(date_since_epoch) > int(ms_since_epoch):
                     adb_process.terminate()
                     break
@@ -250,6 +301,8 @@ if __name__ == '__main__':
     parser.add_argument('--collect-streaming', default=False, action='store_true')
     parser.add_argument('--get-chromium-logs', default=False, action='store_true')
     parser.add_argument('--get-dependency-baseline', default=False, action='store_true')
+    parser.add_argument('--use-openvpn', default=False, action='store_true')
+    parser.add_argument('--pac-file-location', default=None)
     args = parser.parse_args()
     if args.mode == 'delay_replay' and args.delay is None:
         sys.exit("Must specify delay")

@@ -16,8 +16,7 @@ SERVER_HOSTNAME = 'server_hostname'
 SERVER_USERNAME = 'server_username'
 SERVER_PORT = 'server_port'
 
-CONFIG_KEYS = [ PROXY_REPLAY_PATH, NGHTTPX_PATH, NGHTTPX_PORT, NGHTTPX_KEY_PATH, NGHTTPX_CERT_PATH, \
-        RECORD_PAGES_PATH, SERVER_KEY, SERVER_HOSTNAME, SERVER_USERNAME, SERVER_PORT ]
+CONFIG_KEYS = [ SERVER_HOSTNAME, SERVER_PORT ]
 
 def get_page_replay_config(config_filename):
     configuration = dict()
@@ -26,5 +25,4 @@ def get_page_replay_config(config_filename):
     for config_key in CONFIG_KEYS:
         configuration[config_key] = config_parser.get(CONFIG, config_key)
     return configuration
-
 

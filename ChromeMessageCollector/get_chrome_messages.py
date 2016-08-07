@@ -40,7 +40,7 @@ def main(device_configuration, url, disable_tracing, reload_page):
         try:
             debugging_url, page_id = chrome_utils.get_debugging_url(device_configuration)
             got_debugging_url = True
-        except requests.exceptions.ConnectionError as e:
+        except (requests.exceptions.ConnectionError, KeyError) as e:
             pass
 
     print 'Connected to Chrome...'
