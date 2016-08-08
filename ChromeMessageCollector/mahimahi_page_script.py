@@ -21,6 +21,7 @@ from utils import phone_connection_utils
 WAIT = 2
 TIMEOUT = 3 * 60
 TIMEOUT_DEPENDENCY_BASELINE = 0.5 * 60
+MAX_TRIES = 20
 
 def main(config_filename, pages, iterations, device_name, mode, output_dir):
     signal.signal(signal.SIGALRM, timeout_handler) # Setup the timeout handler
@@ -32,12 +33,29 @@ def main(config_filename, pages, iterations, device_name, mode, output_dir):
         # For replay mode.
         current_time = args.time
 
+    failed_pages = []
+
     for page in pages:
         print 'Page: ' + page
         start_proxy(mode, page, current_time, replay_configurations)
-        while not check_proxy_running(replay_configurations, mode):
+        check_proxy_running_counter = 0
+        while check_proxy_running_counter < MAX_TRIES and not check_proxy_running(replay_configurations, mode):
             # Keep on spinning when the proxy hasn't started yet.
             sleep(1.5)
+            print 'Trying: {0}/{1}'.format(check_proxy_running_counter, MAX_TRIES)
+            check_proxy_running_counter += 1
+            if check_proxy_running_counter >= MAX_TRIES:
+                break
+
+        if check_proxy_running_counter >= MAX_TRIES:
+            failed_pages.append(page)
+            stop_proxy(mode, page, current_time, replay_configurations)
+            while not check_proxy_stopped(replay_configurations, mode):
+                sleep(1)
+            print 'Stopped Proxy'
+            sleep(5) # Default shutdown wait for squid
+            continue
+
         print 'Started Proxy'
         if args.use_openvpn:
             phone_connection_utils.bring_openvpn_connect_foreground(device_info[2])
@@ -62,6 +80,8 @@ def main(config_filename, pages, iterations, device_name, mode, output_dir):
         sleep(5) # Default shutdown wait for squid
     if mode == 'record':
         done(replay_configurations)
+
+    print 'Failed pages: ' + str(failed_pages)
 
 def done(replay_configurations):
     start_proxy_url = 'http://{0}:{1}/done'.format( \
