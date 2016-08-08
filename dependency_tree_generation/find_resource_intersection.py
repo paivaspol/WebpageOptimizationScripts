@@ -36,7 +36,9 @@ def main(root_dir, num_iterations, pages, output_dir):
         output(output_dir, page, page_common_resources, args.output_to_stdout)
 
         if args.print_fraction:
-            averages.append((page, print_fraction(len(page_common_resources), total_resources, num_iterations)))
+            fraction = print_fraction(len(page_common_resources), total_resources, num_iterations)
+            if fraction > 0:
+                averages.append((page, fraction))
 
     if args.print_fraction:
         print 'average: ' + str(numpy.average([ x[1] for x in averages ]))
@@ -47,9 +49,10 @@ def main(root_dir, num_iterations, pages, output_dir):
 def print_fraction(num_intersection, total_resources_count, num_iterations):
     running_sum = 0.0
     for i, resource_count in enumerate(total_resources_count):
-        fraction = 1.0 * num_intersection / resource_count
-        running_sum += fraction
-        print '\titeration: {0} total resources: {1} fraction: {2}'.format(i, resource_count, fraction)
+        if resource_count != 0:
+            fraction = 1.0 * num_intersection / resource_count
+            running_sum += fraction
+            print '\titeration: {0} total resources: {1} fraction: {2}'.format(i, resource_count, fraction)
     print '\taverage: {0}'.format((running_sum / num_iterations))
     return running_sum / num_iterations
 
