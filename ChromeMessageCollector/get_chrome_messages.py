@@ -6,6 +6,7 @@ import subprocess
 import sys
 import os
 import websocket
+import shutil
 
 from utils import phone_connection_utils
 from utils import navigation_utils
@@ -53,8 +54,15 @@ def main(device_configuration, url, disable_tracing, reload_page):
         screen_size_config = device_configuration[phone_connection_utils.SCREEN_SIZE]
 
     if args.collect_streaming:
+        # First, remove the network file, if it exists
+        escaped_url = common_module.escape_page(url)
+        network_filename = os.path.join(output_directory, 'network_' + escaped_url)
+        print 'network_filename: ' + network_filename
+        if os.path.exists(network_filename):
+            print 'Removing ' + network_filename
+            os.remove(network_filename)
+
         debugging_socket = ChromeRDPWebsocketStreaming(debugging_url, url, device_configuration, user_agent_str, args.collect_console, callback_on_received_event, callback_on_page_done_streaming)
-        print 'here'
         if args.get_dependency_baseline:
             def timeout_handler(a, b):
                 callback_on_page_done_streaming(debugging_socket)
@@ -216,6 +224,12 @@ def get_resource_tree(debugging_url):
         pass
     finally:
         ws.close()
+
+def clear_directory(directory):
+    files = os.listdir(directory)
+    for f in files:
+        if os.isfile(f):
+            os.remove(os.path.join(directory, f))
 
 
 if __name__ == '__main__':
