@@ -31,7 +31,6 @@ def generate_dependencies_for_proxy_main(dependency_tree_path, page, output_dir)
     result_dependencies = [] # A list containing dependency lines
     dependency_tree_object = get_dependency_objects(dependency_tree_path)
     try:
-        print 'here ' + page
         generate_file_from_dependency_tree_object(dependency_tree_object, \
                                                   page, page, page, \
                                                   result_dependencies)

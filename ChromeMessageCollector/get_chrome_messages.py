@@ -126,20 +126,21 @@ def callback_on_received_event(debugging_socket, network_message, network_messag
 
 def callback_on_page_done_streaming(debugging_socket):
     debugging_socket.close_connection()
+    print 'Closed debugging socket connection'
 
-    sleep(1)
+    sleep(2)
     url = debugging_socket.get_navigation_url()
     debugging_url = debugging_socket.get_debugging_url()
     final_url = common_module.escape_page(url)
     base_dir = create_output_directory_for_url(url)
     
-    debugging_websocket = websocket.create_connection(debugging_url)
+    new_debugging_websocket = websocket.create_connection(debugging_url)
     # Get the start and end time of the execution
-    start_time, end_time = navigation_utils.get_start_end_time_with_socket(debugging_websocket)
+    start_time, end_time = navigation_utils.get_start_end_time_with_socket(new_debugging_websocket)
     # print 'output dir: ' + base_dir
     print 'Load time: ' + str((start_time, end_time)) + ' ' + str((end_time - start_time))
     write_page_start_end_time(final_url, base_dir, start_time, end_time, -1, -1)
-    debugging_websocket.close()
+    new_debugging_websocket.close()
     chrome_utils.close_tab(debugging_socket.device_configuration, debugging_socket.device_configuration['page_id'])
 
 def callback_on_page_done(debugging_socket, network_messages, timeline_messages, original_request_ts, load_event_ts, request_ids, device_configuration):

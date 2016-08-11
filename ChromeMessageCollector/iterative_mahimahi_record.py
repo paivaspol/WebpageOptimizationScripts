@@ -28,60 +28,60 @@ def main(config_filename, pages, iterations, device_name, mode, output_dir):
     device_info = common_module.get_device_config(device_name) # Get the information about the device.
     common_module.initialize_browser(device_info) # Start the browser
     replay_configurations = replay_config_utils.get_page_replay_config(config_filename)
-    current_time = [ time.time() ]
-    if args.time is not None:
-        # For replay mode.
-        current_time = args.time
+    current_times = args.times
+    if current_times is None:
+        current_times = generate_times(iterations)
+    print 'Recording using times: ' + str(current_times)
 
     failed_pages = []
 
     for page in pages:
         print 'Page: ' + page
-        start_proxy(mode, page, current_time, replay_configurations)
-        check_proxy_running_counter = 0
-        while check_proxy_running_counter < MAX_TRIES and not check_proxy_running(replay_configurations, mode):
-            # Keep on spinning when the proxy hasn't started yet.
-            sleep(1.5)
-            print 'Trying: {0}/{1}'.format(check_proxy_running_counter, MAX_TRIES)
-            check_proxy_running_counter += 1
+        for run_index in range(0, iterations):
+            current_time = current_times[run_index]
+            start_proxy(mode, page, current_time, replay_configurations)
+            check_proxy_running_counter = 0
+            while check_proxy_running_counter < MAX_TRIES and not check_proxy_running(replay_configurations, mode):
+                # Keep on spinning when the proxy hasn't started yet.
+                sleep(1.5)
+                print 'Trying: {0}/{1}'.format(check_proxy_running_counter, MAX_TRIES)
+                check_proxy_running_counter += 1
+                if check_proxy_running_counter >= MAX_TRIES:
+                    break
+
             if check_proxy_running_counter >= MAX_TRIES:
+                failed_pages.append(page)
+                stop_proxy(mode, page, current_time, replay_configurations)
+                while not check_proxy_stopped(replay_configurations, mode):
+                    sleep(1)
+                print 'Stopped Proxy'
+                sleep(5) # Default shutdown wait for squid
+                continue
+
+            print 'Started Proxy'
+            returned_page = load_one_website(page, run_index, output_dir, device_info, mode, replay_configurations, current_time)
+            if returned_page is not None:
+                # There was an exception
+                pages.append(returned_page)
+                common_module.initialize_browser(device_info) # Restart the browser
                 break
 
-        if check_proxy_running_counter >= MAX_TRIES:
-            failed_pages.append(page)
             stop_proxy(mode, page, current_time, replay_configurations)
-            while not check_proxy_stopped(replay_configurations, mode):
+            check_proxy_running_counter = 0
+            while check_proxy_running_counter < MAX_TRIES and not check_proxy_stopped(replay_configurations, mode):
                 sleep(1)
+                if check_proxy_running_counter % 4 == 0:
+                    stop_proxy(mode, page, current_time, replay_configurations)
+            if check_proxy_running_counter >= MAX_TRIES:
+                print 'Failed at page: ' + page
+                sys.exit(1)
             print 'Stopped Proxy'
             sleep(5) # Default shutdown wait for squid
-            continue
-
-        print 'Started Proxy'
-        if args.use_openvpn:
-            phone_connection_utils.bring_openvpn_connect_foreground(device_info[2])
-            phone_connection_utils.toggle_openvpn_button(device_info[2])
-        if args.pac_file_location is not None:
-            fetch_and_push_pac_file(args.pac_file_location, device_info)
-            common_module.initialize_browser(device_info) # Restart the browser
-        # Load the page.
-        returned_page = load_one_website(page, iterations, output_dir, device_info, mode, replay_configurations, current_time)
-        if returned_page is not None:
-            # There was an exception
-            pages.append(returned_page)
-            common_module.initialize_browser(device_info) # Restart the browser
-        if args.use_openvpn:
-            common_module.initialize_browser(device_info) # Restart the browser
-            phone_connection_utils.bring_openvpn_connect_foreground(device_info[2])
-            phone_connection_utils.toggle_openvpn_button(device_info[2])
-        stop_proxy(mode, page, current_time, replay_configurations)
-        while not check_proxy_stopped(replay_configurations, mode):
-            sleep(1)
-        print 'Stopped Proxy'
-        sleep(5) # Default shutdown wait for squid
     if mode == 'record':
         done(replay_configurations)
 
     print 'Failed pages: ' + str(failed_pages)
+    print 'Times: ' + str(current_times)
 
 def done(replay_configurations):
     start_proxy_url = 'http://{0}:{1}/done'.format( \
@@ -89,19 +89,6 @@ def done(replay_configurations):
             replay_configurations[replay_config_utils.SERVER_PORT])
     result = requests.get(start_proxy_url)
     print 'Done'
-
-def fetch_and_push_pac_file(pac_file_location, device_config):
-    wget_cmd = 'wget {0} -O temp.pac'.format(pac_file_location)
-    subprocess.call(wget_cmd.split())
-    phone_connection_utils.push_file(device_config[2], 'temp.pac', '/sdcard/Research/config_testing.pac')
-    rm_cmd = 'rm temp.pac'
-    subprocess.call(rm_cmd.split())
-
-def toogle_vpn(device_config):
-    # Brings the OpenVPN Connect app to foreground and toggle the connect button.
-    phone_connection_utils.bring_openvpn_connect_foreground(device_config[2])
-    sleep(0.5)
-    phone_connection_utils.toggle_openvpn_button(device_config[2])
 
 def start_proxy(mode, page, time, replay_configurations, delay=0):
     '''
@@ -111,13 +98,7 @@ def start_proxy(mode, page, time, replay_configurations, delay=0):
     proxy_started = False
     # Ensure that the proxy has started before start loading the page
     while not proxy_started:
-        if mode == 'record':
-            server_mode = 'start_recording'
-        elif mode == 'replay':
-            server_mode = 'start_proxy'
-        elif mode == 'delay_replay':
-            server_mode = 'start_delay_replay_proxy'
-
+        server_mode = 'start_recording'
         start_proxy_url = 'http://{0}:{1}/{2}?page={3}&time={4}'.format( \
                 replay_configurations[replay_config_utils.SERVER_HOSTNAME], \
                 replay_configurations[replay_config_utils.SERVER_PORT], \
@@ -143,12 +124,7 @@ def stop_proxy(mode, page, time, replay_configurations):
     '''
     Stops the proxy
     '''
-    if mode == 'record':
-        server_mode = 'stop_recording'
-    elif mode == 'replay':
-        server_mode = 'stop_proxy'
-    elif mode == 'delay_replay':
-        server_mode = 'stop_delay_replay_proxy'
+    server_mode = 'stop_recording'
 
     # Try every 10 iterations
     url = 'http://{0}:{1}/{2}?page={3}&time={4}'.format( \
@@ -164,20 +140,22 @@ def stop_proxy(mode, page, time, replay_configurations):
     print 'request result: ' + result.text
     sleep(10)
 
-def load_one_website(page, iterations, output_dir, device_info, mode, replay_configurations, current_time):
+def load_one_website(page, run_index, output_dir, device_info, mode, replay_configurations, current_time):
     '''
     Loads one website
     '''
-    for run_index in range(0, iterations):
-        if args.get_chromium_logs:
-            clear_chromium_logs(device_info[2]['id'])
+    if args.get_chromium_logs:
+        clear_chromium_logs(device_info[2]['id'])
 
-        load_page(page, run_index, output_dir, False, device_info, not args.start_tracing, mode, replay_configurations, current_time)
-        while common_module.check_previous_page_load(run_index, output_dir, page):
-            clear_chromium_logs(device_info[2]['id'])
-            result = load_page(page, run_index, output_dir, False, device_info, not args.start_tracing, mode, replay_configurations, current_time)
-            if result is None:
-                return result
+    retval = load_page(page, run_index, output_dir, False, device_info, not args.start_tracing, mode, replay_configurations, current_time)
+    if retval is not None:
+        return retval
+
+    while common_module.check_previous_page_load(run_index, output_dir, page):
+        clear_chromium_logs(device_info[2]['id'])
+        result = load_page(page, run_index, output_dir, False, device_info, not args.start_tracing, mode, replay_configurations, current_time)
+        if result is not None:
+            return result
     return None
 
 def timeout_handler(signum, frame):
@@ -321,9 +299,9 @@ if __name__ == '__main__':
     parser.add_argument('replay_config_filename')
     parser.add_argument('device_name')
     parser.add_argument('iterations', type=int)
-    parser.add_argument('mode', choices=[ 'replay', 'delay_replay', 'record' ])
+    parser.add_argument('mode', choices=[ 'record' ])
     parser.add_argument('output_dir')
-    parser.add_argument('--time', default=None, nargs='+')
+    parser.add_argument('--times', default=None, nargs='+')
     parser.add_argument('--delay', default=None)
     parser.add_argument('--http-version', default=2, type=int)
     parser.add_argument('--start-tracing', default=False, action='store_true')
