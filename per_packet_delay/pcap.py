@@ -5,6 +5,7 @@ import numpy
 import re
 import socket
 import sys
+import simplejson as json
 
 ETH_TYPE_IPV4=2048
 PROTO_TCP=6
@@ -87,7 +88,7 @@ def main():
 
     pcap_file = args[1]
 
-    print syn_syn_ack_times(pcap_file)
+    print json.dumps(syn_syn_ack_times(pcap_file))
 
 if __name__ == "__main__":
     main()
