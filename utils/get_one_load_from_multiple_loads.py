@@ -18,7 +18,7 @@ def get_page_to_chosen_run(root_dir, num_iterations, run_type, pages):
     page_to_chosen_run_index_dict = dict()
     for page in pages:
         page = common_module.escape_page(page)
-        print 'Processing: ' + page
+        # print 'Processing: ' + page
         load_times = []
 
         for i in range(0, num_iterations):
@@ -84,6 +84,7 @@ def copy_chosen_runs(chosen_runs, root_dir, output_dir, num_iterations):
             copy_command = 'cp -r {0} {1}'.format(run_path, output_dir)
             subprocess.call(copy_command, shell=True)
             counter += 1
+            print '{0} {1}'.format(page, run_index)
     print 'Copied {0} sites from {1} sites'.format(counter, len(chosen_runs))
 
 if __name__ == '__main__':
