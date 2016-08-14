@@ -28,15 +28,22 @@ def main(config_filename, pages, iterations, device_name, mode, output_dir):
     device_info = common_module.get_device_config(device_name) # Get the information about the device.
     common_module.initialize_browser(device_info) # Start the browser
     replay_configurations = replay_config_utils.get_page_replay_config(config_filename)
-    current_time = [ time.time() ]
+    current_time = time.time()
+    current_time_map = None
+    print 'page_time_mapping: ' + str(args.page_time_mapping)
     if args.time is not None:
         # For replay mode.
         current_time = args.time
+    elif args.page_time_mapping is not None:
+        current_time_map = get_page_time_mapping(args.page_time_mapping)
 
     failed_pages = []
 
     for page in pages:
         print 'Page: ' + page
+        if current_time_map is not None:
+            current_time = current_time_map[common_module.escape_page(page)]
+
         start_proxy(mode, page, current_time, replay_configurations)
         check_proxy_running_counter = 0
         while check_proxy_running_counter < MAX_TRIES and not check_proxy_running(replay_configurations, mode):
@@ -69,6 +76,7 @@ def main(config_filename, pages, iterations, device_name, mode, output_dir):
             # There was an exception
             pages.append(returned_page)
             common_module.initialize_browser(device_info) # Restart the browser
+
         if args.use_openvpn:
             common_module.initialize_browser(device_info) # Restart the browser
             phone_connection_utils.bring_openvpn_connect_foreground(device_info[2])
@@ -82,6 +90,14 @@ def main(config_filename, pages, iterations, device_name, mode, output_dir):
         done(replay_configurations)
 
     print 'Failed pages: ' + str(failed_pages)
+
+def get_page_time_mapping(page_time_mapping_filename):
+    result = dict()
+    with open(page_time_mapping_filename, 'rb') as input_file:
+        for raw_line in input_file:
+            line = raw_line.strip().split()
+            result[line[0]] = line[1]
+    return result
 
 def done(replay_configurations):
     start_proxy_url = 'http://{0}:{1}/done'.format( \
@@ -262,6 +278,7 @@ def load_page(raw_line, run_index, output_dir, start_measurements, device_info, 
         signal.alarm(0)
     except PageLoadException as e:
         print 'Timeout for {0}-th load. Append to end of queue...'.format(run_index)
+        print 'page_load_process: {0}'.format(page_load_process)
         signal.alarm(0)
         if page_load_process is not None:
             print 'terminating'
@@ -323,7 +340,7 @@ if __name__ == '__main__':
     parser.add_argument('iterations', type=int)
     parser.add_argument('mode', choices=[ 'replay', 'delay_replay', 'record' ])
     parser.add_argument('output_dir')
-    parser.add_argument('--time', default=None, nargs='+')
+    parser.add_argument('--time', default=None)
     parser.add_argument('--delay', default=None)
     parser.add_argument('--http-version', default=2, type=int)
     parser.add_argument('--start-tracing', default=False, action='store_true')
@@ -332,8 +349,12 @@ if __name__ == '__main__':
     parser.add_argument('--get-dependency-baseline', default=False, action='store_true')
     parser.add_argument('--use-openvpn', default=False, action='store_true')
     parser.add_argument('--pac-file-location', default=None)
+    parser.add_argument('--page-time-mapping', default=None)
     args = parser.parse_args()
     if args.mode == 'delay_replay' and args.delay is None:
         sys.exit("Must specify delay")
+    elif args.time is not None and args.page_time_mapping is not None:
+        sys.exit("Specify either time or time mapping")
+
     pages = common_module.get_pages(args.pages_filename)
     main(args.replay_config_filename, pages, args.iterations, args.device_name, args.mode, args.output_dir)
