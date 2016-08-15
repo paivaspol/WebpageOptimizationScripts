@@ -74,6 +74,7 @@ def main(config_filename, pages, iterations, device_name, mode, output_dir):
         returned_page = load_one_website(page, iterations, output_dir, device_info, mode, replay_configurations, current_time)
         if returned_page is not None:
             # There was an exception
+            print 'Page: ' + returned_page + ' timed out. Appending to queue...'
             pages.append(returned_page)
             common_module.initialize_browser(device_info) # Restart the browser
 
@@ -129,7 +130,7 @@ def start_proxy(mode, page, time, replay_configurations, delay=0):
     while not proxy_started:
         if mode == 'record':
             server_mode = 'start_recording'
-        elif mode == 'replay':
+        elif mode == 'replay' or mode == 'per_packet_delay_replay':
             server_mode = 'start_proxy'
         elif mode == 'delay_replay':
             server_mode = 'start_delay_replay_proxy'
@@ -138,6 +139,11 @@ def start_proxy(mode, page, time, replay_configurations, delay=0):
                 replay_configurations[replay_config_utils.SERVER_HOSTNAME], \
                 replay_configurations[replay_config_utils.SERVER_PORT], \
                 server_mode, page, time)
+
+        if mode == 'per_packet_delay_replay':
+            start_proxy_url += '&replay_mode={0}'.format('per_packet_delay')
+        else:
+            start_proxy_url += '&replay_mode={0}'.format('regular_replay')
         
         print start_proxy_url
 
@@ -161,7 +167,7 @@ def stop_proxy(mode, page, time, replay_configurations):
     '''
     if mode == 'record':
         server_mode = 'stop_recording'
-    elif mode == 'replay':
+    elif mode == 'replay' or mode == 'per_packet_delay_replay':
         server_mode = 'stop_proxy'
     elif mode == 'delay_replay':
         server_mode = 'stop_delay_replay_proxy'
@@ -207,7 +213,7 @@ def check_proxy_running(config, mode):
     print 'Checking if proxy running'
     if mode == 'record':
         server_check = 'is_record_proxy_running'
-    elif mode == 'replay':
+    elif mode == 'replay' or mode == 'per_packet_delay_replay':
         server_check = 'is_replay_proxy_running'
 
     url = 'http://{0}:{1}/{2}'.format( \
@@ -221,7 +227,7 @@ def check_proxy_stopped(config, mode):
     print 'Checking if proxy running'
     if mode == 'record':
         server_check = 'is_record_proxy_running'
-    elif mode == 'replay':
+    elif mode == 'replay' or mode == 'per_packet_delay_replay':
         server_check = 'is_replay_proxy_running'
 
     url = 'http://{0}:{1}/{2}'.format( \
@@ -338,7 +344,7 @@ if __name__ == '__main__':
     parser.add_argument('replay_config_filename')
     parser.add_argument('device_name')
     parser.add_argument('iterations', type=int)
-    parser.add_argument('mode', choices=[ 'replay', 'delay_replay', 'record' ])
+    parser.add_argument('mode', choices=[ 'replay', 'delay_replay', 'per_packet_delay_replay', 'record' ])
     parser.add_argument('output_dir')
     parser.add_argument('--time', default=None)
     parser.add_argument('--delay', default=None)
