@@ -19,7 +19,7 @@ def main(pcap_path):
     if rtts_obj is not None:
         result = find_median(rtts_obj)
         for page, median_rtt in result.iteritems():
-            print '{0} {1}'.format(page, median_rtt * 1000.0) # also convert to ms
+            print '{0} {1}'.format(page, median_rtt)
 
 def find_median(rtts_obj):
     result = dict()
