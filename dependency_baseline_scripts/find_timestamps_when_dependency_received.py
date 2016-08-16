@@ -41,12 +41,14 @@ def main(chromium_log_file):
     print 'Num Dependencies: {0}'.format(len(urls))
     print timestamps
     print differences
-    print '---------------------------------------------'
-    for url in urls:
-        print url
+    if args.print_resources:
+        print '---------------------------------------------'
+        for url in urls:
+            print url
 
 if __name__ == '__main__':
     parser = ArgumentParser()
     parser.add_argument('chromium_log_file')
+    parser.add_argument('--print-resources', default=False, action='store_true')
     args = parser.parse_args()
     main(args.chromium_log_file)
