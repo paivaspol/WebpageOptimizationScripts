@@ -10,15 +10,9 @@ JSON_SUFFIX = '.json'
 def generate_dependencies_for_proxy(root_dir, pages, output_dir):
     for page in pages:
         url = common_module.escape_url(page)
-
-        if not args.use_aggregated_directory:
-            dependency_tree_path = os.path.join(root_dir, page, "dependency_graph.json")
-            print 'path: ' + dependency_tree_path + ' url: ' + url
-            generate_dependencies_for_proxy_main(dependency_tree_path, page, output_dir)
-        else:
-            dependency_tree_path = os.path.join(root_dir, common_module.escape_url(page) + ".json")
-            print 'path: ' + dependency_tree_path + ' url: ' + url
-            generate_dependencies_for_proxy_main(dependency_tree_path, page, output_dir)
+        dependency_tree_path = os.path.join(root_dir, common_module.escape_url(page) + ".json")
+        print 'path: ' + dependency_tree_path + ' url: ' + url
+        generate_dependencies_for_proxy_main(dependency_tree_path, page, output_dir)
 
 
 def generate_dependencies_for_proxy_main(dependency_tree_path, page, output_dir):
@@ -135,7 +129,6 @@ if __name__ == '__main__':
     parser.add_argument('pages_file')
     parser.add_argument('--output-dir', default='.')
     parser.add_argument('--use-only-given-dependencies', default='')
-    parser.add_argument('--use-aggregated-directory', default=False, action='store_true')
     args = parser.parse_args()
     pages = common_module.get_pages(args.pages_file)
     generate_dependencies_for_proxy(args.root_dir, pages, args.output_dir)

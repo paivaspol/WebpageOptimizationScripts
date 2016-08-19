@@ -144,7 +144,7 @@ def convert_graph_to_json(dep_graph, request_id_to_order_found):
     '''
     result_dict = dict()
     for node, children in dep_graph.iteritems():
-        if node[0] == 'about:blank':
+        if node[0] == 'about:blank' or node[0].startswith('data'):
             continue
         if node[0] not in result_dict:
             if node[0] == '':
@@ -161,7 +161,7 @@ def convert_graph_to_json(dep_graph, request_id_to_order_found):
             result_dict[node[0]]['children'] = []
         result_dict[node[0]]['isLeaf'] = True if children is None or len(children) == 0 else False
         for child, request_id in children:
-            if child == node[0]:
+            if child == node[0] or child.startswith('data') or node[0] == 'about:blank':
                 continue
             # print 'node[0]: {0} child: {1}, result_dict[node[0]]: {2}'.format(node[0], child, result_dict[node[0]]['children'])
             result_dict[node[0]]['children'].append(child)

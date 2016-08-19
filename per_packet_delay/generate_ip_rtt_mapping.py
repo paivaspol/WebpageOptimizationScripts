@@ -28,7 +28,6 @@ def main(root_dir, output_dir, times):
                 line = process.stdout.readline()
                 if line != '':
                     rtts_obj = json.loads(line.strip())
-                    # print rtts_obj
                     for ip in rtts_obj:
                         samples[ip].extend(rtts_obj[ip])
                 else:

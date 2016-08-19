@@ -14,7 +14,7 @@ http://m.fantasy.nfl.com/
 http://m.timesofindia.com/
 http://www.cbc.ca/beta/news
 http://nypost.com/
-https://www.theguardian.com/world
+# https://www.theguardian.com/world
 http://www.usatoday.com/
 https://www.nhl.com/
 http://www.cbsnews.com/
@@ -49,7 +49,7 @@ http://www.weather.gov/
 http://www.cnn.com/
 http://sports.yahoo.com/
 http://m.hindustantimes.com/
-https://weather.com/
+# https://weather.com/
 http://m.economictimes.com/
 http://m.goal.com/s/en-us
 http://www.sbnation.com/
