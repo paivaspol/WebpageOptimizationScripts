@@ -28,9 +28,11 @@ def main(config_filename, pages, iterations, device_name, mode, output_dir):
     device_info = common_module.get_device_config(device_name) # Get the information about the device.
     common_module.initialize_browser(device_info) # Start the browser
     replay_configurations = replay_config_utils.get_page_replay_config(config_filename)
-    current_times = args.times
-    if current_times is None:
+    current_times = None
+    if args.times is None:
         current_times = generate_times(iterations)
+    else:
+        current_times = get_times(args.times)
     print 'Recording using times: ' + str(current_times)
 
     failed_pages = []
@@ -293,6 +295,10 @@ def generate_times(num_iterations):
 
     return result
 
+def get_times(times_filename):
+    with open(times_filename, 'rb') as input_file:
+        return [ line.strip() for line in input_file ]
+
 if __name__ == '__main__':
     parser = ArgumentParser()
     parser.add_argument('pages_filename')
@@ -301,7 +307,7 @@ if __name__ == '__main__':
     parser.add_argument('iterations', type=int)
     parser.add_argument('mode', choices=[ 'record' ])
     parser.add_argument('output_dir')
-    parser.add_argument('--times', default=None, nargs='+')
+    parser.add_argument('--times', default=None)
     parser.add_argument('--delay', default=None)
     parser.add_argument('--http-version', default=2, type=int)
     parser.add_argument('--start-tracing', default=False, action='store_true')

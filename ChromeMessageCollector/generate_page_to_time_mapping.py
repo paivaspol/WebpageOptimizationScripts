@@ -12,10 +12,15 @@ def get_page_to_run_index_dict(page_to_run_index_filename):
             result[line[0]] = int(line[1])
     return result
 
+def get_times(times_filename):
+    with open(times_filename, 'rb') as input_file:
+        return [ x.strip() for x in input_file ]
+
 if __name__ == '__main__':
     parser = ArgumentParser()
     parser.add_argument('page_to_run_index_mapping')
-    parser.add_argument('times', nargs='+')
+    parser.add_argument('times')
     args = parser.parse_args()
     page_to_run_index_dict = get_page_to_run_index_dict(args.page_to_run_index_mapping)
-    main(page_to_run_index_dict, args.times)
+    times = get_times(args.times)
+    main(page_to_run_index_dict, times)
