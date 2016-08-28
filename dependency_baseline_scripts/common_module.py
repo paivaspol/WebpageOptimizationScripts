@@ -15,3 +15,7 @@ def escape_page(url):
 def get_dependencies(dependency_filename):
     with open(dependency_filename, 'rb') as input_file:
         return { line.strip().split()[2] for line in input_file }
+
+def get_pages(page_list_filename):
+    with open(page_list_filename, 'rb') as input_file:
+        return [ escape_page(line.strip()) for line in input_file ]

@@ -11,7 +11,7 @@ def main(dependency_tree_dir, output_dir):
     for filename  in files:
         page = extract_page(filename)
         dependency_file_path = os.path.join(dependency_tree_dir, filename)
-        output_filename = os.path.join(output_dir, page + '.txt')
+        output_filename = os.path.join(output_dir, page)
         result = generate_javascript_to_children_mapping(dependency_file_path)
         with open(output_filename, 'wb') as output_file:
             output_file.write(json.dumps(result))

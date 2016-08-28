@@ -19,30 +19,26 @@ def main(root_dir, dependency_dir):
         pages = common_module.get_pages(args.page_list)
 
     failed_pages = []
+    times_to_first_byte = []
     for page in pages:
-
         dependency_filename = os.path.join(dependency_dir, page, 'dependency_tree.txt')
         network_filename = os.path.join(root_dir, page, 'network_' + page)
         if not (os.path.exists(dependency_filename) and os.path.exists(network_filename)):
             failed_pages.append(page)
             continue
         dependencies = common_module.get_dependencies(dependency_filename)
-        dependency_finish_download_time = get_dependency_finish_download_time(page, \
-                                                                              network_filename, \
-                                                                              dependencies)
-        if len(dependency_finish_download_time) > 0:
-            print '{0} {1}'.format(page, max(dependency_finish_download_time.values()))
-        else:
-            failed_pages.append(page)
-    print 'Failed Pages: ' + str(failed_pages)
+        times_to_first_byte.extend(get_times_to_first_byte(page, network_filename, dependencies))
+    times_to_first_byte.sort()
+    for time in times_to_first_byte:
+        print time
 
-def get_dependency_finish_download_time(page, network_filename, dependencies):
+def get_times_to_first_byte(page, network_filename, dependencies):
     # print dependencies
     with open(network_filename, 'rb') as input_file:
-        times_from_first_request = dict()
+        times_to_first_byte = []
         found_first_request = False
         first_request_timestamp = -1
-        request_id_to_url_map = dict()
+        dependency_request_id_to_request_sent_timestamp = dict()
         for raw_line in input_file:
             network_event = json.loads(json.loads(raw_line.strip()))
             request_id = network_event[PARAMS][REQUEST_ID]
@@ -58,26 +54,22 @@ def get_dependency_finish_download_time(page, network_filename, dependencies):
                     else:
                         continue
                 
-                request_id_to_url_map[request_id] = url
+                if url in dependencies:
+                    # We have already discovered all the dependencies.
+                    # Get the current timestamp and find the time difference.
+                    timestamp = network_event[PARAMS][TIMESTAMP]
+                    dependency_request_id_to_request_sent_timestamp[request_id] = timestamp
 
-            elif network_event[METHOD] == 'Network.loadingFinished':
-                request_id = network_event[PARAMS][REQUEST_ID]
-                if request_id in request_id_to_url_map:
-                    url = request_id_to_url_map[request_id]
-
-                    if url in dependencies and url not in times_from_first_request:
-                        # We have already discovered all the dependencies.
-                        # Get the current timestamp and find the time difference.
-                        finish_timestamp = network_event[PARAMS][TIMESTAMP]
-                        time_from_first_request = finish_timestamp - first_request_timestamp
-                        times_from_first_request[url] = time_from_first_request
-
-                        dependencies.remove(url)
-                        
-                        if len(dependencies) == 0:
-                            break
-
-        return times_from_first_request
+                    dependencies.remove(url)
+            elif network_event[METHOD] == 'Network.dataReceived':
+                if request_id in dependency_request_id_to_request_sent_timestamp:
+                    request_timestamp = dependency_request_id_to_request_sent_timestamp[request_id]
+                    first_byte_timestamp = network_event[PARAMS][TIMESTAMP]
+                    times_to_first_byte.append(first_byte_timestamp - request_timestamp)
+                    
+                if len(dependencies) == 0:
+                    break
+        return times_to_first_byte
 
 if __name__ == '__main__':
     parser = ArgumentParser()

@@ -19,9 +19,10 @@ from utils import chrome_utils
 from utils import phone_connection_utils
 
 WAIT = 2
-TIMEOUT = 3 * 60
+TIMEOUT = 1.5 * 60
 TIMEOUT_DEPENDENCY_BASELINE = 0.5 * 60
 MAX_TRIES = 20
+MAX_LOAD_TRIES = 5
 
 def main(config_filename, pages, iterations, device_name, mode, output_dir):
     signal.signal(signal.SIGALRM, timeout_handler) # Setup the timeout handler
@@ -38,9 +39,17 @@ def main(config_filename, pages, iterations, device_name, mode, output_dir):
         current_time_map = get_page_time_mapping(args.page_time_mapping)
 
     failed_pages = []
+    page_to_tries_counter = dict()
 
     for page in pages:
         print 'Page: ' + page
+        if page not in page_to_tries_counter:
+            page_to_tries_counter[page] = 0
+        page_to_tries_counter[page] += 1
+        if page_to_tries_counter[page] > MAX_LOAD_TRIES:
+            failed_pages.append(page)
+            continue
+
         if current_time_map is not None:
             current_time = current_time_map[common_module.escape_page(page)]
 
@@ -144,13 +153,18 @@ def start_proxy(mode, page, time, replay_configurations, delay=0):
             start_proxy_url += '&replay_mode={0}'.format('per_packet_delay')
         else:
             start_proxy_url += '&replay_mode={0}'.format('regular_replay')
-        
-        print start_proxy_url
 
         if mode == 'delay_replay':
             start_proxy_url += '&delay={0}'.format(args.delay)
             if args.http_version == 1:
                 start_proxy_url += '&http={0}'.format(args.http_version)
+
+        if args.without_dependencies:
+            start_proxy_url += '&dependencies=no'
+        else:
+            start_proxy_url += '&dependencies=yes'
+
+        print start_proxy_url
 
         result = requests.get(start_proxy_url)
         # proxy_started = result.status_code == 200 and result.text.strip() == 'Proxy Started' \
@@ -194,11 +208,14 @@ def load_one_website(page, iterations, output_dir, device_info, mode, replay_con
         if args.get_chromium_logs:
             clear_chromium_logs(device_info[2]['id'])
 
-        load_page(page, run_index, output_dir, False, device_info, not args.start_tracing, mode, replay_configurations, current_time)
+        result = load_page(page, run_index, output_dir, False, device_info, not args.start_tracing, mode, replay_configurations, current_time)
+        if result is not None:
+            return result
+
         while common_module.check_previous_page_load(run_index, output_dir, page):
             clear_chromium_logs(device_info[2]['id'])
             result = load_page(page, run_index, output_dir, False, device_info, not args.start_tracing, mode, replay_configurations, current_time)
-            if result is None:
+            if result is not None:
                 return result
     return None
 
@@ -263,7 +280,7 @@ def load_page(raw_line, run_index, output_dir, start_measurements, device_info, 
     
     page = raw_line.strip()
     cmd = 'python get_chrome_messages.py {1} {2} {0} --output-dir {3}'.format(page, device_info[1], device_info[0], output_dir_run) 
-    signal.alarm(TIMEOUT)
+    signal.alarm(int(TIMEOUT))
     if disable_tracing:
         cmd += ' --disable-tracing'
     if args.collect_streaming:
@@ -356,6 +373,7 @@ if __name__ == '__main__':
     parser.add_argument('--use-openvpn', default=False, action='store_true')
     parser.add_argument('--pac-file-location', default=None)
     parser.add_argument('--page-time-mapping', default=None)
+    parser.add_argument('--without-dependencies', default=False, action='store_true')
     args = parser.parse_args()
     if args.mode == 'delay_replay' and args.delay is None:
         sys.exit("Must specify delay")
