@@ -17,6 +17,9 @@ URL = 'url'
 def main(root_dir, dependency_dir):
     pages = os.listdir(root_dir)
     for page in pages:
+        if args.url is not None and args.url not in page:
+            continue
+
         dependency_filename = os.path.join(dependency_dir, page, 'dependency_tree.txt')
         network_filename = os.path.join(root_dir, page, 'network_' + page)
         if not (os.path.exists(dependency_filename) and os.path.exists(network_filename)):
@@ -59,5 +62,6 @@ if __name__ == '__main__':
     parser = ArgumentParser()
     parser.add_argument('root_dir')
     parser.add_argument('dependency_dir')
+    parser.add_argument('--url', default=None)
     args = parser.parse_args()
     main(args.root_dir, args.dependency_dir)

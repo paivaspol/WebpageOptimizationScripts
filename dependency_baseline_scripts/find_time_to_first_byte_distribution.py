@@ -28,9 +28,9 @@ def main(root_dir, dependency_dir):
             continue
         dependencies = common_module.get_dependencies(dependency_filename)
         times_to_first_byte.extend(get_times_to_first_byte(page, network_filename, dependencies))
-    times_to_first_byte.sort()
-    for time in times_to_first_byte:
-        print time
+    times_to_first_byte.sort(key=lambda x: x[2])
+    for datapoint in times_to_first_byte:
+        print '{0} {1} {2}'.format(datapoint[0], datapoint[1], datapoint[2])
 
 def get_times_to_first_byte(page, network_filename, dependencies):
     # print dependencies
@@ -39,6 +39,7 @@ def get_times_to_first_byte(page, network_filename, dependencies):
         found_first_request = False
         first_request_timestamp = -1
         dependency_request_id_to_request_sent_timestamp = dict()
+        outstanding_requests = set()
         for raw_line in input_file:
             network_event = json.loads(json.loads(raw_line.strip()))
             request_id = network_event[PARAMS][REQUEST_ID]
@@ -54,18 +55,20 @@ def get_times_to_first_byte(page, network_filename, dependencies):
                     else:
                         continue
                 
-                if url in dependencies:
+                if url in dependencies and not url.startswith('data'):
                     # We have already discovered all the dependencies.
                     # Get the current timestamp and find the time difference.
                     timestamp = network_event[PARAMS][TIMESTAMP]
                     dependency_request_id_to_request_sent_timestamp[request_id] = timestamp
-
                     dependencies.remove(url)
-            elif network_event[METHOD] == 'Network.dataReceived':
-                if request_id in dependency_request_id_to_request_sent_timestamp:
+                    outstanding_requests.add(request_id)
+
+            elif network_event[METHOD] == 'Network.responseReceived':
+                if request_id in dependency_request_id_to_request_sent_timestamp and request_id in outstanding_requests:
                     request_timestamp = dependency_request_id_to_request_sent_timestamp[request_id]
                     first_byte_timestamp = network_event[PARAMS][TIMESTAMP]
-                    times_to_first_byte.append(first_byte_timestamp - request_timestamp)
+                    times_to_first_byte.append((page, url, first_byte_timestamp - request_timestamp))
+                    outstanding_requests.remove(request_id)
                     
                 if len(dependencies) == 0:
                     break
