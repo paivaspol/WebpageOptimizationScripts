@@ -53,5 +53,5 @@ http://m.hindustantimes.com/
 http://m.economictimes.com/
 http://m.goal.com/s/en-us
 http://www.sbnation.com/
-https://www.theguardian.com/us
+# https://www.theguardian.com/us
 http://www.smh.com.au/

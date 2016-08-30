@@ -21,6 +21,8 @@ def main(root_dir, dependency_dir, num_iterations):
             dependency_filename = os.path.join(dependency_dir, page, 'dependency_tree.txt')
             if not (os.path.exists(chromium_log_filename) and \
                     os.path.exists(dependency_filename)):
+                print chromium_log_filename
+                print 'here'
                 continue
             dependency_set = populate_dependencies(dependency_filename)
             start_time, _ = get_start_end_time(start_end_time_filename) if not args.use_first_request_timestamp else (None, None)

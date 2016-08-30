@@ -1,10 +1,10 @@
 http://m.shutterstock.com/
 http://www.cnn.com/
 http://abcnews.go.com/
-http://mobile.reuters.com/
 https://news.google.com/
 http://www.espn.com/
-https://www.theguardian.com/world
 https://www.wunderground.com/
-http://m.goal.com/s/en-us
 http://www.cbsnews.com/
+http://www.skysports.com/
+https://m.reddit.com/
+http://mobile.reuters.com/
