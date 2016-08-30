@@ -9,17 +9,17 @@ def main(pcap_path):
     command = 'python -u pcap.py {0}'.format(pcap_path)
     process = subprocess.Popen(command.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     rtts_obj = None
-    while True:
-        line = process.stdout.readline()
+    stdout, stderr = process.communicate()
+    process.wait()
+
+    for line in stdout.split(os.linesep):
         if line != '':
-            rtts_obj = json.loads(line.strip())
-            # print line
-        else:
-            break
+            rtts_obj = json.loads(line)
+
     if rtts_obj is not None:
         result = find_median(rtts_obj)
-        for page, median_rtt in result.iteritems():
-            print '{0} {1}'.format(page, median_rtt)
+        for ip, median_rtt in result.iteritems():
+            print '{0} {1}'.format(ip, median_rtt)
 
 def find_median(rtts_obj):
     result = dict()

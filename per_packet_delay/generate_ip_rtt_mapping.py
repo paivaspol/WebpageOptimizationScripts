@@ -24,15 +24,18 @@ def main(root_dir, output_dir, times):
             pcap_path = os.path.join(pcap_dir, pcap_filename)
             command = 'python -u pcap.py {0}'.format(pcap_path)
             process = subprocess.Popen(command.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            while True:
-                line = process.stdout.readline()
+            stdout, stderr = process.communicate()
+            process.wait()
+
+            for line in stdout.split(os.linesep):
                 if line != '':
                     rtts_obj = json.loads(line.strip())
                     for ip in rtts_obj:
                         samples[ip].extend(rtts_obj[ip])
-                else:
-                    break
-    if args.aggregate_samples:
+
+    if args.output_raw_data:
+        print json.dumps(page_to_samples)
+    elif args.aggregate_samples:
         aggregate_samples(output_dir, page_to_samples)
     else:
         output_rtt_mappings(output_dir, page_to_samples)
@@ -76,6 +79,7 @@ if __name__ == '__main__':
     parser.add_argument('root_dir')
     parser.add_argument('output_dir')
     parser.add_argument('times')
+    parser.add_argument('--output-raw-data', default=False, action='store_true')
     parser.add_argument('--aggregate-samples', default=False, action='store_true')
     parser.add_argument('--min-samples', default=0, type=int)
     args = parser.parse_args()
