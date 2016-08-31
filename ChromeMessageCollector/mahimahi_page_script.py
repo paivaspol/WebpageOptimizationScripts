@@ -306,6 +306,8 @@ def load_page(raw_line, run_index, output_dir, start_measurements, device_info, 
         signal.alarm(0)
         signal.alarm(int(TIMEOUT_DEPENDENCY_BASELINE))
         cmd += ' --get-dependency-baseline'
+    if args.collect_console:
+        cmd += ' --collect-console'
     # if run_index > 0:
     #     cmd += ' --reload-page'
     print cmd
@@ -314,6 +316,10 @@ def load_page(raw_line, run_index, output_dir, start_measurements, device_info, 
     try:
         page_load_process.communicate()
         signal.alarm(0)
+
+        if args.get_chromium_logs:
+            get_chromium_logs(run_index, output_dir, page, device_info[2]['id'])
+
     except PageLoadException as e:
         print 'Timeout for {0}-th load. Append to end of queue...'.format(run_index)
         print 'page_load_process: {0}'.format(page_load_process)
@@ -382,6 +388,7 @@ if __name__ == '__main__':
     parser.add_argument('--delay', default=None)
     parser.add_argument('--http-version', default=2, type=int)
     parser.add_argument('--start-tracing', default=False, action='store_true')
+    parser.add_argument('--collect-console', default=False, action='store_true')
     parser.add_argument('--collect-streaming', default=False, action='store_true')
     parser.add_argument('--get-chromium-logs', default=False, action='store_true')
     parser.add_argument('--get-dependency-baseline', default=False, action='store_true')

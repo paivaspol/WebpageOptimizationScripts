@@ -1,7 +1,8 @@
 HTTP_PREFIX = 'http://'
 HTTPS_PREFIX = 'https://'
 WWW_PREFIX = 'www.'
-def escape_page(url):
+
+def escape_url(url):
     if url.endswith('/'):
         url = url[:len(url) - 1]
     if url.startswith(HTTPS_PREFIX):
