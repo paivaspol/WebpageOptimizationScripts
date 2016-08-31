@@ -1,5 +1,6 @@
 from argparse import ArgumentParser 
 
+import constants
 import common_module
 import os
 import simplejson as json
@@ -14,7 +15,7 @@ STATUS = 'status'
 URL = 'url'
 
 def main(network_event_filename):
-    target_url = 'http://markets.fortune.com/css/boilerplate.css'
+    target_url = 'http://a.espncdn.com/redesign/assets/img/logos/logo-espn-82x20@2x.png'
     find_all_requests(network_event_filename, target_url)
 
 def find_all_requests(network_filename, target_url):
@@ -27,13 +28,12 @@ def find_all_requests(network_filename, target_url):
             if network_event[METHOD] == 'Network.requestWillBeSent':
                 url = network_event[PARAMS][REQUEST][URL]
                 if url == target_url:
-                    initiator = network_event[PARAMS]['initiator']
-                    print '{0} {1}'.format(request_id, initiator)
-                    request_ids.add(request_id)
+                    print 'RequestWillBeSent: ' + str(request_id) + ' ts: ' + str(network_event[PARAMS][TIMESTAMP])
+                    print '\t' + str(network_event[PARAMS][constants.INITIATOR])
             elif network_event[METHOD] == 'Network.responseReceived':
-                if request_id in request_ids:
-                    print network_event[PARAMS][RESPONSE]['status']
-
+                url = network_event[PARAMS][RESPONSE][URL]
+                if url == target_url:
+                    print 'Response Received: ' + str(request_id) + ' ts: ' + str(network_event[PARAMS][TIMESTAMP])
 
 if __name__ == '__main__':
     parser = ArgumentParser()

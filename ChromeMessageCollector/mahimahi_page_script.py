@@ -22,84 +22,99 @@ WAIT = 2
 TIMEOUT = 1.5 * 60
 TIMEOUT_DEPENDENCY_BASELINE = 0.5 * 60
 MAX_TRIES = 20
-MAX_LOAD_TRIES = 5
+MAX_LOAD_TRIES = 3
 
 def main(config_filename, pages, iterations, device_name, mode, output_dir):
-    signal.signal(signal.SIGALRM, timeout_handler) # Setup the timeout handler
-    device_info = common_module.get_device_config(device_name) # Get the information about the device.
-    common_module.initialize_browser(device_info) # Start the browser
-    replay_configurations = replay_config_utils.get_page_replay_config(config_filename)
-    current_time = time.time()
-    current_time_map = None
-    print 'page_time_mapping: ' + str(args.page_time_mapping)
-    if args.time is not None:
-        # For replay mode.
-        current_time = args.time
-    elif args.page_time_mapping is not None:
-        current_time_map = get_page_time_mapping(args.page_time_mapping)
-
     failed_pages = []
-    page_to_tries_counter = dict()
+    completed_pages = []
+    try:
+        signal.signal(signal.SIGALRM, timeout_handler) # Setup the timeout handler
+        device_info = common_module.get_device_config(device_name) # Get the information about the device.
+        common_module.initialize_browser(device_info) # Start the browser
+        replay_configurations = replay_config_utils.get_page_replay_config(config_filename)
+        current_time = time.time()
+        current_time_map = None
+        if args.time is not None:
+            # For replay mode.
+            current_time = args.time
+        elif args.page_time_mapping is not None:
+            current_time_map = get_page_time_mapping(args.page_time_mapping)
 
-    for page in pages:
-        print 'Page: ' + page
-        if page not in page_to_tries_counter:
-            page_to_tries_counter[page] = 0
-        page_to_tries_counter[page] += 1
-        if page_to_tries_counter[page] > MAX_LOAD_TRIES:
-            failed_pages.append(page)
-            continue
+        page_to_tries_counter = dict()
 
-        if current_time_map is not None:
-            current_time = current_time_map[common_module.escape_page(page)]
+        def interrupt_handler(*args):
+            print 'pages: ' + str(pages)
+            print 'failed: ' + str(failed_pages)
+            print 'completed: ' + str(completed_pages)
+            sys.exit(0)
 
-        start_proxy(mode, page, current_time, replay_configurations)
-        check_proxy_running_counter = 0
-        while check_proxy_running_counter < MAX_TRIES and not check_proxy_running(replay_configurations, mode):
-            # Keep on spinning when the proxy hasn't started yet.
-            sleep(1.5)
-            print 'Trying: {0}/{1}'.format(check_proxy_running_counter, MAX_TRIES)
-            check_proxy_running_counter += 1
+        signal.signal(signal.SIGINT, interrupt_handler)
+
+        for page in pages:
+            print 'Page: ' + page
+            if page not in page_to_tries_counter:
+                page_to_tries_counter[page] = 0
+            page_to_tries_counter[page] += 1
+            if page_to_tries_counter[page] > MAX_LOAD_TRIES:
+                failed_pages.append(page)
+                continue
+
+            if current_time_map is not None:
+                current_time = current_time_map[common_module.escape_page(page)]
+
+            start_proxy(mode, page, current_time, replay_configurations)
+            check_proxy_running_counter = 0
+            while check_proxy_running_counter < MAX_TRIES and not check_proxy_running(replay_configurations, mode):
+                # Keep on spinning when the proxy hasn't started yet.
+                sleep(1.5)
+                print 'Trying: {0}/{1}'.format(check_proxy_running_counter, MAX_TRIES)
+                check_proxy_running_counter += 1
+                if check_proxy_running_counter >= MAX_TRIES:
+                    break
+
             if check_proxy_running_counter >= MAX_TRIES:
-                break
+                failed_pages.append(page)
+                stop_proxy(mode, page, current_time, replay_configurations)
+                while not check_proxy_stopped(replay_configurations, mode):
+                    sleep(1)
+                print 'Stopped Proxy'
+                sleep(5) # Default shutdown wait for squid
+                continue
 
-        if check_proxy_running_counter >= MAX_TRIES:
-            failed_pages.append(page)
+            print 'Started Proxy'
+            if args.use_openvpn:
+                phone_connection_utils.bring_openvpn_connect_foreground(device_info[2])
+                phone_connection_utils.toggle_openvpn_button(device_info[2])
+            if args.pac_file_location is not None:
+                fetch_and_push_pac_file(args.pac_file_location, device_info)
+                common_module.initialize_browser(device_info) # Restart the browser
+            # Load the page.
+            returned_page = load_one_website(page, iterations, output_dir, device_info, mode, replay_configurations, current_time)
+            if returned_page is not None:
+                # There was an exception
+                print 'Page: ' + returned_page + ' timed out. Appending to queue...'
+                pages.append(returned_page)
+                common_module.initialize_browser(device_info) # Restart the browser
+            else:
+                completed_pages.append(page)
+
+            if args.use_openvpn:
+                common_module.initialize_browser(device_info) # Restart the browser
+                phone_connection_utils.bring_openvpn_connect_foreground(device_info[2])
+                phone_connection_utils.toggle_openvpn_button(device_info[2])
             stop_proxy(mode, page, current_time, replay_configurations)
             while not check_proxy_stopped(replay_configurations, mode):
                 sleep(1)
             print 'Stopped Proxy'
             sleep(5) # Default shutdown wait for squid
-            continue
+        if mode == 'record':
+            done(replay_configurations)
 
-        print 'Started Proxy'
-        if args.use_openvpn:
-            phone_connection_utils.bring_openvpn_connect_foreground(device_info[2])
-            phone_connection_utils.toggle_openvpn_button(device_info[2])
-        if args.pac_file_location is not None:
-            fetch_and_push_pac_file(args.pac_file_location, device_info)
-            common_module.initialize_browser(device_info) # Restart the browser
-        # Load the page.
-        returned_page = load_one_website(page, iterations, output_dir, device_info, mode, replay_configurations, current_time)
-        if returned_page is not None:
-            # There was an exception
-            print 'Page: ' + returned_page + ' timed out. Appending to queue...'
-            pages.append(returned_page)
-            common_module.initialize_browser(device_info) # Restart the browser
-
-        if args.use_openvpn:
-            common_module.initialize_browser(device_info) # Restart the browser
-            phone_connection_utils.bring_openvpn_connect_foreground(device_info[2])
-            phone_connection_utils.toggle_openvpn_button(device_info[2])
-        stop_proxy(mode, page, current_time, replay_configurations)
-        while not check_proxy_stopped(replay_configurations, mode):
-            sleep(1)
-        print 'Stopped Proxy'
-        sleep(5) # Default shutdown wait for squid
-    if mode == 'record':
-        done(replay_configurations)
-
-    print 'Failed pages: ' + str(failed_pages)
+        print 'Failed pages: ' + str(failed_pages)
+    except KeyboardInterrupt as e:
+        print 'Pages: ' + str(pages)
+        print 'Failed pages: ' + str(failed_pages)
+        print 'Completed pages: ' + str(completed_pages)
 
 def get_page_time_mapping(page_time_mapping_filename):
     result = dict()
@@ -382,3 +397,4 @@ if __name__ == '__main__':
 
     pages = common_module.get_pages(args.pages_filename)
     main(args.replay_config_filename, pages, args.iterations, args.device_name, args.mode, args.output_dir)
+    

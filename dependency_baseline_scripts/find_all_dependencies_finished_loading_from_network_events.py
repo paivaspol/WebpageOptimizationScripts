@@ -3,6 +3,7 @@ from argparse import ArgumentParser
 import common_module
 import os
 import simplejson as json
+import numpy
 
 METHOD = 'method'
 PARAMS = 'params'
@@ -31,7 +32,10 @@ def main(root_dir, dependency_dir):
                                                                               network_filename, \
                                                                               dependencies)
         if len(dependency_finish_download_time) > 0:
-            print '{0} {1}'.format(page, max(dependency_finish_download_time.values()))
+            if not args.use_median_finish_time:
+                print '{0} {1}'.format(page, max(dependency_finish_download_time.values()))
+            else:
+                print '{0} {1}'.format(page, numpy.median(dependency_finish_download_time.values()))
         else:
             failed_pages.append(page)
     print 'Failed Pages: ' + str(failed_pages)
@@ -84,5 +88,6 @@ if __name__ == '__main__':
     parser.add_argument('root_dir')
     parser.add_argument('dependency_dir')
     parser.add_argument('--page-list', default=None)
+    parser.add_argument('--use-median-finish-time', default=False, action='store_true')
     args = parser.parse_args()
     main(args.root_dir, args.dependency_dir)

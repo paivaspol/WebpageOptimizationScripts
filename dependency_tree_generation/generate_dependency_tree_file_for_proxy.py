@@ -14,7 +14,6 @@ def generate_dependencies_for_proxy(root_dir, pages, output_dir):
         print 'path: ' + dependency_tree_path + ' url: ' + url
         generate_dependencies_for_proxy_main(dependency_tree_path, page, output_dir)
 
-
 def generate_dependencies_for_proxy_main(dependency_tree_path, page, output_dir):
     if not os.path.exists(dependency_tree_path):
         return
@@ -33,7 +32,6 @@ def generate_dependencies_for_proxy_main(dependency_tree_path, page, output_dir)
     except RuntimeError as e:
         print str(e) + ' page: ' + page
         pass
-
 
 def get_given_dependencies(given_dependencies_filename):
     retval = set()
@@ -62,7 +60,7 @@ def output_to_file(result_dependencies, url, output_dir, given_dependencies):
                 parent_url += '/'
             if given_dependencies is not None and result_dependency[2] not in given_dependencies:
                 continue
-            dependency_line = '{0} {1} {2} {3}'.format(origin_url, parent_url, result_dependency[2], result_dependency[3])
+            dependency_line = '{0} {1} {2} {3} {4}'.format(origin_url, parent_url, result_dependency[2], result_dependency[3], result_dependency[4])
             if dependency_line not in printed_line:
                 output_file.write(dependency_line + '\n')
             printed_line.add(dependency_line)
@@ -87,7 +85,8 @@ def generate_file_from_dependency_tree_object(dependency_tree_object, \
     cur_domain = extract_domain(dependency_url)
     for child in children:
         child_found_index = dependency_tree_object[child]['found_index']
-        dependency_line = (origin_url, dependency_url, child, child_found_index)
+        resource_type = dependency_tree_object[child]['type'] if 'type' in dependency_tree_object[child] else 'DEFAULT'
+        dependency_line = (origin_url, dependency_url, child, child_found_index, resource_type)
         result_dependencies.append(dependency_line)
         next_domain = extract_domain(child)
         # print 'current: {0} child: {1}'.format(dependency_url, child)

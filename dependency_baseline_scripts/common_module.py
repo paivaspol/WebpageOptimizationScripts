@@ -19,3 +19,21 @@ def get_dependencies(dependency_filename):
 def get_pages(page_list_filename):
     with open(page_list_filename, 'rb') as input_file:
         return [ escape_page(line.strip()) for line in input_file ]
+
+def extract_url_from_link_string(link_string):
+    # First, split by space.
+    result_urls = set()
+    splitted_link_string = link_string.split(' ')
+    for link_token in splitted_link_string:
+        splitted_link_token = link_token.split(';')
+        if len(splitted_link_token) >= 3:
+            url = splitted_link_token[0]
+            rel = splitted_link_token[1]
+            try:
+                _, rel_type = rel.split('=')
+                if rel_type == 'preload':
+                    result_urls.add(url[1:len(url) - 1]) # Remove < and > at the beginning and end of string
+            except Exception as e:
+                pass
+                
+    return result_urls

@@ -34,6 +34,8 @@ def find_dependencies(page, network_activities, page_start_end_time):
     request_id_to_document_url = dict() # Maps from the request id to the document url.
     request_id_to_request_object = dict() # Maps from the request id to the network event.
     request_id_to_order_found = dict() # Maps from the request id to the index in which the event has been found.
+    request_id_to_type = dict() # Maps from the request id to the type of the resource.
+    url_to_request_id = dict() # Reverse mapping from the URL to the request id.
     start_time, end_time = page_start_end_time[1]
     found_page = False
     counter = 0
@@ -41,9 +43,10 @@ def find_dependencies(page, network_activities, page_start_end_time):
         if METHOD in network_activity and \
             network_activity[METHOD] == 'Network.requestWillBeSent':
             ts = common_module.convert_to_ms(network_activity[PARAMS][WALLTIME])
-            document_url = network_activity[PARAMS][REQUEST][URL]
+            request_id = network_activity[PARAMS][REQUEST_ID]
+            url = network_activity[PARAMS][REQUEST][URL]
             # print 'page: ' + page + ' document_url: ' + document_url
-            if not found_page and common_module.escape_url(document_url) == common_module.escape_url(page):
+            if not found_page and common_module.escape_url(url) == common_module.escape_url(page):
                 found_page = True
 
             # if not start_time <= ts <= end_time:
@@ -51,6 +54,9 @@ def find_dependencies(page, network_activities, page_start_end_time):
             #     # If the event doesn't fall in the page load range.
             #     continue
             if not found_page:
+                continue
+
+            if url.startswith('data:'):
                 continue
 
             # print REQUEST + ': ' + str(network_activity[PARAMS][REQUEST][URL])
@@ -67,22 +73,25 @@ def find_dependencies(page, network_activities, page_start_end_time):
                 requester = DEFAULT_REQUESTER
             if requester is not None:
                 request_id = network_activity[PARAMS][REQUEST_ID]
-                request_id_to_resource_map[request_id] = network_activity[PARAMS][REQUEST][URL]
+                request_id_to_resource_map[request_id] = url
                 request_id_to_initiator_map[request_id] = requester
                 request_id_to_document_url[request_id] = network_activity[PARAMS]['documentURL']
                 request_id_to_request_object[request_id] = network_activity
                 request_id_to_order_found[request_id] = counter
+                url_to_request_id[url] = request_id
                 counter += 1
         elif METHOD in network_activity and \
             network_activity[METHOD] == 'Network.responseReceived':
             request_id = network_activity[PARAMS][REQUEST_ID]
             if request_id not in request_id_to_request_object:
                 continue
+
             request_network_activity = request_id_to_request_object[request_id]
+            response = network_activity[PARAMS][RESPONSE]
+            request_id_to_type[request_id]  = network_activity[PARAMS][TYPE]
             if request_id in request_id_to_initiator_map and \
                 request_network_activity[PARAMS][INITIATOR][TYPE] == 'parser':
                 # Try to apply the second extraction rule: use the referer instead.
-                response = network_activity[PARAMS][RESPONSE]
                 if REQUEST_HEADERS in response and REFERER in response[REQUEST_HEADERS] and \
                     response[REQUEST_HEADERS][REFERER].endswith('.css'):
                     request_id_to_initiator_map[request_id] = response[REQUEST_HEADERS][REFERER]
@@ -91,17 +100,19 @@ def find_dependencies(page, network_activities, page_start_end_time):
                 # Try to apply the third extraction rule: use the DocumentURL
                 request_id_to_initiator_map[request_id] = request_id_to_document_url[request_id]
 
-    dep_tree = populate_dependencies(request_id_to_initiator_map, request_id_to_resource_map)
-    return { key: dep_tree[key] for key in dep_tree if key != DEFAULT_REQUESTER }, request_id_to_order_found
+    dep_tree = populate_dependencies(request_id_to_initiator_map, request_id_to_resource_map, url_to_request_id)
+    return dep_tree, request_id_to_order_found, request_id_to_type
 
-def populate_dependencies(request_id_to_initiator_map, request_id_to_document_url):
+def populate_dependencies(request_id_to_initiator_map, request_id_to_dependency_url, url_to_request_id):
     dep_tree = dict()
     for request_id, initiator in request_id_to_initiator_map.iteritems():
+        # For each dependency's request id and its intiator map pair
         if initiator != '':
-            if initiator not in dep_tree:
-                dep_tree[(initiator, request_id)] = []
-            document_url = request_id_to_document_url[request_id]
-            dep_tree[(initiator, request_id)].append((document_url, request_id))
+            dependency_url = request_id_to_dependency_url[request_id]
+            initiator_request_id = url_to_request_id[initiator]
+            if (initiator, initiator_request_id) not in dep_tree:
+                dep_tree[(initiator, initiator_request_id)] = []
+            dep_tree[(initiator, initiator_request_id)].append((dependency_url, request_id))
     return dep_tree
 
 def convert_to_object(network_data_file):
@@ -131,7 +142,7 @@ def iterate_dep_graph(dep_graph):
         print 'key: {0} len Values: {1}'.format(key, len(value))
         # print '\t{0}'.format(value)
 
-def convert_graph_to_json(dep_graph, request_id_to_order_found):
+def convert_graph_to_json(dep_graph, request_id_to_order_found, request_id_to_type):
     '''
     The json is list of objects where each object represents a node in the dependency graph.
     Each object has the following data:
@@ -156,6 +167,7 @@ def convert_graph_to_json(dep_graph, request_id_to_order_found):
             node_info['url'] = remove_trailing_slash(node[0])
             node_info['request_id'] = node[1]
             node_info['found_index'] = request_id_to_order_found[node[1]]
+            node_info['type'] = request_id_to_type[node[1]]
 
         if 'children' not in result_dict[node[0]]:
             result_dict[node[0]]['children'] = []
@@ -173,6 +185,8 @@ def convert_graph_to_json(dep_graph, request_id_to_order_found):
                 result_dict[child]['request_id'] = request_id
                 result_dict[child]['isLeaf'] = True
                 result_dict[child]['found_index'] = request_id_to_order_found[request_id]
+                resource_type = request_id_to_type[request_id] if request_id in request_id_to_type else 'DEFAULT'
+                result_dict[child]['type'] = resource_type
             result_dict[child]['parent'] = node[0]
             result_dict[child]['isRoot'] = False
     sanity_check(result_dict)
@@ -212,8 +226,8 @@ if __name__ == '__main__':
     args = parser.parse_args()
     network_activities = convert_to_object(args.network_data_file)
     page_start_end_time = common_module.parse_page_start_end_time(args.page_start_end_time)
-    dep_graph, url_to_found_index = find_dependencies(args.page, network_activities, page_start_end_time)
-    result_dict = convert_graph_to_json(dep_graph, url_to_found_index)
+    dep_graph, request_id_to_found_index, request_id_to_type = find_dependencies(args.page, network_activities, page_start_end_time)
+    result_dict = convert_graph_to_json(dep_graph, request_id_to_found_index, request_id_to_type)
     dump_object_to_json(result_dict, args.output_dir)
     # iterate_dep_graph(dep_graph)
     # output_dep_graph(dep_graph, DEFAULT_REQUESTER, '')
