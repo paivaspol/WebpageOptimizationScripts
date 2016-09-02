@@ -9,22 +9,27 @@ def main(root_dir):
         network_filename = os.path.join(root_dir, page, 'network_' + page)
         if not os.path.exists(network_filename):
             continue
-        url = get_url(network_filename, page)
-        print url
+        first_url, url = get_url(network_filename, page)
+        if args.print_first_url:
+            print first_url + ' ' + url
+        else:
+            print url
 
 def get_url(network_filename, page):
     with open(network_filename, 'rb') as network_file:
         first_request_id = None
         final_url = None
+        first_url = None
         for raw_line in network_file:
             network_event = json.loads(json.loads(raw_line.strip()))
             if network_event['method'] == 'Network.requestWillBeSent':
                 if first_request_id is None and escape_page(network_event['params']['request']['url']) == page:
                     first_request_id = network_event['params']['requestId']
                     final_url = network_event['params']['request']['url']
+                    first_url = final_url
                 elif first_request_id is not None and first_request_id == network_event['params']['requestId']:
                     final_url = network_event['params']['request']['url']
-        return final_url
+        return first_url, final_url
 
 HTTP_PREFIX = 'http://'
 HTTPS_PREFIX = 'https://'
@@ -43,5 +48,6 @@ def escape_page(url):
 if __name__ == '__main__':
     parser = ArgumentParser()
     parser.add_argument('root_dir')
+    parser.add_argument('--print-first-url', default=False, action='store_true')
     args = parser.parse_args()
     main(args.root_dir)
