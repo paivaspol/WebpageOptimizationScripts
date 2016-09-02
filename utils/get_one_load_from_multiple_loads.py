@@ -93,7 +93,7 @@ if __name__ == '__main__':
     parser.add_argument('pages_file')
     parser.add_argument('num_iterations', type=int)
     parser.add_argument('run_type')
-    parser.add_argument('--output-dir', default='.')
+    parser.add_argument('output_dir')
     args = parser.parse_args()
     if args.run_type == MIN or args.run_type == MEDIAN or args.run_type == MAX or args.run_type == RANDOM:
         pages = get_pages(args.pages_file)

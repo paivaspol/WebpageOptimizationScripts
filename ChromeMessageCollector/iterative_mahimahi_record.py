@@ -20,7 +20,7 @@ from utils import chrome_utils
 from utils import phone_connection_utils
 
 WAIT = 2
-TIMEOUT = int(1.2 * 60)
+TIMEOUT = int(1 * 60)
 TIMEOUT_DEPENDENCY_BASELINE = int(0.5 * 60)
 MAX_TRIES = 20
 MAX_PAGE_TRIES = 3
@@ -39,6 +39,7 @@ def main(config_filename, pages, iterations, device_name, mode, output_dir):
 
     failed_pages = []
     page_to_tries = defaultdict(lambda: 0)
+    page_to_continue_index = defaultdict(lambda: 0)
 
     for page in pages:
         print 'Page: ' + page
@@ -47,7 +48,9 @@ def main(config_filename, pages, iterations, device_name, mode, output_dir):
             failed_pages.append(page)
             continue
 
-        for run_index in range(0, iterations):
+        start_index = page_to_continue_index[page]
+        print 'start_index: ' + str(start_index)
+        for run_index in range(start_index, iterations):
             current_time = current_times[run_index]
             start_proxy(mode, page, current_time, replay_configurations)
             check_proxy_running_counter = 0
@@ -73,6 +76,7 @@ def main(config_filename, pages, iterations, device_name, mode, output_dir):
             if returned_page is not None:
                 # There was an exception
                 pages.append(returned_page)
+                page_to_continue_index[page] = run_index
                 common_module.initialize_browser(device_info) # Restart the browser
                 break
 

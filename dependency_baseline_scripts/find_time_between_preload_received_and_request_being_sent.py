@@ -1,5 +1,6 @@
 from argparse import ArgumentParser 
 
+import constants
 import common_module
 import os
 import simplejson as json
@@ -23,7 +24,7 @@ def main(root_dir):
     failed_pages = []
     all_time_differences = []
     for page in pages:
-        # if 'm.shutterstock.com' not in page:
+        # if 'nba.com' not in page:
         #     continue
 
         network_filename = os.path.join(root_dir, page, 'network_' + page)
@@ -61,7 +62,9 @@ def get_time_between_preload_received_and_request_sent(page, network_filename):
                     else:
                         continue
 
-                if url in url_to_preload_received_timestamp:
+                if url in url_to_preload_received_timestamp and \
+                    network_event[PARAMS][constants.INITIATOR][constants.TYPE].lower() == 'parser':
+                    # print url + ' ' + str(event_timestamp) + ' ' + str(url_to_preload_received_timestamp[url])
                     time_difference = event_timestamp - url_to_preload_received_timestamp[url]
                     result.append((page, url, time_difference))
                     del url_to_preload_received_timestamp[url]

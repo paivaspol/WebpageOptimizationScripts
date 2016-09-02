@@ -2,6 +2,7 @@
 from argparse import ArgumentParser
 from ConfigParser import ConfigParser
 from PageLoadException import PageLoadException
+from collections import defaultdict
 
 import common_module
 import datetime
@@ -19,7 +20,7 @@ from utils import chrome_utils
 from utils import phone_connection_utils
 
 WAIT = 2
-TIMEOUT = 1.5 * 60
+TIMEOUT = 3 * 60
 TIMEOUT_DEPENDENCY_BASELINE = 0.5 * 60
 MAX_TRIES = 20
 MAX_LOAD_TRIES = 3
@@ -41,14 +42,7 @@ def main(config_filename, pages, iterations, device_name, mode, output_dir):
             current_time_map = get_page_time_mapping(args.page_time_mapping)
 
         page_to_tries_counter = dict()
-
-        def interrupt_handler(*args):
-            print 'pages: ' + str(pages)
-            print 'failed: ' + str(failed_pages)
-            print 'completed: ' + str(completed_pages)
-            sys.exit(0)
-
-        signal.signal(signal.SIGINT, interrupt_handler)
+        page_to_start_run_index = defaultdict(lambda: 0)
 
         for page in pages:
             print 'Page: ' + page
@@ -89,14 +83,17 @@ def main(config_filename, pages, iterations, device_name, mode, output_dir):
                 fetch_and_push_pac_file(args.pac_file_location, device_info)
                 common_module.initialize_browser(device_info) # Restart the browser
             # Load the page.
-            returned_page = load_one_website(page, iterations, output_dir, device_info, mode, replay_configurations, current_time)
+            start_run_index = page_to_start_run_index[page]
+            returned_page, timed_out_index = load_one_website(page, iterations, output_dir, device_info, mode, replay_configurations, current_time, start_run_index)
             if returned_page is not None:
                 # There was an exception
                 print 'Page: ' + returned_page + ' timed out. Appending to queue...'
                 pages.append(returned_page)
+                page_to_start_run_index[page] = timed_out_index
                 common_module.initialize_browser(device_info) # Restart the browser
             else:
                 completed_pages.append(page)
+                del page_to_start_run_index[page]
 
             if args.use_openvpn:
                 common_module.initialize_browser(device_info) # Restart the browser
@@ -215,24 +212,25 @@ def stop_proxy(mode, page, time, replay_configurations):
     print 'request result: ' + result.text
     sleep(10)
 
-def load_one_website(page, iterations, output_dir, device_info, mode, replay_configurations, current_time):
+def load_one_website(page, iterations, output_dir, device_info, mode, replay_configurations, current_time, start_index):
     '''
     Loads one website
     '''
-    for run_index in range(0, iterations):
+    print 'start_index: ' + start_index
+    for run_index in range(start_index, iterations):
         if args.get_chromium_logs:
             clear_chromium_logs(device_info[2]['id'])
 
         result = load_page(page, run_index, output_dir, False, device_info, not args.start_tracing, mode, replay_configurations, current_time)
         if result is not None:
-            return result
+            return result, run_index
 
         while common_module.check_previous_page_load(run_index, output_dir, page):
             clear_chromium_logs(device_info[2]['id'])
             result = load_page(page, run_index, output_dir, False, device_info, not args.start_tracing, mode, replay_configurations, current_time)
             if result is not None:
-                return result
-    return None
+                return result, run_index
+    return None, -1
 
 def timeout_handler(signum, frame):
     '''
