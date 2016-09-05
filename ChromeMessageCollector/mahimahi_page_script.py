@@ -42,9 +42,10 @@ def main(config_filename, pages, iterations, device_name, mode, output_dir):
             current_time_map = get_page_time_mapping(args.page_time_mapping)
 
         page_to_tries_counter = dict()
-        page_to_start_run_index = defaultdict(lambda: 0)
 
-        for page in pages:
+        for page_tuple in pages:
+            page = page_tuple[0]
+            redirected_page = page_tuple[1]
             print 'Page: ' + page
             if page not in page_to_tries_counter:
                 page_to_tries_counter[page] = 0
@@ -83,17 +84,14 @@ def main(config_filename, pages, iterations, device_name, mode, output_dir):
                 fetch_and_push_pac_file(args.pac_file_location, device_info)
                 common_module.initialize_browser(device_info) # Restart the browser
             # Load the page.
-            start_run_index = page_to_start_run_index[page]
-            returned_page, timed_out_index = load_one_website(page, iterations, output_dir, device_info, mode, replay_configurations, current_time, start_run_index)
+            returned_page, timed_out_index = load_one_website(redirected_page, iterations, output_dir, device_info, mode, replay_configurations, current_time)
             if returned_page is not None:
                 # There was an exception
                 print 'Page: ' + returned_page + ' timed out. Appending to queue...'
-                pages.append(returned_page)
-                page_to_start_run_index[page] = timed_out_index
+                pages.append(page_tuple)
                 common_module.initialize_browser(device_info) # Restart the browser
             else:
                 completed_pages.append(page)
-                del page_to_start_run_index[page]
 
             if args.use_openvpn:
                 common_module.initialize_browser(device_info) # Restart the browser
@@ -103,6 +101,15 @@ def main(config_filename, pages, iterations, device_name, mode, output_dir):
             while not check_proxy_stopped(replay_configurations, mode):
                 sleep(1)
             print 'Stopped Proxy'
+            
+            # Now, fetch the server-side log if possible.
+            if args.fetch_server_side_logs:
+                escaped_page = common_module.escape_page(page)
+                server_side_output_dir = os.path.join(output_dir, 'server_side_logs')
+                if not os.path.exists(server_side_output_dir):
+                    os.mkdir(server_side_output_dir)
+                fetch_server_side_logs(escaped_page, server_side_output_dir)
+
             sleep(5) # Default shutdown wait for squid
         if mode == 'record':
             done(replay_configurations)
@@ -112,6 +119,11 @@ def main(config_filename, pages, iterations, device_name, mode, output_dir):
         print 'Pages: ' + str(pages)
         print 'Failed pages: ' + str(failed_pages)
         print 'Completed pages: ' + str(completed_pages)
+
+def fetch_server_side_logs(page, output_dir):
+    output_filename = os.path.join(output_dir, page)
+    command = 'scp -i ~/.ssh/vaspol_aws_key.pem ubuntu@ec2-54-237-249-55.compute-1.amazonaws.com:~/build/logs/{0} {1}'.format(page, output_dir)
+    subprocess.call(command, shell=True)
 
 def get_page_time_mapping(page_time_mapping_filename):
     result = dict()
@@ -212,12 +224,11 @@ def stop_proxy(mode, page, time, replay_configurations):
     print 'request result: ' + result.text
     sleep(10)
 
-def load_one_website(page, iterations, output_dir, device_info, mode, replay_configurations, current_time, start_index):
+def load_one_website(page, iterations, output_dir, device_info, mode, replay_configurations, current_time):
     '''
     Loads one website
     '''
-    print 'start_index: ' + start_index
-    for run_index in range(start_index, iterations):
+    for run_index in range(0, iterations):
         if args.get_chromium_logs:
             clear_chromium_logs(device_info[2]['id'])
 
@@ -394,12 +405,12 @@ if __name__ == '__main__':
     parser.add_argument('--pac-file-location', default=None)
     parser.add_argument('--page-time-mapping', default=None)
     parser.add_argument('--without-dependencies', default=False, action='store_true')
+    parser.add_argument('--fetch-server-side-logs', default=False, action='store_true')
     args = parser.parse_args()
     if args.mode == 'delay_replay' and args.delay is None:
         sys.exit("Must specify delay")
     elif args.time is not None and args.page_time_mapping is not None:
         sys.exit("Specify either time or time mapping")
 
-    pages = common_module.get_pages(args.pages_filename)
+    pages = common_module.get_pages_with_redirected_url(args.pages_filename)
     main(args.replay_config_filename, pages, args.iterations, args.device_name, args.mode, args.output_dir)
-    
