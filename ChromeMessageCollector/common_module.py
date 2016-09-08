@@ -4,6 +4,7 @@ from utils import chrome_utils
 
 import requests
 import os
+import subprocess
 
 def convert_to_ms_precision(timestamp):
     '''
@@ -167,3 +168,22 @@ def get_pages_with_redirected_url(pages_file):
                 line = raw_line.strip().split()
                 pages.append(line)
     return pages
+
+def start_tcpdump_and_cpu_measurement(device):
+    device, device_config, _ = get_device_config(device)
+    start_cpu_measurement = 'python ./utils/start_cpu_measurement.py {0} {1}'.format(device_config, device)
+    print 'Executing: ' + start_cpu_measurement
+    subprocess.Popen(start_cpu_measurement, shell=True).wait()
+    start_tcpdump = 'python ./utils/start_tcpdump.py {0} {1}'.format(device_config, device)
+    subprocess.Popen(start_tcpdump, shell=True).wait()
+
+def stop_tcpdump_and_cpu_measurement(line, device, output_dir_run='.'):
+    url = escape_page(line)
+    device, device_config, _ = get_device_config(device)
+    output_directory = os.path.join(output_dir_run, url)
+    cpu_measurement_output_filename = os.path.join(output_directory, 'cpu_measurement.txt')
+    stop_cpu_measurement = 'python ./utils/stop_cpu_measurement.py {0} {1} {2}'.format(device_config, device, cpu_measurement_output_filename)
+    subprocess.Popen(stop_cpu_measurement, shell=True).wait()
+    pcap_output_filename = os.path.join(output_directory, 'output.pcap')
+    stop_tcpdump = 'python ./utils/stop_tcpdump.py {0} {1} --output-dir {2} --no-sleep'.format(device_config, device, pcap_output_filename)
+    subprocess.Popen(stop_tcpdump, shell=True).wait()

@@ -65,7 +65,7 @@ def main(pages_file, num_repetitions, output_dir, use_caching_proxy, start_measu
             i = 0
             while i < num_repetitions:
                 try:
-                    start_tcpdump_and_cpu_measurement(device)
+                    common_module.start_tcpdump_and_cpu_measurement(device)
                     bring_chrome_to_foreground(device)
                     signal.alarm(TIMEOUT)
                     load_page(page, i, output_dir, start_measurements, device, disable_tracing)
@@ -78,7 +78,7 @@ def main(pages_file, num_repetitions, output_dir, use_caching_proxy, start_measu
                     while common_module.check_previous_page_load(i, output_dir, page):
                         load_page(page, i, output_dir, start_measurements, device, disable_tracing, record_contents)
                     iteration_path = os.path.join(output_dir, str(i))
-                    stop_tcpdump_and_cpu_measurement(page.strip(), device, output_dir_run=iteration_path)
+                    common_module.stop_tcpdump_and_cpu_measurement(page.strip(), device, output_dir_run=iteration_path)
                     i += 1
                 except PageLoadException as e:
                     print 'Timeout for {0}-th load. Append to end of queue...'.format(i)
@@ -185,21 +185,21 @@ def load_pages_with_measurement_and_tracing_enabled(pages, output_dir, num_repet
         i = 0
         while i < num_repetitions:
             try:
-                start_tcpdump_and_cpu_measurement(device)
+                common_module.start_tcpdump_and_cpu_measurement(device)
                 initialize_browser(device)
                 signal.alarm(TIMEOUT) # Set alarm for TIMEOUT
                 load_page(page, i, output_dir, True, device, False, record_contents)
                 signal.alarm(0) # Reset the alarm
                 iteration_path = os.path.join(output_dir, str(i))
-                stop_tcpdump_and_cpu_measurement(page.strip(), device, output_dir_run=iteration_path)
+                common_module.stop_tcpdump_and_cpu_measurement(page.strip(), device, output_dir_run=iteration_path)
                 while common_module.check_previous_page_load(i, output_dir, page):
-                    start_tcpdump_and_cpu_measurement(device)
+                    common_module.start_tcpdump_and_cpu_measurement(device)
                     initialize_browser(device)
                     signal.alarm(TIMEOUT) # Set alarm for TIMEOUT
                     load_page(page, i, output_dir, True, device, False, record_contents)
                     signal.alarm(0) # Reset the alarm
                     iteration_path = os.path.join(output_dir, str(i - 1))
-                    stop_tcpdump_and_cpu_measurement(page.strip(), device, output_dir_run=iteration_path)
+                    common_module.stop_tcpdump_and_cpu_measurement(page.strip(), device, output_dir_run=iteration_path)
                 i += 1
             except PageLoadException as e:
                 print 'Timeout for {0}-th load. Append to end of queue...'.format(i)
@@ -270,29 +270,10 @@ def load_page(raw_line, run_index, output_dir, start_measurements, device, disab
     #     cmd += ' --reload-page'
     subprocess.Popen(cmd, shell=True).wait()
 
-def start_tcpdump_and_cpu_measurement(device):
-    device, device_config = get_device_config(device)
-    start_cpu_measurement = 'python ./utils/start_cpu_measurement.py {0} {1}'.format(device_config, device)
-    print 'Executing: ' + start_cpu_measurement
-    subprocess.Popen(start_cpu_measurement, shell=True).wait()
-    start_tcpdump = 'python ./utils/start_tcpdump.py {0} {1}'.format(device_config, device)
-    subprocess.Popen(start_tcpdump, shell=True).wait()
-
 def bring_chrome_to_foreground(device):
     device, device_config = get_device_config(device)
     device_config_obj = get_device_config_obj(device, device_config)
     phone_connection_utils.bring_chrome_to_foreground(device_config_obj)
-
-def stop_tcpdump_and_cpu_measurement(line, device, output_dir_run='.'):
-    url = escape_url(line)
-    device, device_config = get_device_config(device)
-    output_directory = os.path.join(output_dir_run, url)
-    cpu_measurement_output_filename = os.path.join(output_directory, 'cpu_measurement.txt')
-    stop_cpu_measurement = 'python ./utils/stop_cpu_measurement.py {0} {1} {2}'.format(device_config, device, cpu_measurement_output_filename)
-    subprocess.Popen(stop_cpu_measurement, shell=True).wait()
-    pcap_output_filename = os.path.join(output_directory, 'output.pcap')
-    stop_tcpdump = 'python ./utils/stop_tcpdump.py {0} {1} --output-dir {2} --no-sleep'.format(device_config, device, pcap_output_filename)
-    subprocess.Popen(stop_tcpdump, shell=True).wait()
 
 def escape_url(url):
     if url.endswith('/'):

@@ -229,10 +229,20 @@ def load_one_website(page, iterations, output_dir, device_info, mode, replay_con
     Loads one website
     '''
     for run_index in range(0, iterations):
+        if args.start_tcpdump_and_cpu_measurements:
+            common_module.start_tcpdump_and_cpu_measurement(device_info[0])
+            phone_connection_utils.bring_chrome_to_foreground(device_info[2])
+
         if args.get_chromium_logs:
             clear_chromium_logs(device_info[2]['id'])
 
-        result = load_page(page, run_index, output_dir, False, device_info, not args.start_tracing, mode, replay_configurations, current_time)
+        result = load_page(page, run_index, output_dir, args.start_tcpdump_and_cpu_measurements, device_info, not args.start_tracing, mode, replay_configurations, current_time)
+
+        if args.start_tcpdump_and_cpu_measurements:
+            iteration_path = os.path.join(output_dir, str(run_index))
+            common_module.stop_tcpdump_and_cpu_measurement(page.strip(), device_info[0], output_dir_run=iteration_path)
+            phone_connection_utils.bring_chrome_to_foreground(device_info[2])
+
         if result is not None:
             return result, run_index
 
@@ -406,6 +416,7 @@ if __name__ == '__main__':
     parser.add_argument('--page-time-mapping', default=None)
     parser.add_argument('--without-dependencies', default=False, action='store_true')
     parser.add_argument('--fetch-server-side-logs', default=False, action='store_true')
+    parser.add_argument('--start-tcpdump-and-cpu-measurements', default=False, action='store_true')
     args = parser.parse_args()
     if args.mode == 'delay_replay' and args.delay is None:
         sys.exit("Must specify delay")

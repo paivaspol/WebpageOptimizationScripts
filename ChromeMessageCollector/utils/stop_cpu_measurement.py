@@ -4,7 +4,7 @@ from argparse import ArgumentParser
 from ConfigParser import ConfigParser
 from time import sleep
 
-measurement_directory = '/sdcard/Download/result.txt'
+measurement_directory = '/sdcard/Research/result.txt'
 
 if __name__ == '__main__':
     argparser = ArgumentParser()
