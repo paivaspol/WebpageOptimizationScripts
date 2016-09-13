@@ -30,6 +30,7 @@ print "FOUND TOP LEVEL: " + str(top_files)
 
 if ( top_level_html == '' ): # didn't find top level HTML file
     print "Didn't find top-level HTML file in: " + recorded_folder
+    os.system("rm -r rewritten_" + index + "/")
     exit()
 
 for filename in files:

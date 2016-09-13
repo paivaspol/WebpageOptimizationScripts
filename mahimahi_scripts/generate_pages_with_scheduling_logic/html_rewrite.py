@@ -30,11 +30,10 @@ soup = BeautifulSoup(open(html_file), "html5lib")
 # add top-level url to all HTML tags
 for html in soup.find_all('html'):
     html['top_url'] = top_level_url
-    new_script = soup.new_tag('script')
-    new_script.string = inline_script
-    new_script['id'] = "fetch_unimportant"
-    html.insert_after(new_script)
-
+#    new_script = soup.new_tag('script')
+#    new_script.string = inline_script
+#    new_script['id'] = "fetch_unimportant"
+#    html.first().insert_after(new_script)
 
 # add inline script before each existing script tag
 for script in soup.find_all('script'):
@@ -42,6 +41,12 @@ for script in soup.find_all('script'):
     new_script.string = small_inline_script
     new_script['id'] = "fetch_unimportant"
     script.insert_before(new_script)
+
+new_script = soup.new_tag('script')
+new_script.string = inline_script
+new_script['id'] = "fetch_unimportant"
+soup.find().insert(0,new_script)
+
 
 file1=open(new_html_file,"w")
 file1.write(str(soup))
