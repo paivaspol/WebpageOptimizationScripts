@@ -71,7 +71,7 @@ if ( typeof finished_top === "undefined" ) {
                     xhr.open("GET", urls[i], true);
                     xhr._url = urls[i];
                     xhr.onreadystatechange = important_url_handler;
-                    xhr.setRequestHeader("Access-Control-Expose-Headers", "Link, x-systemname-unimportant");
+                    //xhr.setRequestHeader("Access-Control-Expose-Headers", "Link, x-systemname-unimportant");
                     //console.log("sending request as imp for: " + urls[i]);
                     xhr.send();
                 }
@@ -84,7 +84,7 @@ if ( typeof finished_top === "undefined" ) {
                 var unimp_xhr = new XMLHttpRequest();
                 unimp_xhr.open("GET", unimportant_urls[y], true);
                 //console.log("sending request as unimp for: " + unimportant_urls[y]);
-                unimp_xhr.setRequestHeader("Access-Control-Expose-Headers", "Link, x-systemname-unimportant");
+                //unimp_xhr.setRequestHeader("Access-Control-Expose-Headers", "Link, x-systemname-unimportant");
                 unimp_xhr.send();
                 // remove from list
                 unimportant_urls.splice(y, 1);
@@ -99,7 +99,7 @@ if ( typeof finished_top === "undefined" ) {
         top_xhr.onreadystatechange = important_url_handler;
         top_xhr.addEventListener("onreadystatechange", function () {window.finished_top = true;});
         //console.log("sending request to start top for: " + top_level_url);
-        top_xhr.setRequestHeader("Access-Control-Expose-Headers", "Link, x-systemname-unimportant");
+        //top_xhr.setRequestHeader("Access-Control-Expose-Headers", "Link, x-systemname-unimportant");
         top_xhr.send();
         window.finished_top = true;
     }
