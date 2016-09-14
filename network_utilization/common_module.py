@@ -42,7 +42,7 @@ def check_web_port(use_spdyproxy, tcp_port):
     if use_spdyproxy:
         return tcp_port == 44300 or tcp_port == 3000
     else:
-        return tcp_port == 443 or tcp_port == 80
+        return tcp_port == 443 or tcp_port == 80 or tcp_port == 1194
 
 # Returns a list of objectified network events.
 def parse_network_events(network_events_filename):

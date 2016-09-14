@@ -56,12 +56,16 @@ def parse_utilization_file(utilization_filename):
             result[key] = value
     return sorted(result.iteritems(), key=lambda x: x[0][0])
 
-def get_pages(pages_filename):
+def get_pages(pages_filename, index=-1):
     pages = []
     with open(pages_filename, 'rb') as input_file:
         for raw_line in input_file:
+            if raw_line.startswith("#"):
+                continue
             line = raw_line.strip().split()
-            pages.append(line[len(line) - 1])
+            if index == -1:
+                index = len(line) - 1
+            pages.append(line[index])
     return pages
 
 def extract_url_from_path(path):

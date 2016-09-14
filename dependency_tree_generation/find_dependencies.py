@@ -108,11 +108,14 @@ def populate_dependencies(request_id_to_initiator_map, request_id_to_dependency_
     for request_id, initiator in request_id_to_initiator_map.iteritems():
         # For each dependency's request id and its intiator map pair
         if initiator != '':
-            dependency_url = request_id_to_dependency_url[request_id]
-            initiator_request_id = url_to_request_id[initiator]
-            if (initiator, initiator_request_id) not in dep_tree:
-                dep_tree[(initiator, initiator_request_id)] = []
-            dep_tree[(initiator, initiator_request_id)].append((dependency_url, request_id))
+            try:
+                dependency_url = request_id_to_dependency_url[request_id]
+                initiator_request_id = url_to_request_id[initiator]
+                if (initiator, initiator_request_id) not in dep_tree:
+                    dep_tree[(initiator, initiator_request_id)] = []
+                dep_tree[(initiator, initiator_request_id)].append((dependency_url, request_id))
+            except KeyError as e:
+                pass
     return dep_tree
 
 def convert_to_object(network_data_file):

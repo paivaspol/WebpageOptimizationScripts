@@ -141,7 +141,7 @@ def callback_on_page_done_streaming(debugging_socket):
     print 'Load time: ' + str((start_time, end_time)) + ' ' + str((end_time - start_time))
     write_page_start_end_time(final_url, base_dir, start_time, end_time, -1, -1)
     new_debugging_websocket.close()
-    chrome_utils.close_tab(debugging_socket.device_configuration, debugging_socket.device_configuration['page_id'])
+    # chrome_utils.close_tab(debugging_socket.device_configuration, debugging_socket.device_configuration['page_id'])
 
 def callback_on_page_done(debugging_socket, network_messages, timeline_messages, original_request_ts, load_event_ts, request_ids, device_configuration):
     '''

@@ -24,8 +24,8 @@ EOF
 # Dummynet
 
 # Create the dummynet queue
-dnctl pipe 1 config bw 6Mbit/s delay 100ms
-dnctl pipe 2 config bw 2Mbit/s
+dnctl pipe 1 config bw 4Mbit/s delay 76ms
+dnctl pipe 2 config bw 3Mbit/s
 
 # Activate PF
 pfctl -E

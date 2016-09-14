@@ -121,6 +121,7 @@ class ChromeRDPWebsocketStreaming(object):
         self.clear_cache(self.ws)
         
         # self.enable_trace_collection(self.ws)
+        navigation_utils.navigate_to_page(self.ws, 'about:blank')
         print 'navigating to url: ' + str(self.url)
         navigation_utils.navigate_to_page(self.ws, self.url)
 
@@ -169,8 +170,8 @@ class ChromeRDPWebsocketStreaming(object):
         debug_connection.send(json.dumps(enable_network))
         print 'Enabled network tracking.'
         sleep(WAIT)
-        disable_cache = { "id": 10, "method": "Network.setCacheDisabled", "params": { "cacheDisabled": True } }
-        debug_connection.send(json.dumps(disable_cache))
+        # disable_cache = { "id": 10, "method": "Network.setCacheDisabled", "params": { "cacheDisabled": True } }
+        # debug_connection.send(json.dumps(disable_cache))
         print 'Disable debugging connection.'
         sleep(WAIT)
 

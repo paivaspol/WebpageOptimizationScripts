@@ -20,11 +20,14 @@ def main(root_dir, dependency_dir):
             continue
         dependencies = common_module.get_dependencies(dependency_filename)
         request_id_to_encoded_size, request_id_to_type, request_id_to_url = get_page_size_stats(page, network_filename, dependencies)
-        js_css_html_sizes, page_size = get_js_css_html_sizes(request_id_to_encoded_size, request_id_to_type)
-        fraction = 1.0 * js_css_html_sizes / page_size
-        print '{0} {1} {2} {3}'.format(page, js_css_html_sizes, page_size, fraction)
-        if args.output_resource_size is not None:
-            output_resources(request_id_to_encoded_size, request_id_to_url, args.output_resource_size, page)
+        js_css_html_sizes, page_size, important_resource_count= get_js_css_html_sizes(request_id_to_encoded_size, request_id_to_type)
+        if page_size > 0:
+            fraction = 1.0 * js_css_html_sizes / page_size
+            print '{0} {1} {2} {3} {4}'.format(page, js_css_html_sizes, page_size, fraction, important_resource_count)
+            if args.output_resource_size is not None:
+                output_resources(request_id_to_encoded_size, request_id_to_url, args.output_resource_size, page)
+        else:
+            failed_pages.append(page)
     print 'Failed Pages: ' + str(failed_pages)
 
 def output_resources(request_id_to_encoded_size, request_id_to_url, output_directory, page):
@@ -42,14 +45,16 @@ def output_resources(request_id_to_encoded_size, request_id_to_url, output_direc
 
 def get_js_css_html_sizes(request_id_to_encoded_size, request_id_to_type):
     js_css_html_size = 0
+    important_resource_count = 0
     for request_id in request_id_to_encoded_size:
         resource_type = request_id_to_type[request_id]
         if resource_type == 'Script' or \
             resource_type == 'Stylesheet' or \
             resource_type == 'Document':
             js_css_html_size += request_id_to_encoded_size[request_id]
+            important_resource_count += 1
     total_page_size = sum([ x for x in request_id_to_encoded_size.values() if x != -1 ])
-    return js_css_html_size, total_page_size
+    return js_css_html_size, total_page_size, important_resource_count
 
 def get_page_size_stats(page, network_filename, dependencies):
     # print dependencies
