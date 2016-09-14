@@ -42,6 +42,7 @@ class ChromeRDPWebsocketStreaming(object):
         self.domContentEventFiredMs = None
         self.loadEventFiredMs = None
         self.tracingCollectionCompleted = False
+        self.start_page = False
 
         self.url = target_url       # The URL to navigate to.
         self.collect_console = collect_console
@@ -64,16 +65,24 @@ class ChromeRDPWebsocketStreaming(object):
         Handle each message.
         '''
         message_obj = json.loads(message)
-        self.callback_on_network_event(self, message_obj, message)
+        if self.start_page:
+            self.callback_on_network_event(self, message_obj, message)
         # self.tracingCollectionCompleted = True
         if METHOD in message_obj and message_obj[METHOD].startswith('Network'):
             if message_obj[METHOD] == 'Network.requestWillBeSent' and \
-                message_obj[PARAMS]['initiator']['type'] == 'other':
+                message_obj[PARAMS]['request']['url'] == self.url:
+                self.start_page = True
+                self.callback_on_network_event(self, message_obj, message)
+            if message_obj[METHOD] == 'Network.requestWillBeSent' and \
+                message_obj[PARAMS]['initiator']['type'] == 'other' and \
+                self.start_page:
                 self.originalRequestMs = message_obj[PARAMS][TIMESTAMP] * 1000
         elif METHOD in message_obj and message_obj[METHOD].startswith('Page'):
-            if message_obj[METHOD] == 'Page.domContentEventFired':
+            if message_obj[METHOD] == 'Page.domContentEventFired' and \
+                self.start_page:
                 self.domContentEventFiredMs = message_obj[PARAMS][TIMESTAMP] * 1000
-            elif message_obj[METHOD] == 'Page.loadEventFired':
+            elif message_obj[METHOD] == 'Page.loadEventFired' and \
+                self.start_page:
                 self.loadEventFiredMs = message_obj[PARAMS][TIMESTAMP] * 1000
             elif message_obj[METHOD] == 'Page.javascriptDialogOpening':
                 if message_obj[PARAMS]['type'] == 'alert' or \
