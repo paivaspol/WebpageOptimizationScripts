@@ -140,6 +140,7 @@ def callback_on_page_done_streaming(debugging_socket):
     # print 'output dir: ' + base_dir
     print 'Load time: ' + str((start_time, end_time)) + ' ' + str((end_time - start_time))
     write_page_start_end_time(final_url, base_dir, start_time, end_time, -1, -1)
+    navigation_utils.navigate_to_page(new_debugging_websocket, 'about:blank')
     new_debugging_websocket.close()
     # chrome_utils.close_tab(debugging_socket.device_configuration, debugging_socket.device_configuration['page_id'])
 
