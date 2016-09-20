@@ -85,7 +85,7 @@ def main(pages_file, num_repetitions, output_dir, use_caching_proxy, start_measu
                     # Kill the browser and append a page.
                     device, device_config = get_device_config(device)
                     device_config_obj = get_device_config_obj(device, device_config)
-                    chrome_utils.close_all_tabs(device_config_obj)
+                    # chrome_utils.close_all_tabs(device_config_obj)
                     initialize_browser(device)
                     pages.append(page)
                     break
@@ -226,13 +226,13 @@ def initialize_browser(device):
     phone_connection_utils.stop_chrome(device_config_obj)
     print 'Starting Chrome...'
     phone_connection_utils.start_chrome(device_config_obj)
-    closed_tabs = False
-    while not closed_tabs:
-        try:
-            chrome_utils.close_all_tabs(device_config_obj)
-            closed_tabs = True
-        except requests.exceptions.ConnectionError as e:
-            pass
+    # closed_tabs = False
+    # while not closed_tabs:
+    #     try:
+    #         chrome_utils.close_all_tabs(device_config_obj)
+    #         closed_tabs = True
+    #     except requests.exceptions.ConnectionError as e:
+    #         pass
 
 def get_device_config_obj(device, device_config):
     config_reader = ConfigParser()

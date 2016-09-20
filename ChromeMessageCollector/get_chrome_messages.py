@@ -122,8 +122,12 @@ def callback_on_received_event(debugging_socket, network_message, network_messag
             output_file.write('{0}\n'.format(json.dumps(network_message_string)))
     elif 'method' in network_message and network_message['method'].startswith('Tracing'):
         tracing_filename = os.path.join(base_dir, 'tracing_' + final_url)
-        with open(network_filename, 'ab') as output_file:
-            output_file.write('{0}\n'.format(network_message_string))
+        with open(tracing_filename, 'ab') as output_file:
+            output_file.write('{0}\n'.format(json.dumps(network_message_string)))
+    else:
+        filename = os.path.join(base_dir, 'unknown_' + final_url)
+        with open(filename, 'ab') as output_file:
+            output_file.write('{0}\n'.format(json.dumps(network_message_string)))
 
 def callback_on_page_done_streaming(debugging_socket):
     debugging_socket.close_connection()
@@ -186,7 +190,7 @@ def callback_on_page_done(debugging_socket, network_messages, timeline_messages,
                 output_file.write('{0}\n'.format(json.dumps(message)))
     # get_resource_tree(debugging_url)
 
-    chrome_utils.close_tab(debugging_socket.device_configuration, debugging_socket.device_configuration['page_id'])
+    # chrome_utils.close_tab(debugging_socket.device_configuration, debugging_socket.device_configuration['page_id'])
 
 def beautify_html(original_html):
     return BeautifulSoup(original_html, 'html.parser').prettify().encode('utf-8')
