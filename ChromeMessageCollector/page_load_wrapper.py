@@ -144,6 +144,8 @@ def print_failed_pages(output_dir, failed_pages):
 
 def load_pages_with_measurement_and_tracing_disabled(pages, output_dir, num_repetitions, device, record_contents):
     initialize_browser(device)
+    device, device_config = get_device_config(device)
+    device_config_obj = get_device_config_obj(device, device_config)
     tried_counter = dict()
     failed_pages = []
     while len(pages) > 0:
@@ -156,20 +158,21 @@ def load_pages_with_measurement_and_tracing_disabled(pages, output_dir, num_repe
         while i < num_repetitions:
             try:
                 signal.alarm(TIMEOUT) # Set alarm for TIMEOUT
-                load_page(page, i, output_dir, False, device, True, record_contents)
+                load_page(page, i, output_dir, False, device, True, record_contents, device_config_obj)
                 signal.alarm(0) # Reset the alarm
                 while common_module.check_previous_page_load(i, output_dir, page):
                     signal.alarm(TIMEOUT) # Set alarm for TIMEOUT
-                    load_page(page, i, output_dir, False, device, True, record_contents)
+                    load_page(page, i, output_dir, False, device, True, record_contents, device_config_obj)
                     signal.alarm(0) # Reset the alarm
                 i += 1
             except PageLoadException as e:
                 print 'Timeout for {0}-th load. Append to end of queue...'.format(i)
                 # Kill the browser and append a page.
-                device, device_config = get_device_config(device)
-                device_config_obj = get_device_config_obj(device, device_config)
                 chrome_utils.close_all_tabs(device_config_obj)
                 initialize_browser(device)
+                if args.take_screenshots:
+                    phone_connection_utils.stop_taking_screenshopts(device_config_obj)
+
                 if tried_counter[page] <= TRY_LIMIT:
                     pages.append(page)
                 else:
@@ -209,6 +212,7 @@ def load_pages_with_measurement_and_tracing_enabled(pages, output_dir, num_repet
                 chrome_utils.close_all_tabs(device_config_obj)
                 initialize_browser(device)
                 pages.append(page)
+                phone_connection_utils.stop_taking_screenshopts(device_config_obj)
                 break
             sleep(PAUSE)
 
@@ -244,7 +248,7 @@ def shutdown_browser(device):
     print 'Stopping Chrome...'
     phone_connection_utils.stop_chrome(device_config_obj)
 
-def load_page(raw_line, run_index, output_dir, start_measurements, device, disable_tracing, record_contents=False):
+def load_page(raw_line, run_index, output_dir, start_measurements, device, disable_tracing, record_contents=False, device_config_obj=None):
     # Create necessary directories
     base_output_dir = output_dir
     if not os.path.exists(base_output_dir):
@@ -252,6 +256,14 @@ def load_page(raw_line, run_index, output_dir, start_measurements, device, disab
     output_dir_run = os.path.join(base_output_dir, str(run_index))
     if not os.path.exists(output_dir_run):
         os.mkdir(output_dir_run)
+
+    if args.take_screenshots:
+        if not os.path.exists(os.path.join(output_dir_run, 'screenshots')):
+            os.mkdir(os.path.join(output_dir_run, 'screenshots'))
+        destination = os.path.join(output_dir_run, 'screenshots', common_module.escape_page(raw_line.strip()))
+        if not os.path.exists(destination):
+            os.mkdir(destination)
+        phone_connection_utils.start_taking_screenshot_every_x_s(device_config_obj, 0.1, destination)
     
     # Get the device configuration
     device, device_config = get_device_config(device)
@@ -266,9 +278,14 @@ def load_page(raw_line, run_index, output_dir, start_measurements, device, disab
         cmd += ' --collect-streaming'
     if args.collect_console:
         cmd += ' --collect-console'
+    if args.collect_tracing:
+        cmd += ' --collect-tracing'
     # if run_index > 0:
     #     cmd += ' --reload-page'
     subprocess.Popen(cmd, shell=True).wait()
+
+    if args.take_screenshots:
+        phone_connection_utils.stop_taking_screenshots(device_config_obj)
 
 def bring_chrome_to_foreground(device):
     device, device_config = get_device_config(device)
@@ -323,6 +340,8 @@ if __name__ == '__main__':
     parser.add_argument('--record-content', default=False, action='store_true')
     parser.add_argument('--collect-streaming', default=False, action='store_true')
     parser.add_argument('--collect-console', default=False, action='store_true')
+    parser.add_argument('--collect-tracing', default=False, action='store_true')
+    parser.add_argument('--take-screenshots', default=False, action='store_true')
     args = parser.parse_args()
     start_measurements = not args.dont_start_measurements
     main(args.pages_file, args.num_repetitions, args.output_dir, args.use_caching_proxy, start_measurements, args.use_device, args.disable_tracing, args.record_content)

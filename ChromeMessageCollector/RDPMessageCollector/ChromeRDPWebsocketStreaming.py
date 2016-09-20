@@ -29,7 +29,7 @@ def escape_page(url):
 
 class ChromeRDPWebsocketStreaming(object):
 
-    def __init__(self, url, target_url, device_configuration, user_agent_str, collect_console, callback_on_network_event, callback_page_done):
+    def __init__(self, url, target_url, device_configuration, user_agent_str, collect_console, collect_tracing, callback_on_network_event, callback_page_done):
         '''
         Initialize the object. 
         url - the websocket url
@@ -42,10 +42,10 @@ class ChromeRDPWebsocketStreaming(object):
         self.domContentEventFiredMs = None
         self.loadEventFiredMs = None
         self.tracingCollectionCompleted = False
-        self.start_page = False
 
         self.url = target_url       # The URL to navigate to.
         self.collect_console = collect_console
+        self.collect_tracing = False # Never start tracing.
         self.callback_on_network_event = callback_on_network_event
         self.callback_page_done = callback_page_done    # The callback method
         self.user_agent = user_agent_str
@@ -65,24 +65,21 @@ class ChromeRDPWebsocketStreaming(object):
         Handle each message.
         '''
         message_obj = json.loads(message)
-        if self.start_page:
-            self.callback_on_network_event(self, message_obj, message)
+        print message_obj
+        self.callback_on_network_event(self, message_obj, message)
         # self.tracingCollectionCompleted = True
         if METHOD in message_obj and message_obj[METHOD].startswith('Network'):
+            # if message_obj[METHOD] == 'Network.requestWillBeSent' and \
+            #     message_obj[PARAMS]['request']['url'] == self.url:
+            #     self.start_page = True
+            #     self.callback_on_network_event(self, message_obj, message)
             if message_obj[METHOD] == 'Network.requestWillBeSent' and \
-                message_obj[PARAMS]['request']['url'] == self.url:
-                self.start_page = True
-                self.callback_on_network_event(self, message_obj, message)
-            if message_obj[METHOD] == 'Network.requestWillBeSent' and \
-                message_obj[PARAMS]['initiator']['type'] == 'other' and \
-                self.start_page:
+                message_obj[PARAMS]['initiator']['type'] == 'other':
                 self.originalRequestMs = message_obj[PARAMS][TIMESTAMP] * 1000
         elif METHOD in message_obj and message_obj[METHOD].startswith('Page'):
-            if message_obj[METHOD] == 'Page.domContentEventFired' and \
-                self.start_page:
+            if message_obj[METHOD] == 'Page.domContentEventFired':
                 self.domContentEventFiredMs = message_obj[PARAMS][TIMESTAMP] * 1000
-            elif message_obj[METHOD] == 'Page.loadEventFired' and \
-                self.start_page:
+            elif message_obj[METHOD] == 'Page.loadEventFired':
                 self.loadEventFiredMs = message_obj[PARAMS][TIMESTAMP] * 1000
             elif message_obj[METHOD] == 'Page.javascriptDialogOpening':
                 if message_obj[PARAMS]['type'] == 'alert' or \
@@ -91,14 +88,20 @@ class ChromeRDPWebsocketStreaming(object):
                 elif message_obj[PARAMS]['type'] == 'confirm' or \
                     message_obj[PARAMS]['type'] == 'prompt':
                     navigation_utils.handle_js_dialog(self.ws, accept=False)
-
+        # elif METHOD in message_obj and message_obj[METHOD].startswith('Tracing'):
+        #     if message_obj[METHOD] == 'Tracing.tracingComplete':
+        #         self.tracingCollectionCompleted = True
         if self.originalRequestMs is not None and \
             self.domContentEventFiredMs is not None and \
-            self.loadEventFiredMs is not None:
+            self.loadEventFiredMs is not None and \
+            (not self.collect_tracing or \
+            (self.collect_tracing and self.tracingCollectionCompleted)):
             self.disable_network_tracking(self.ws)
             self.disable_page_tracking(self.ws)
             if self.collect_console:
                 self.disable_console_tracking(self.ws)
+            if self.collect_tracing:
+                self.stop_trace_collection(self.ws)
             print 'Start time {0}, Load completed: {1}'.format(self.originalRequestMs, self.loadEventFiredMs)
             self.callback_page_done(self)
 
@@ -123,6 +126,9 @@ class ChromeRDPWebsocketStreaming(object):
         
         if self.collect_console:
             self.enable_console_tracking(self.ws)
+
+        if self.collect_tracing:
+            self.enable_trace_collection(self.ws)
 
         if self.user_agent is not None:
             navigation_utils.set_user_agent(self.ws, self.user_agent)
@@ -201,7 +207,6 @@ class ChromeRDPWebsocketStreaming(object):
         debug_connection.send(json.dumps(disable_console))
         print 'Disable console tracking.'
         sleep(WAIT)
-    
 
     def enable_page_tracking(self, debug_connection):
         '''
@@ -225,7 +230,8 @@ class ChromeRDPWebsocketStreaming(object):
         '''
         Enables the tracing collection.
         '''
-        enable_trace_collection = { 'id': 4, 'method': 'Tracing.start' }
+        enable_trace_collection = { 'method': 'Tracing.start', 'params': { 'categories': 'devtools.timeline,disabled-by-default-devtools.timeline,disabled-by-default-devtools.screenshot', "options": "sampling-frezquency=10000" } }
+        # enable_trace_collection = { 'id': 4, 'method': 'Timeline.start' }
         debug_connection.send(json.dumps(enable_trace_collection))
         print 'Enabled trace collection'
         sleep(WAIT)
@@ -234,8 +240,18 @@ class ChromeRDPWebsocketStreaming(object):
         '''
         Enables the tracing collection.
         '''
-        enable_trace_collection = { 'id': 4, 'method': 'Tracing.end' }
+        enable_trace_collection = { 'method': 'Tracing.end' }
         debug_connection.send(json.dumps(enable_trace_collection))
+        # print 'Disables trace collection'
+        sleep(WAIT)
+
+    def capture_screenshot(self, debug_connection):
+        '''
+        Enables the tracing collection.
+        '''
+        print 'capturing screenshot'
+        capture_screenshot = { 'method': 'Page.captureScreenshot' }
+        debug_connection.send(json.dumps(capture_screenshot))
         # print 'Disables trace collection'
         sleep(WAIT)
 
