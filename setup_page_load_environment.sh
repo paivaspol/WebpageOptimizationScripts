@@ -95,11 +95,11 @@ cd ~
  apache
 #####################################################
 
-First get httpd
-do apt-get -y install libpcre3 libpcre3-dev libapr1-dev libaprutil1-dev
+# First get httpd
+sudo apt-get -y install libpcre3 libpcre3-dev libapr1-dev libaprutil1-dev
 
-et http://apache.mirrors.tds.net//httpd/httpd-2.4.20.tar.gz
-r xvzf httpd-2.4.20.tar.gz
+wget http://apache.mirrors.tds.net//httpd/httpd-2.4.20.tar.gz
+tar xvzf httpd-2.4.20.tar.gz
  httpd-2.4.20.tar.gz
 
 wget http://www.carfab.com/apachesoftware//apr/apr-1.5.2.tar.gz

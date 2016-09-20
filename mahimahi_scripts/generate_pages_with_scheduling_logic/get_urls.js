@@ -15,80 +15,104 @@ if ( typeof finished_top === "undefined" ) {
     if ( !window.top_level_url ) {
         finished_top = true;
     }
+
+    // list of outstanding XHR objects
+    window.outstanding_xhrs = [];
     
     // lists important URLs specified by each object
     important_urls = {}
     
     // outstanding important URLs
     outstanding_important_urls = [];
+
+    // in flight unimportant urls
+    inprogress_unimportant_urls = [];
     
     // unimportant urls to fetch
     unimportant_urls = [];
+
+    // Concurrency allowance
+    concurrency_allowance = 15;
     
     // handler function for important URLs
     var important_url_handler = function () {
-        var urls = [];
-        var unimp_urls = [];
+        console.log("[important_url_handler - before] Fired: " + performance.now() + " len(outstanding_important_urls): " + outstanding_important_urls.length + " url: " + this._url);
+        if ( outstanding_xhrs.indexOf(this) != -1 ) { // xhr is in the list so we should handle it
+            console.log("[important_url_handler - after] Fired: " + performance.now() + " len(outstanding_important_urls): " + outstanding_important_urls.length + " url: " + this._url );
+            var urls = [];
+            var unimp_urls = [];
     
-        // first get list of important/unimportant urls from headers
-        if ( this.readyState == 4 ) { // loaded
-            // remove url from list!
-            var index = outstanding_important_urls.indexOf(this._url);
-            outstanding_important_urls.splice(index, 1);
-            link_header = this.getResponseHeader("Link");
-            if ( link_header ) {
-                parts = link_header.split("<")
-                for (var p = 1; p < parts.length; p++) {
-                    urls.push(parts[p].split(">")[0]);
-                    //console.log("GOT link header: " + parts[p].split(">")[0]);
+            // first get list of important/unimportant urls from headers
+            if ( this.readyState >= 2 ) { // loaded
+                // remove url from list!
+                var index = outstanding_important_urls.indexOf(this._url);
+                outstanding_important_urls.splice(index, 1);
+                index = inprogress_unimportant_urls.indexOf(this._url);
+                inprogress_unimportant_urls.splice(index, 1);
+                link_header = this.getResponseHeader("Link");
+                if ( link_header ) {
+                    parts = link_header.split("<")
+                    for (var p = 1; p < parts.length; p++) {
+                        urls.push(parts[p].split(">")[0]);
+                        //console.log("GOT link header: " + parts[p].split(">")[0]);
+                    }
+                }
+                unimp_header = this.getResponseHeader("x-systemname-unimportant");
+                if ( unimp_header ) {
+                    unimp_parts = unimp_header.split(",");
+                    for ( var up = 0; up < unimp_parts.length; up++ ) {
+                        unimp_urls.push(unimp_parts[up]);
+                    }
                 }
             }
-            unimp_header = this.getResponseHeader("x-systemname-unimportant");
-            if ( unimp_header ) {
-                unimp_parts = unimp_header.split(",");
-                for ( var up = 0; up < unimp_parts.length; up++ ) {
-                    unimp_urls.push(unimp_parts[up]);
+    
+            // add unimportant urls that will ultimately have to be fetched
+            if ( unimp_urls.length > 0 ) { // unimportant urls to fetch
+                for ( var j = 0; j < unimp_urls.length; j++ ) {
+                    if ( unimportant_urls.indexOf(unimp_urls[j]) == -1 ) { // new unimportant URL
+                        console.log("GOT UNIMPORTANT URL TO MAKE: " + unimp_urls[j]);
+                        unimportant_urls.push(unimp_urls[j]);
+                    }
                 }
             }
-        }
     
-        // add unimportant urls that will ultimately have to be fetched
-        if ( unimp_urls.length > 0 ) { // unimportant urls to fetch
-            for ( var j = 0; j < unimp_urls.length; j++ ) {
-                if ( unimportant_urls.indexOf(unimp_urls[j]) == -1 ) { // new unimportant URL
-                    //console.log("GOT UNIMPORTANT URL TO MAKE: " + unimp_urls[j]);
-                    unimportant_urls.push(unimp_urls[j]);
+            if ( urls.length > 0 ) { // more important urls
+                for ( var i = 0; i < urls.length; i++ ) {
+                    if ( outstanding_important_urls.indexOf(urls[i]) == -1 ) { // new important URL
+                        outstanding_important_urls.push(urls[i]);
+                        // fetch URL
+                        var xhr = new XMLHttpRequest();
+                        xhr.open("GET", urls[i], true);
+                        xhr._url = urls[i];
+                        xhr.onreadystatechange = important_url_handler;
+                        //xhr.setRequestHeader("Access-Control-Expose-Headers", "Link, x-systemname-unimportant");
+                        // console.log("sending request as imp for: " + urls[i]);
+                        xhr.send();
+                        window.outstanding_xhrs.push(xhr);
+                    }
                 }
             }
-        }
     
-        if ( urls.length > 0 ) { // more important urls
-            for ( var i = 0; i < urls.length; i++ ) {
-                if ( outstanding_important_urls.indexOf(urls[i]) == -1 ) { // new important URL
-                    outstanding_important_urls.push(urls[i]);
-                    // fetch URL
-                    var xhr = new XMLHttpRequest();
-                    xhr.open("GET", urls[i], true);
-                    xhr._url = urls[i];
-                    xhr.onreadystatechange = important_url_handler;
-                    //xhr.setRequestHeader("Access-Control-Expose-Headers", "Link, x-systemname-unimportant");
-                    //console.log("sending request as imp for: " + urls[i]);
-                    xhr.send();
+            // if we have no important urls to fetch, fetch unimportant urls!
+            if ( outstanding_important_urls.length == 0 ) {
+            // if ( important_urls.length - concurrency_allowance > inprogress_unimportant_urls.length ) {
+                // for ( var y = 0; y < unimportant_urls.length; y++ ) {
+                for ( var y = 0; y < important_urls.length - concurrency_allowance - 1; y++ ) {
+                    var unimp_xhr = new XMLHttpRequest();
+                    unimp_xhr.open("GET", unimportant_urls[y], true);
+                    console.log("sending request as unimp for: " + unimportant_urls[y]);
+                    //unimp_xhr.setRequestHeader("Access-Control-Expose-Headers", "Link, x-systemname-unimportant");
+                    unimp_xhr.send();
+                    window.outstanding_xhrs.push(unimp_xhr);
+                    // remove from list
+                    // var inflight_unimp_url = unimportant_urls[0];
+                    var inflight_unimp_url = unimportant_urls.splice(0, 1);
+                    inprogress_unimportant_urls.push(inflight_unimp_url);
                 }
             }
-        }
-    
-        // if we have no important urls to fetch, fetch unimportant urls!
-        if ( outstanding_important_urls.length == 0 ) {
-            for ( var y = 0; y < unimportant_urls.length; y++ ) {
-                var unimp_xhr = new XMLHttpRequest();
-                unimp_xhr.open("GET", unimportant_urls[y], true);
-                //console.log("sending request as unimp for: " + unimportant_urls[y]);
-                //unimp_xhr.setRequestHeader("Access-Control-Expose-Headers", "Link, x-systemname-unimportant");
-                unimp_xhr.send();
-                // remove from list
-                unimportant_urls.splice(y, 1);
-            }
+            // remove the xhr from the list
+            var xhr_ind = outstanding_xhrs.indexOf(this);
+            outstanding_xhrs.splice(xhr_ind, 1);
         }
     };
     
@@ -98,9 +122,11 @@ if ( typeof finished_top === "undefined" ) {
         top_xhr.open("GET", top_level_url, true);
         top_xhr.onreadystatechange = important_url_handler;
         top_xhr.addEventListener("onreadystatechange", function () {window.finished_top = true;});
+        top_xhr._url = top_level_url;
         //console.log("sending request to start top for: " + top_level_url);
         //top_xhr.setRequestHeader("Access-Control-Expose-Headers", "Link, x-systemname-unimportant");
         top_xhr.send();
+        window.outstanding_xhrs.push(top_xhr);
         window.finished_top = true;
     }
 }
