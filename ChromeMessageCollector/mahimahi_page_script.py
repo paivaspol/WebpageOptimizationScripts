@@ -20,9 +20,9 @@ from utils import chrome_utils
 from utils import phone_connection_utils
 
 WAIT = 2
-TIMEOUT = 3 * 60
+TIMEOUT = int(1 * 60)
 TIMEOUT_DEPENDENCY_BASELINE = 0.5 * 60
-MAX_TRIES = 20
+MAX_TRIES = 7
 MAX_LOAD_TRIES = 3
 
 def main(config_filename, pages, iterations, device_name, mode, output_dir):
@@ -180,8 +180,8 @@ def start_proxy(mode, page, time, replay_configurations, delay=0):
 
         if mode == 'delay_replay':
             start_proxy_url += '&delay={0}'.format(args.delay)
-            if args.http_version == 1:
-                start_proxy_url += '&http={0}'.format(args.http_version)
+        if args.http_version == 1:
+            start_proxy_url += '&http={0}'.format(args.http_version)
 
         if args.without_dependencies:
             start_proxy_url += '&dependencies=no'
@@ -267,10 +267,12 @@ def check_proxy_running(config, mode):
     elif mode == 'replay' or mode == 'per_packet_delay_replay':
         server_check = 'is_replay_proxy_running'
 
-    url = 'http://{0}:{1}/{2}'.format( \
+    url = 'http://{0}:{1}/{2}?http={3}'.format( \
                 config[replay_config_utils.SERVER_HOSTNAME], \
                 config[replay_config_utils.SERVER_PORT], \
-                server_check)
+                server_check, \
+                args.http_version)
+
     result = requests.get(url)
     return parse_check_result(result.text)
 

@@ -151,7 +151,6 @@ class ChromeRDPWebsocketStreaming(object):
 
         if self.collect_tracing:
             self.enable_trace_collection(self.ws)
-
         print 'navigating to url: ' + str(self.url)
         navigation_utils.navigate_to_page(self.ws, self.url)
 
