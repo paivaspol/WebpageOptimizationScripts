@@ -83,6 +83,8 @@ class ChromeRDPWebsocketStreaming(object):
                 self.domContentEventFiredMs = message_obj[PARAMS][TIMESTAMP] * 1000
             elif message_obj[METHOD] == 'Page.loadEventFired' and self.start_page:
                 self.loadEventFiredMs = message_obj[PARAMS][TIMESTAMP] * 1000
+                if self.collect_tracing and self.tracing_started:
+                    self.stop_trace_collection(self.ws)
             elif message_obj[METHOD] == 'Page.javascriptDialogOpening':
                 if message_obj[PARAMS]['type'] == 'alert' or \
                     message_obj[PARAMS]['type'] == 'beforeunload':
@@ -94,12 +96,12 @@ class ChromeRDPWebsocketStreaming(object):
             if message_obj[METHOD] == 'Tracing.tracingComplete':
                 self.tracingCollectionCompleted = True
 
-        print '{0} {1} {2}'.format(self.originalRequestMs, self.domContentEventFiredMs, self.loadEventFiredMs)
-        if self.originalRequestMs is not None and \
-            self.domContentEventFiredMs is not None and \
-            self.loadEventFiredMs is not None :
-            if self.collect_tracing and self.tracing_started:
-                self.stop_trace_collection(self.ws)
+        #print '{0} {1} {2}'.format(self.originalRequestMs, self.domContentEventFiredMs, self.loadEventFiredMs)
+        #if self.originalRequestMs is not None and \
+        #    self.domContentEventFiredMs is not None and \
+        #    self.loadEventFiredMs is not None :
+        #    if self.collect_tracing and self.tracing_started:
+        #        self.stop_trace_collection(self.ws)
 
         if self.originalRequestMs is not None and \
             self.domContentEventFiredMs is not None and \
@@ -137,8 +139,6 @@ class ChromeRDPWebsocketStreaming(object):
         if self.collect_console:
             self.enable_console_tracking(self.ws)
 
-        if self.collect_tracing:
-            self.enable_trace_collection(self.ws)
 
         if self.user_agent is not None:
             navigation_utils.set_user_agent(self.ws, self.user_agent)
@@ -148,6 +148,10 @@ class ChromeRDPWebsocketStreaming(object):
         # self.enable_trace_collection(self.ws)
         navigation_utils.navigate_to_page(self.ws, 'about:blank')
         sleep(WAIT)
+
+        if self.collect_tracing:
+            self.enable_trace_collection(self.ws)
+
         print 'navigating to url: ' + str(self.url)
         navigation_utils.navigate_to_page(self.ws, self.url)
 
@@ -242,7 +246,7 @@ class ChromeRDPWebsocketStreaming(object):
         Enables the tracing collection.
         '''
         #enable_trace_collection = { "id": 9, 'method': 'Tracing.start' }
-        enable_trace_collection = { "id": 9, 'method': 'Tracing.start', 'params': { 'categories': 'devtools.timeline,disabled-by-default-devtools.timeline,disabled-by-default-devtools.screenshot', "options": "sampling-frezquency=10000" } }
+        enable_trace_collection = { "id": 9, 'method': 'Tracing.start', 'params': { 'categories': 'devtools.timeline, disabled-by-default-devtools.timeline, disabled-by-default-devtools.screenshot', "options": "sampling-frequency=10000" } }
         # enable_trace_collection = { 'id': 4, 'method': 'Timeline.start' }
         debug_connection.send(json.dumps(enable_trace_collection))
         self.tracing_started = True

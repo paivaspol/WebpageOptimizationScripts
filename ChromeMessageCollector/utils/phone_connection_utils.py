@@ -1,5 +1,6 @@
 import subprocess
 import os
+import random
 
 from time import sleep
 from ConfigParser import ConfigParser
@@ -22,7 +23,7 @@ DEVICE_UBUNTU = 'ubuntu'
 
 ANDROID_CHROME_INSTANCE = 'com.android.chrome/com.google.android.apps.chrome.Main'
 ANDROID_CHROMIUM_INSTANCE = 'org.chromium.chrome/com.google.android.apps.chrome.Main'
-MAC_CHROME_INSTANCE = '"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"'
+MAC_CHROME_INSTANCE = '"/Applications/Google Chrome Canary.app/Contents/MacOS/Google Chrome Canary"'
 UBUNTU_CHROME_INSTANCE = '"/opt/google/chrome/google-chrome"'
 
 CHANGE_USER_AGENT = 'change_user_agent'
@@ -49,7 +50,9 @@ def start_chrome(device_configuration):
         device_configuration[DEVICE_TYPE] == DEVICE_UBUNTU:
         # print 'device config: ' + str(device_configuration)
         # Run Chrome.
-        cmd = device_configuration[CHROME_INSTANCE] + '  --disable-extensions --remote-debugging-port={0} --disable-logging'.format(device_configuration[CHROME_DESKTOP_DEBUG_PORT])
+        print "Run experiment chrome"
+        #cmd = device_configuration[CHROME_INSTANCE] + '  --disable-extensions --remote-debugging-port={0} --disable-logging --enable-devtools-experiments --user-data-dir=chrome-{1} --utility-allowed-dir=chrome-{1} --artifects-dir=chrome-{1} '.format(device_configuration[CHROME_DESKTOP_DEBUG_PORT], random.random())
+        cmd = device_configuration[CHROME_INSTANCE] + '  --disable-extensions --remote-debugging-port={0} --disable-logging --enable-devtools-experiments '.format(device_configuration[CHROME_DESKTOP_DEBUG_PORT], random.random())
         if PAC_FILE_PATH in device_configuration:
             cmd += ' --proxy-pac-url={0}'.format(device_configuration[PAC_FILE_PATH])
         if IGNORE_CERTIFICATE_ERRORS in device_configuration:
