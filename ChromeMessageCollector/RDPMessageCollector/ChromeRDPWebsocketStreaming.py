@@ -130,7 +130,7 @@ class ChromeRDPWebsocketStreaming(object):
         self.clear_cache(self.ws)
         
         # self.enable_trace_collection(self.ws)
-        navigation_utils.navigate_to_page(self.ws, 'about:blank')
+        # navigation_utils.navigate_to_page(self.ws, 'about:blank')
         print 'navigating to url: ' + str(self.url)
         navigation_utils.navigate_to_page(self.ws, self.url)
 
