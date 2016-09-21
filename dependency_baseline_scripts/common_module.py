@@ -18,7 +18,8 @@ def get_dependencies(dependency_filename):
 
 def get_pages(page_list_filename):
     with open(page_list_filename, 'rb') as input_file:
-        return [ escape_page(line.strip()) for line in input_file ]
+        temp = [ line.strip().split() for line in input_file ]
+        return [ escape_page(line[len(line) - 1]) for line in temp ]
 
 def extract_url_from_link_string(link_string):
     # First, split by space.

@@ -25,7 +25,7 @@ def find_load_times(root_dir, pages_to_ignore):
 
 def get_pages(pages_filename):
     with open(pages_filename, 'rb') as input_file:
-        return [ common_module.escape_page(line.strip()) for line in input_file ]
+        return [ common_module.escape_page(line.strip().split()[len(line.split()) - 1]) for line in input_file ]
 
 def print_result(results):
     for result in results:

@@ -8,13 +8,20 @@ import common_module
 JSON_SUFFIX = '.json'
 
 def generate_dependencies_for_proxy(root_dir, pages, output_dir):
-    for page in pages:
+    if args.use_non_redirect:
+        non_redirected_url = common_module.get_pages(args.pages_file, index=0)
+
+    for i in range(0, len(pages)):
+        page = pages[i]
         url = common_module.escape_url(page)
         dependency_tree_path = os.path.join(root_dir, common_module.escape_url(page) + ".json")
         print 'path: ' + dependency_tree_path + ' url: ' + url
-        generate_dependencies_for_proxy_main(dependency_tree_path, page, output_dir)
+        if args.use_non_redirect:
+            generate_dependencies_for_proxy_main(dependency_tree_path, page, output_dir, non_redirected_url[i])
+        else:
+            generate_dependencies_for_proxy_main(dependency_tree_path, page, output_dir, None)
 
-def generate_dependencies_for_proxy_main(dependency_tree_path, page, output_dir):
+def generate_dependencies_for_proxy_main(dependency_tree_path, page, output_dir, non_redirect_url):
     if not os.path.exists(dependency_tree_path):
         return
     given_dependencies = None
@@ -23,15 +30,22 @@ def generate_dependencies_for_proxy_main(dependency_tree_path, page, output_dir)
 
     result_dependencies = [] # A list containing dependency lines
     dependency_tree_object = get_dependency_objects(dependency_tree_path)
-    try:
-        generate_file_from_dependency_tree_object(dependency_tree_object, \
-                                                  page, page, page, \
-                                                  result_dependencies)
-        result_dependencies.sort(key=lambda x: x[3])
-        output_to_file(result_dependencies, common_module.escape_url(page), output_dir, given_dependencies)
-    except RuntimeError as e:
-        print str(e) + ' page: ' + page
-        pass
+    generate_file_from_dependency_tree_object(dependency_tree_object, \
+                                              page, page, page, \
+                                              result_dependencies)
+    if args.serve_from_outer_html:
+        result_dependencies = change_origin_url(result_dependencies, page)
+    result_dependencies.sort(key=lambda x: x[3])
+    output_page = non_redirect_url if non_redirect_url is not None else page
+    output_page = common_module.escape_url(output_page)
+    output_to_file(result_dependencies, output_page, output_dir, given_dependencies)
+
+def change_origin_url(result_dependencies, page):
+    result = []
+    for dependency in result_dependencies:
+        entry = (page, dependency[1], dependency[2], dependency[3], dependency[4])
+        result.append(entry)
+    return result
 
 def get_given_dependencies(given_dependencies_filename):
     retval = set()
@@ -94,11 +108,20 @@ def generate_file_from_dependency_tree_object(dependency_tree_object, \
         # print 'next domain: {0} current domain: {1}'.format(next_domain, cur_domain)
         # print ''
         next_origin_url = origin_url if next_domain == cur_domain else child
-        generate_file_from_dependency_tree_object(dependency_tree_object, \
-                                                   child, \
-                                                   dependency_url, \
-                                                   next_origin_url, \
-                                                   result_dependencies)
+        # generate_file_from_dependency_tree_object(dependency_tree_object, \
+        #                                            child, \
+        #                                            dependency_url, \
+        #                                            next_origin_url, \
+        #                                            result_dependencies)
+        try:
+            generate_file_from_dependency_tree_object(dependency_tree_object, \
+                                                       child, \
+                                                       dependency_url, \
+                                                       next_origin_url, \
+                                                       result_dependencies)
+        except RuntimeError as e:
+            print str(e)
+            break
 
 def extract_domain(url):
     '''
@@ -128,6 +151,8 @@ if __name__ == '__main__':
     parser.add_argument('pages_file')
     parser.add_argument('--output-dir', default='.')
     parser.add_argument('--use-only-given-dependencies', default='')
+    parser.add_argument('--use-non-redirect', default=False, action='store_true')
+    parser.add_argument('--serve-from-outer-html', default=False, action='store_true')
     args = parser.parse_args()
     pages = common_module.get_pages(args.pages_file)
     generate_dependencies_for_proxy(args.root_dir, pages, args.output_dir)

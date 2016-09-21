@@ -74,6 +74,8 @@ def get_dependency_finish_download_time(page, network_filename, dependencies):
                         # Get the current timestamp and find the time difference.
                         finish_timestamp = network_event[PARAMS][TIMESTAMP]
                         time_from_first_request = finish_timestamp - first_request_timestamp
+                        if args.print_ms:
+                            time_from_first_request = time_from_first_request * 1000.0
                         times_from_first_request[url] = time_from_first_request
 
                         dependencies.remove(url)
@@ -89,5 +91,6 @@ if __name__ == '__main__':
     parser.add_argument('dependency_dir')
     parser.add_argument('--page-list', default=None)
     parser.add_argument('--use-median-finish-time', default=False, action='store_true')
+    parser.add_argument('--print-ms', default=False, action='store_true')
     args = parser.parse_args()
     main(args.root_dir, args.dependency_dir)

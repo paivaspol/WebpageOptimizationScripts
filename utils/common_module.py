@@ -22,5 +22,5 @@ def parse_pages_to_ignore(pages_to_ignore_filename):
             for raw_line in input_file:
                 line = raw_line.strip().split()[0]
                 pages.add(escape_page(line))
-    print pages
+    # print pages
     return pages

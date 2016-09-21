@@ -62,7 +62,7 @@ def main(device_configuration, url, disable_tracing, reload_page):
             print 'Removing ' + network_filename
             os.remove(network_filename)
 
-        debugging_socket = ChromeRDPWebsocketStreaming(debugging_url, url, device_configuration, user_agent_str, args.collect_console, callback_on_received_event, callback_on_page_done_streaming)
+        debugging_socket = ChromeRDPWebsocketStreaming(debugging_url, url, device_configuration, user_agent_str, args.collect_console, args.collect_tracing, callback_on_received_event, callback_on_page_done_streaming)
         if args.get_dependency_baseline:
             def timeout_handler(a, b):
                 callback_on_page_done_streaming(debugging_socket)
@@ -109,20 +109,21 @@ def create_output_directory_for_url(url):
     return base_dir
 
 def callback_on_received_event(debugging_socket, network_message, network_message_string):
+    url = debugging_socket.get_navigation_url()
+    base_dir = create_output_directory_for_url(url)
+    final_url = common_module.escape_page(url)
     if 'method' in network_message and network_message['method'].startswith('Network'):
-        url = debugging_socket.get_navigation_url()
-        base_dir = create_output_directory_for_url(url)
-        final_url = common_module.escape_page(url)
         network_filename = os.path.join(base_dir, 'network_' + final_url)
         with open(network_filename, 'ab') as output_file:
             output_file.write('{0}\n'.format(json.dumps(network_message_string)))
     elif 'method' in network_message and network_message['method'].startswith('Console'):
-        url = debugging_socket.get_navigation_url()
-        base_dir = create_output_directory_for_url(url)
-        final_url = common_module.escape_page(url)
         network_filename = os.path.join(base_dir, 'console_' + final_url)
         with open(network_filename, 'ab') as output_file:
             output_file.write('{0}\n'.format(json.dumps(network_message_string)))
+    elif 'method' in network_message and network_message['method'].startswith('Tracing'):
+        tracing_filename = os.path.join(base_dir, 'tracing_' + final_url)
+        with open(network_filename, 'ab') as output_file:
+            output_file.write('{0}\n'.format(network_message_string))
 
 def callback_on_page_done_streaming(debugging_socket):
     debugging_socket.close_connection()
@@ -140,8 +141,9 @@ def callback_on_page_done_streaming(debugging_socket):
     # print 'output dir: ' + base_dir
     print 'Load time: ' + str((start_time, end_time)) + ' ' + str((end_time - start_time))
     write_page_start_end_time(final_url, base_dir, start_time, end_time, -1, -1)
+    navigation_utils.navigate_to_page(new_debugging_websocket, 'about:blank')
     new_debugging_websocket.close()
-    chrome_utils.close_tab(debugging_socket.device_configuration, debugging_socket.device_configuration['page_id'])
+    # chrome_utils.close_tab(debugging_socket.device_configuration, debugging_socket.device_configuration['page_id'])
 
 def callback_on_page_done(debugging_socket, network_messages, timeline_messages, original_request_ts, load_event_ts, request_ids, device_configuration):
     '''
@@ -246,6 +248,7 @@ if __name__ == '__main__':
     argparser.add_argument('--collect-console', default=False, action='store_true')
     argparser.add_argument('--get-chromium-logs', default=False, action='store_true')
     argparser.add_argument('--get-dependency-baseline', default=False, action='store_true')
+    argparser.add_argument('--collect-tracing', default=False, action='store_true')
     args = argparser.parse_args()
 
     # Setup the config filename

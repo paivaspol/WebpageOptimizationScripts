@@ -155,12 +155,14 @@ public class MainActivity extends AppCompatActivity {
             if (!downloadFolder.exists()) {
                 downloadFolder.mkdirs();
             }
-            File outputFile = new File(downloadFolder, outputFilename);
+            File outputFile = new File("/sdcard/Research/", outputFilename);
             System.out.println("Output File: " + outputFile);
             if (outputFile.exists()) {
                 outputFile.delete();
             }
-            outputFile.createNewFile();
+            if (!outputFile.createNewFile()) {
+                System.out.println("Couldn't create file.");
+            }
             outputStream = new FileOutputStream(outputFile);
         } catch (IOException e) {
             throw new RuntimeException(e);

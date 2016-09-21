@@ -5,7 +5,7 @@ import common_module
 import dpkt
 import os
 
-DOWNLOAD_BANDWIDTH = 6.0
+DOWNLOAD_BANDWIDTH = 4.0
 
 def find_bandwidth(base_dir, bytes_range, use_spdyproxy):
     # print 'base_dir: ' + base_dir
@@ -29,7 +29,9 @@ def find_bandwidth(base_dir, bytes_range, use_spdyproxy):
             ip = eth.data
             try:
                 tcp = ip.data
-                if int(ip.p) != int(dpkt.ip.IP_PROTO_TCP) or not common_module.check_web_port(use_spdyproxy, tcp.sport):
+                if not (int(ip.p) == int(dpkt.ip.IP_PROTO_TCP) and common_module.check_web_port(use_spdyproxy, tcp.sport)) or \
+                    not (int(ip.p) == int(dpkt.ip.IP_PROTO_UDP) and common_module.check_web_port(use_spdyproxy, udp.sport)):
+                    
                     # We only care about HTTP or HTTPS or using SPDYProxy
                     continue
                 bytes_received += ip.len
