@@ -1,3 +1,4 @@
+import common_module
 import os
 import sys
 import subprocess
@@ -6,6 +7,7 @@ import subprocess
 recorded_folder = sys.argv[1]
 rewritten_folder = sys.argv[2]
 index = sys.argv[3]
+page = sys.argv[4]
 
 # temp folder to store rewritten protobufs
 os.system("rm -rf rewritten_" + index)
@@ -14,7 +16,7 @@ os.system( "cp -r " + recorded_folder + " rewritten_" + index )
 files = os.listdir("rewritten_" + index)
 
 # iterate through files to get top-level HTML (must do this before processing files!)
-top_level_html = ''
+top_level_html_urls = []
 top_files = []
 for filename in files:
     top_cmd = "./protototext rewritten_" + index + "/" + filename + " top_level_temp_" + index
@@ -22,11 +24,17 @@ for filename in files:
     (out_top, err_top) = proc_top.communicate()
     out_top = out_top.strip("\n")
     if ( "type=htmlindex" in out_top ): # this is the top-level HTML
-        top_level_html = out_top.split("na--me=")[1]
+        top_level_html_urls.append(out_top.split("na--me=")[1])
         top_files.append(filename)
     os.system("rm top_level_temp_" + index)
 
 print "FOUND TOP LEVEL: " + str(top_files)
+
+top_level_html = ''
+for url in top_level_html_urls:
+    print url
+    if common_module.escape_page(url) == page:
+        top_level_html = url
 
 if ( top_level_html == '' ): # didn't find top level HTML file
     print "Didn't find top-level HTML file in: " + recorded_folder
