@@ -1,3 +1,4 @@
+import os
 import simplejson as json
 import websocket
 import threading
@@ -133,6 +134,9 @@ class ChromeRDPWebsocketStreaming(object):
         if self.user_agent is not None:
             navigation_utils.set_user_agent(self.ws, self.user_agent)
 
+        if os.getenv("EMULATE_DEVICE", "") != "":
+            self.emulate_device(self.ws, os.getenv("EMULATE_DEVICE"))
+
         self.clear_cache(self.ws)
         
         # self.enable_trace_collection(self.ws)
@@ -149,6 +153,84 @@ class ChromeRDPWebsocketStreaming(object):
 
     def clear_cache(self, debug_connection):
         navigation_utils.clear_cache(debug_connection)
+
+    def emulate_device(self, debug_connection, device_name):
+        configs = [{
+            "device": {
+                "title": "Apple iPhone 6",
+                "screen": {
+                    "horizontal": {
+                        "width": 667,
+                        "height": 375
+                    },
+                    "device-pixel-ratio": 2,
+                    "vertical": {
+                        "width": 375,
+                        "height": 667
+                    }
+                },
+                "user-agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 8_0 like Mac OS X) AppleWebKit/600.1.3 (KHTML, like Gecko) Version/8.0 Mobile/12A4345d Safari/600.1.4",
+            }
+        },{
+            "device": {
+                "title": "Google Nexus 6",
+                "screen": {
+                    "horizontal": {
+                        "width": 732,
+                        "height": 412
+                    },
+                    "device-pixel-ratio": 3.5,
+                    "vertical": {
+                        "width": 412,
+                        "height": 732
+                    }
+                },
+                "user-agent": "Mozilla/5.0 (Linux; Android 5.1.1; Nexus 6 Build/LYZ28E) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/44.0.2403.20 Mobile Safari/537.36",
+            }
+        },{
+            "device": {
+                "title": "Google Nexus 10",
+                "screen": {
+                    "horizontal": {
+                        "width": 1280,
+                        "height": 800
+                    },
+                    "device-pixel-ratio": 2,
+                    "vertical": {
+                        "width": 800,
+                        "height": 1280
+                    }
+                },
+                "user-agent": "Mozilla/5.0 (Linux; Android 4.3; Nexus 10 Build/JSS15Q) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/42.0.2307.2 Safari/537.36",
+            }
+        }]
+
+        cfg = None
+        for c in configs:
+            if c["device"]["title"] == device_name:
+                cfg = c
+                break
+        if cfg is None:
+            valid_devices = ", ".join(c["device"]["title"] for c in configs)
+            raise ValueError("invalid device %s: known devices are %s" % (device_name, valid_devices))
+        navigation_utils.set_user_agent(debug_connection, cfg["device"]["user-agent"])
+        self.set_touch_mode(debug_connection)
+        self.set_device_metrics_override(
+            debug_connection,
+            cfg["device"]["screen"]["vertical"]["width"],
+            cfg["device"]["screen"]["vertical"]["height"])
+
+    def set_touch_mode(self, conn):
+        conn.send(json.dumps({"id": 23, "method": "Page.setTouchEmulationEnabled", "params": {"enabled": True}}))
+        print 'enabled touch mode'
+        sleep(WAIT)
+
+    def set_device_metrics_override(self, conn, width, height):
+        msg = { "id": 235, "method": "Page.setDeviceMetricsOverride", "params": {
+            "width": width, "height": height, "fontScaleFactor": 1, "fitWindow": False}}
+        conn.send(json.dumps(msg))
+        print 'set device metrics override'
+        sleep(WAIT)
 
     def can_clear_cache(self, debug_connection):
         '''
