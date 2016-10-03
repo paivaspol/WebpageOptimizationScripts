@@ -16,10 +16,9 @@ def main(root_dir, num_iterations, pages, output_dir):
     averages = []
     for page in pages:
         page = common_module.escape_url(page)
-        print 'Processing ' + page
 
         skip_page = False # Indicator to decide whether to skip processing this page.
-        page_common_resources = []
+        page_common_resources = set()
         total_resources = []
         for i in range(0, num_iterations):
             run_path = os.path.join(root_dir, str(i), page)
@@ -32,28 +31,29 @@ def main(root_dir, num_iterations, pages, output_dir):
             if len(page_common_resources) == 0:
                 page_common_resources = resources
             else:
-                page_common_resources = find_resource_intersection(page_common_resources, resources)
+                page_common_resources = page_common_resources & resources
         output(output_dir, page, page_common_resources, args.output_to_stdout)
 
         if args.print_fraction:
-            fraction = print_fraction(len(page_common_resources), total_resources, num_iterations)
+            # print 'Processing ' + page
+            fraction = print_fraction(page, len(page_common_resources), total_resources, num_iterations)
             if fraction > 0:
                 averages.append((page, fraction))
 
-    if args.print_fraction:
-        print 'average: ' + str(numpy.average([ x[1] for x in averages ]))
+    # if args.print_fraction:
+    #     print 'average: ' + str(numpy.average([ x[1] for x in averages ]))
 
     if args.output_fraction_list:
         output_fraction_list(output_dir, averages)
 
-def print_fraction(num_intersection, total_resources_count, num_iterations):
+def print_fraction(page, num_intersection, total_resources_count, num_iterations):
     running_sum = 0.0
     for i, resource_count in enumerate(total_resources_count):
         if resource_count != 0:
             fraction = 1.0 * num_intersection / resource_count
             running_sum += fraction
-            print '\titeration: {0} total resources: {1} fraction: {2}'.format(i, resource_count, fraction)
-    print '\taverage: {0}'.format((running_sum / num_iterations))
+            print '{0} {1} {2} {3} {4}'.format(page, i, num_intersection, resource_count, fraction)
+    # print '\taverage: {0}'.format((running_sum / num_iterations))
     return running_sum / num_iterations
 
 def output_fraction_list(output_dir, averages):
@@ -72,12 +72,9 @@ def output(output_dir, page, page_common_resources, to_stdout=True):
         with open(page_filename, 'wb') as output_file:
             for resource in page_common_resources:
                 output_file.write(resource + '\n')
-            
-def find_resource_intersection(first_resources, second_resources):
-    return [ x for x in first_resources if x in second_resources ]
 
 def find_all_resources(network_filename, page):
-    resource_list = list()
+    resource_list = set()
     with open(network_filename, 'rb') as input_file:
         found_first_request = False
         for raw_line in input_file:
@@ -91,8 +88,14 @@ def find_all_resources(network_filename, page):
                 continue
             if network_event[METHOD] == 'Network.responseReceived':
                 url = network_event[PARAMS][RESPONSE][URL]
-                if url.startswith('http') and url not in resource_list:
-                    resource_list.append(url)
+                resource_type = network_event[PARAMS]['type']
+                if url.startswith('http') and url not in resource_list and \
+                    (not args.only_important_resources or \
+                    (args.only_important_resources and \
+                        resource_type == 'Document' or \
+                        resource_type == 'Script' or \
+                        resource_type == 'Stylesheet')):
+                    resource_list.add(url)
     return resource_list
 
 def get_pages(pages_file):
@@ -117,6 +120,7 @@ if __name__ == '__main__':
     parser.add_argument('--print-fraction', default=False, action='store_true')
     parser.add_argument('--output-to-stdout', default=False, action='store_true')
     parser.add_argument('--output-fraction-list', default=False, action='store_true')
+    parser.add_argument('--only-important-resources', default=False, action='store_true')
     args = parser.parse_args()
     pages = get_pages(args.pages_file)
     main(args.root_dir, args.num_iterations, pages, args.output_dir)

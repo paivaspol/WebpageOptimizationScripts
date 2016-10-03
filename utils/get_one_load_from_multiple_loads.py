@@ -85,7 +85,14 @@ def copy_chosen_runs(chosen_runs, root_dir, output_dir, num_iterations):
             subprocess.call(copy_command, shell=True)
             counter += 1
             print '{0} {1}'.format(page, run_index)
+    output_page_to_run_index(root_dir, chosen_runs)
     print 'Copied {0} sites from {1} sites'.format(counter, len(chosen_runs))
+
+def output_page_to_run_index(output_dir, chosen_runs):
+    output_filename = os.path.join(output_dir, 'page_to_run_index.txt')
+    with open(output_filename, 'wb') as output_file:
+        for page, run_index in chosen_runs.iteritems():
+            output_file.write('{0} {1}\n'.format(page, run_index))
 
 if __name__ == '__main__':
     parser = ArgumentParser()

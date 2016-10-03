@@ -45,6 +45,8 @@ def find_dependencies(page, network_activities, page_start_end_time):
             ts = common_module.convert_to_ms(network_activity[PARAMS][WALLTIME])
             request_id = network_activity[PARAMS][REQUEST_ID]
             url = network_activity[PARAMS][REQUEST][URL]
+            if 'redirectResponse' in network_activity[PARAMS]:
+                url = network_activity[PARAMS]['redirectResponse']['url']
             # print 'page: ' + page + ' document_url: ' + document_url
             if not found_page and common_module.escape_url(url) == common_module.escape_url(page):
                 found_page = True

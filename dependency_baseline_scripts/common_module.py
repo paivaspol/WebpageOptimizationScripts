@@ -12,10 +12,6 @@ def escape_page(url):
         url = url[len(WWW_PREFIX):]
     return url.replace('/', '_')
 
-def get_dependencies(dependency_filename):
-    with open(dependency_filename, 'rb') as input_file:
-        return { line.strip().split()[2] for line in input_file }
-
 def get_pages(page_list_filename):
     with open(page_list_filename, 'rb') as input_file:
         temp = [ line.strip().split() for line in input_file ]
@@ -38,3 +34,24 @@ def extract_url_from_link_string(link_string):
                 pass
                 
     return result_urls
+
+def get_dependencies(dependency_filename, use_only_important_resources):
+    results = []
+    with open(dependency_filename, 'rb') as input_file:
+        for raw_line in input_file:
+            line = raw_line.strip().split()
+            resource_type = line[4]
+            if use_only_important_resources and not (resource_type == 'Document' or resource_type == 'Script' or resource_type == 'Stylesheet'):
+                continue
+            results.append(line[2])
+    return results
+
+def get_unimportant_dependencies(dependency_filename):
+    results = []
+    with open(dependency_filename, 'rb') as input_file:
+        for raw_line in input_file:
+            line = raw_line.strip().split()
+            resource_type = line[4]
+            if not (resource_type == 'Document' or resource_type == 'Script' or resource_type == 'Stylesheet'):
+                results.append(line[2])
+    return results

@@ -1,12 +1,24 @@
 from argparse import ArgumentParser
 
+import common_module
 import os
 import numpy
 
 def process_pages(root_dir):
     pages = os.listdir(root_dir)
+    if args.page_list is not None:
+        pages = filter_page_not_on_page_list(pages, args.page_list)
     for page in pages:
         process_page(root_dir, page)
+
+def filter_page_not_on_page_list(pages, page_list):
+    pages_set = set(pages)
+    with open(page_list, 'rb') as input_file:
+        wanted_pages = set()
+        for raw_line in input_file:
+            escaped_page = common_module.escape_page(raw_line.strip().split()[1])
+            wanted_pages.add(escaped_page)
+        return pages_set & wanted_pages
 
 def process_page(root_dir, page):
     page_path = os.path.join(root_dir, page)
@@ -32,5 +44,6 @@ def get_cpu_running_chrome(cpu_running_chrome_filename):
 if __name__ == '__main__':
     parser = ArgumentParser()
     parser.add_argument('root_dir')
+    parser.add_argument('--page-list', default=None)
     args = parser.parse_args()
     process_pages(args.root_dir)

@@ -1,4 +1,5 @@
 import subprocess
+import threading
 import os
 import random
 
@@ -211,3 +212,24 @@ def wake_phone_up(device_config):
         command = 'adb -s {0} shell input keyevent KEYCODE_WAKEUP'.format(device_config[DEVICE_ID])
         subprocess.call(command, shell=True)
         print 'Waking up the phone'
+
+timer = None
+index = 0
+
+def start_taking_screenshot_every_x_s(device_config, interval, destination):
+    if device_config[DEVICE_TYPE] == DEVICE_PHONE:
+        command = 'adb -s {0} shell screencap -p | perl -pe \'s/\\x0D\\x0A/\\x0A/g\' > {1}.png'.format(device_config[DEVICE_ID], os.path.join(destination, str(index)))
+        subprocess.call(command, shell=True)
+        global timer
+        global index
+        index += 1
+        timer = threading.Timer(interval, start_taking_screenshot_every_x_s, [device_config, interval, destination])
+        timer.start()
+        print 'Taking screenshot: ' + str(index)
+
+def stop_taking_screenshots(device_config):
+    if device_config[DEVICE_TYPE] == DEVICE_PHONE:
+        global timer
+        global index
+        timer.cancel()
+        index = 0

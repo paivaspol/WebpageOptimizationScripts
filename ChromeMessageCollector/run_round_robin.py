@@ -6,7 +6,7 @@ import os
 TEMP_DIRECTORY = 'load_page_temp'
 SERVER_SIDE_LOGS = 'server_side_logs'
 
-command = 'python mahimahi_page_script.py {0} replay_configuration_ec2_55.cfg Nexus_6 1 per_packet_delay_replay {1} --collect-streaming --use-openvpn --pac-file-location http://ec2-54-237-249-55.compute-1.amazonaws.com/config_testing.pac --page-time-mapping page_to_timestamp.txt --fetch-server-side-logs'
+command = 'python mahimahi_page_script.py {0} replay_configuration_ec2_238.cfg Nexus_6_2_chromium 1 per_packet_delay_replay {1} --collect-streaming --use-openvpn --pac-file-location http://ec2-54-85-76-238.compute-1.amazonaws.com//config_testing.pac --page-time-mapping page_to_timestamp.txt --fetch-server-side-logs'
 
 def run_page_loads(page_list, iterations, output_dir):
     if not os.path.exists(output_dir):

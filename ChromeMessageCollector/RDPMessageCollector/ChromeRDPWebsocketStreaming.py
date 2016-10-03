@@ -35,7 +35,7 @@ class ChromeRDPWebsocketStreaming(object):
         url - the websocket url
         target_url - the url to navigate to
         '''
-        websocket.enableTrace(True)
+        # websocket.enableTrace(True)
 
         # Conditions for a page to finish loading.
         self.originalRequestMs = None
@@ -46,7 +46,7 @@ class ChromeRDPWebsocketStreaming(object):
 
         self.url = target_url       # The URL to navigate to.
         self.collect_console = collect_console
-        self.collect_tracing = True # Never start tracing.
+        self.collect_tracing = False # Never start tracing.
         self.callback_on_network_event = callback_on_network_event
         self.callback_page_done = callback_page_done    # The callback method
         self.user_agent = user_agent_str
@@ -68,13 +68,11 @@ class ChromeRDPWebsocketStreaming(object):
         Handle each message.
         '''
         message_obj = json.loads(message)
-        print message_obj
         self.callback_on_network_event(self, message_obj, message)
         # self.tracingCollectionCompleted = True
         if METHOD in message_obj and message_obj[METHOD].startswith('Network'):
             if message_obj[METHOD] == 'Network.requestWillBeSent' and \
                 escape_page(message_obj[PARAMS]['request']['url']) == escape_page(self.url):
-                print 'SET START PAGE'
                 self.start_page = True
                 self.callback_on_network_event(self, message_obj, message)
                 self.originalRequestMs = message_obj[PARAMS][TIMESTAMP] * 1000

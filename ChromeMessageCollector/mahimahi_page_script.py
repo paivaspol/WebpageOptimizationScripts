@@ -61,7 +61,7 @@ def main(config_filename, pages, iterations, device_name, mode, output_dir):
             check_proxy_running_counter = 0
             while check_proxy_running_counter < MAX_TRIES and not check_proxy_running(replay_configurations, mode):
                 # Keep on spinning when the proxy hasn't started yet.
-                sleep(1.5)
+                sleep(0.5)
                 print 'Trying: {0}/{1}'.format(check_proxy_running_counter, MAX_TRIES)
                 check_proxy_running_counter += 1
                 if check_proxy_running_counter >= MAX_TRIES:
@@ -73,13 +73,14 @@ def main(config_filename, pages, iterations, device_name, mode, output_dir):
                 while not check_proxy_stopped(replay_configurations, mode):
                     sleep(1)
                 print 'Stopped Proxy'
-                sleep(5) # Default shutdown wait for squid
                 continue
 
             print 'Started Proxy'
             if args.use_openvpn:
                 phone_connection_utils.bring_openvpn_connect_foreground(device_info[2])
                 phone_connection_utils.toggle_openvpn_button(device_info[2])
+                sleep(2)
+
             if args.pac_file_location is not None:
                 fetch_and_push_pac_file(args.pac_file_location, device_info)
                 common_module.initialize_browser(device_info) # Restart the browser
@@ -99,7 +100,7 @@ def main(config_filename, pages, iterations, device_name, mode, output_dir):
                 phone_connection_utils.toggle_openvpn_button(device_info[2])
             stop_proxy(mode, page, current_time, replay_configurations)
             while not check_proxy_stopped(replay_configurations, mode):
-                sleep(1)
+                sleep(0.25)
             print 'Stopped Proxy'
 
             # Now, fetch the server-side log if possible.
@@ -109,8 +110,6 @@ def main(config_filename, pages, iterations, device_name, mode, output_dir):
                 if not os.path.exists(server_side_output_dir):
                     os.mkdir(server_side_output_dir)
                 fetch_server_side_logs(escaped_page, server_side_output_dir)
-
-            sleep(5) # Default shutdown wait for squid
         if mode == 'record':
             done(replay_configurations)
 
@@ -329,6 +328,8 @@ def load_page(raw_line, run_index, output_dir, start_measurements, device_info, 
         cmd += ' --get-dependency-baseline'
     if args.collect_console:
         cmd += ' --collect-console'
+    if args.collect_tracing:
+        cmd += ' --collect-tracing'
     # if run_index > 0:
     #     cmd += ' --reload-page'
     print cmd
@@ -419,6 +420,7 @@ if __name__ == '__main__':
     parser.add_argument('--without-dependencies', default=False, action='store_true')
     parser.add_argument('--fetch-server-side-logs', default=False, action='store_true')
     parser.add_argument('--start-tcpdump-and-cpu-measurements', default=False, action='store_true')
+    parser.add_argument('--collect-tracing', default=False, action='store_true')
     args = parser.parse_args()
     if args.mode == 'delay_replay' and args.delay is None:
         sys.exit("Must specify delay")
