@@ -1,2 +1,0 @@
-class PageLoadException(Exception):
-    pass
