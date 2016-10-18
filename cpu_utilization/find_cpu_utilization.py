@@ -3,16 +3,16 @@ from argparse import ArgumentParser
 import os
 
 # Index constants
-user_index = 2
-nice_index = 3
-system_index = 4
-idle_index = 5
-io_index = 6
-irq_index = 7
-soft_irq_index = 8
-steal_index = 9
-guest_index = 10
-guest_nice_index = 11
+user_index = 1
+nice_index = 2
+system_index = 3
+idle_index = 4
+io_index = 5
+irq_index = 6
+soft_irq_index = 7
+steal_index = 8
+guest_index = 9
+guest_nice_index = 10
 
 def parse_file(filename, interval, output_files):
     result = dict() # cpu, cpu0, cpu1, ...
@@ -43,15 +43,17 @@ def get_next_time(input_file):
     '''
     Returns the data of the next timestamp
     '''
+    timestamp = input_file.readline().strip()
     proc_result = []
     for i in range(0, 5):
         split_line = input_file.readline().strip().split()
         if len(split_line) == 0:
             return -1, []
         proc_result.append(split_line)
-    return int(proc_result[0][0]), proc_result
+    return float(timestamp) * 1000.0, proc_result
 
 def compute_stats_from_line(line):
+    # print line
     idle = int(line[idle_index]) + int(line[io_index])
     
     user_time = int(line[user_index]) - int(line[guest_index])

@@ -12,7 +12,7 @@ def main(root_dir, output_dir):
         if len(filenames) == 0:
             continue
         print 'Path: ' + path + ' counter: ' + str(counter)
-        cpu_utilization_filename = os.path.join(path, 'cpu_measurement.txt')
+        cpu_utilization_filename = os.path.join(path, 'cpu_measurements.txt')
         cpu_running_chrome_filename = os.path.join(path, 'cpu_running_chrome.txt')
         url = common_module.extract_url_from_path(path)
         interval_filename = os.path.join(path, 'start_end_time_' + url)
