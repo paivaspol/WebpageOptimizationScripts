@@ -24,7 +24,6 @@ def main(root_dir, dependency_dir):
 
         network_filename = os.path.join(root_dir, page, 'network_' + page)
         if not (os.path.exists(dependency_filename) and os.path.exists(network_filename)):
-            print dependency_filename
             failed_pages.append(page)
             continue
         dependencies = common_module.get_dependencies(dependency_filename, args.only_important_resources)
