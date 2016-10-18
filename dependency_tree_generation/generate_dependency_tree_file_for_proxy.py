@@ -16,6 +16,8 @@ def generate_dependencies_for_proxy(root_dir, pages, output_dir):
         url = common_module.escape_url(page)
         dependency_tree_path = os.path.join(root_dir, common_module.escape_url(page) + ".json")
         print 'path: ' + dependency_tree_path + ' url: ' + url
+        if url == 'cnn.com' or url == 'money.cnn.com' or url == 'nba.com':
+            continue
         if args.use_non_redirect:
             generate_dependencies_for_proxy_main(dependency_tree_path, page, output_dir, non_redirected_url[i])
         else:

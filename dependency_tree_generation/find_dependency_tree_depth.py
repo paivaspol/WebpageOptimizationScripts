@@ -29,7 +29,8 @@ def bfs(dependency_tree, current_node, current_depth):
     max_depth = current_depth
     for child in children:
         child_node = dependency_tree[child]
-        max_depth = max(max_depth, bfs(dependency_tree, child_node, current_depth + 1))
+        current_tree_depth = bfs(dependency_tree, child_node, current_depth + 1)
+        max_depth = max(max_depth, current_tree_depth)
     return max_depth
 
 def find_root_node(page, dependency_tree):

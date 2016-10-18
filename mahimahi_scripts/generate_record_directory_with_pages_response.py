@@ -8,16 +8,16 @@ def main(root_dir, page_to_timestamp_filename, output_dir):
     page_to_timestamp_mapping = get_page_to_timestamp_mapping(page_to_timestamp_filename)
     for page, timestamp in page_to_timestamp_mapping:
         page_directory = os.path.join(root_dir, timestamp, page)
-        index_files = find_index_files(page_directory, output_dir)
+        index_files = find_index_files(page_directory, page, output_dir)
         if len(index_files) > 1:
             print '{0} {1}'.format(page, len(index_files))
 
-def find_index_files(page_directory, output_dir):
+def find_index_files(page_directory, page, output_dir):
     recorded_files = os.listdir(page_directory)
     result = []
     for recorded_file in recorded_files:
         full_path_to_recorded_file = os.path.join(page_directory, recorded_file)
-        output_filename = os.path.join(output_dir, recorded_file)
+        output_filename = os.path.join(output_dir, page, recorded_file)
         top_cmd = './generate_pages_with_scheduling_logic/protototext {0} {1}'.format(full_path_to_recorded_file, output_filename)
         proc_top = subprocess.call([top_cmd], stdout=subprocess.PIPE, shell=True)
 
