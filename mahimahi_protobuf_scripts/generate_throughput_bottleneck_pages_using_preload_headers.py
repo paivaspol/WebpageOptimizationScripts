@@ -6,7 +6,7 @@ import common_module
 import os
 import subprocess
 
-def main(root_dir, pages_to_timestamp, page_resource_sizes_dir, output_dir):
+def main(root_dir, pages_to_timestamp, dependencies_dir, output_dir):
     if not os.path.exists(output_dir):
         os.mkdir(output_dir)
     
@@ -15,7 +15,9 @@ def main(root_dir, pages_to_timestamp, page_resource_sizes_dir, output_dir):
         
         # Find the page to resource sizes mapping.
         resource_size_mapping_filename = os.path.join(page_resource_sizes_dir, page)
-        if not os.path.exists(resource_size_mapping_filename):
+        dependency_filename = os.path.join(dependencies_dir, page, 'dependency_tree.txt')
+        if not os.path.exists(resource_size_mapping_filename) \
+            or not os.path.exists(dependency_filename):
             continue
         
         timestamp_output_directory = os.path.join(output_dir, timestamp)
@@ -27,7 +29,7 @@ def main(root_dir, pages_to_timestamp, page_resource_sizes_dir, output_dir):
         command = 'cp -r {0} {1}'.format(page_directory, page_output_directory)
         subprocess.call(command, shell=True)
 
-        resource_urls = get_urls(resource_size_mapping_filename, page)
+        resource_urls = common_module.get_dependencies(dependency_filename, False)
         files = os.listdir(page_output_directory)
         top_level_htmls = find_top_level_htmls(files, page_output_directory)
         print top_level_htmls
@@ -108,8 +110,6 @@ def generate_html_body(resource_urls, original_body_size):
         link_preload_str += '<link rel="preload" href ="{0}"></link>'.format(resource_url)
     body += link_preload_str
     body += '</head><body>'
-    # Add the body size of the original html.
-    # body += generate_response_body(int(original_body_size) - len(link_preload_str))
     body += '</body></html>'
     return body
 
@@ -125,36 +125,12 @@ def modify_http_header(http_headers, header_key, header_value):
             http_header.value = header_value
             break
 
-def generate_response_body(num_bytes):
-    result = ''
-    if int(num_bytes) <= 0:
-        return result
-    for i in range(0, int(num_bytes)):
-        result += '@'
-    return result
-
-def get_template_objects(record_template_directory):
-    files = os.listdir(record_template_directory)
-    placeholder_request_response = None
-    main_html_request_response = None
-    for recorded_file in files:
-        path = os.path.join(record_template_directory, recorded_file)
-        with open(path, 'rb') as input_file:
-            file_content = input_file.read()
-            request_response = http_record_pb2.RequestResponse()
-            request_response.ParseFromString(file_content)
-            if 'placeholder.html' in request_response.request.first_line:
-                placeholder_request_response = request_response
-            elif request_response.request.first_line.strip().split()[1].endswith('throughput_bottleneck/'):
-                main_html_request_response = request_response
-    return main_html_request_response, placeholder_request_response
-
 if __name__ == '__main__':
     parser = ArgumentParser()
     parser.add_argument('root_dir')
     parser.add_argument('pages_to_timestamp')
-    parser.add_argument('page_resource_sizes_dir')
+    parser.add_argument('dependencies_dir')
     parser.add_argument('output_dir')
     args = parser.parse_args()
     pages_to_timestamp = common_module.get_page_to_time_mapping(args.pages_to_timestamp)
-    main(args.root_dir, pages_to_timestamp, args.page_resource_sizes_dir, args.output_dir)
+    main(args.root_dir, pages_to_timestamp, args.dependencies_dir, args.output_dir)
