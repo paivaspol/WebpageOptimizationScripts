@@ -63,7 +63,7 @@ def get_first_unimportant_resource_dependency_request_time_from_scheduler(page, 
                     else:
                         continue
         
-                if request_type == 'XHR' and url in dependencies and is_request_from_scheduler(initiator, page):
+                if request_type == 'XHR' and url in dependencies and common_module.is_request_from_scheduler(initiator, page):
                     return timestamp - first_request_timestamp
 
 def get_last_unimportant_resource_dependency_request_time(page, network_filename, dependencies):
@@ -96,15 +96,6 @@ def get_last_unimportant_resource_dependency_request_time(page, network_filename
                         last_request_timestamp = timestamp
                         # print '\t{0} {1}'.format(url, last_request_timestamp - first_request_timestamp)
         return last_request_timestamp - first_request_timestamp
-
-def is_request_from_scheduler(initiator_obj, page):
-    initiator_type = initiator_obj[TYPE]
-    callframes = initiator_obj['stack']['callFrames']
-    if len(callframes) != 1:
-        return False
-    url = callframes[0][URL]
-    function_name = callframes[0]['functionName']
-    return initiator_type == 'script' and common_module.escape_page(url) == page and (function_name == 'important_url_handler' or len(function_name) == 0)
 
 if __name__ == '__main__':
     parser = ArgumentParser()

@@ -27,6 +27,9 @@ def main(root_dir, dependency_dir):
             failed_pages.append(page)
             continue
         dependencies = common_module.get_dependencies(dependency_filename, args.only_important_resources)
+        # dependencies = common_module.get_dependencies_without_other_iframes(dependency_filename, \
+        #                                                                 args.only_important_resources, \
+        #                                                                 page)
         dependency_finish_download_time = get_dependency_finish_download_time(page, \
                                                                               network_filename, \
                                                                               dependencies)
@@ -55,40 +58,36 @@ def get_dependency_finish_download_time(page, network_filename, dependencies):
         times_from_first_request = dict()
         found_first_request = False
         first_request_timestamp = -1
-        request_id_to_url_map = dict()
-        request_id_to_timestamp_map = dict()
         for raw_line in input_file:
-            network_event = json.loads(json.loads(raw_line.strip()))
+            try:
+                network_event = json.loads(json.loads(raw_line.strip()))
+            except Exception:
+                network_event = json.loads(raw_line.strip())
             request_id = network_event[PARAMS][REQUEST_ID]
             if network_event[METHOD] == 'Network.requestWillBeSent':
                 url = network_event[PARAMS][REQUEST][URL]
+                timestamp = network_event[PARAMS][TIMESTAMP]
+                # if 'redirectResponse' in network_event[PARAMS]:
+                #     url = network_event[PARAMS]['redirectResponse']['url']
 
                 # Make sure to find the first request before parsing the file.
                 if not found_first_request:
                     parsed_url = common_module.escape_page(url)
                     if parsed_url == page:
                         found_first_request = True
-                        first_request_timestamp = network_event[PARAMS][TIMESTAMP]
+                        first_request_timestamp = timestamp
                     else:
                         continue
 
-                request_id_to_url_map[request_id] = url
-                request_id_to_timestamp_map[request_id] = network_event[PARAMS][TIMESTAMP]
-
-            elif network_event[METHOD] == 'Network.loadingFinished':
-                request_id = network_event[PARAMS][REQUEST_ID]
-                if request_id in request_id_to_url_map:
-                    url = request_id_to_url_map[request_id]
-                    if url in dependencies and url not in times_from_first_request:
-                        # We have already discovered all the dependencies.
-                        # Get the current timestamp and find the time difference.
-                        finish_timestamp = request_id_to_timestamp_map[request_id]
-                        time_from_first_request = finish_timestamp - first_request_timestamp
-                        times_from_first_request[url] = time_from_first_request
-                        dependencies.remove(url)
-                        
-                        if len(dependencies) == 0:
-                            break
+                if url in dependencies and url not in times_from_first_request:
+                    # We have already discovered all the dependencies.
+                    # Get the current timestamp and find the time difference.
+                    time_since_first_request = timestamp - first_request_timestamp
+                    times_from_first_request[url] = time_since_first_request
+                    dependencies.remove(url)
+                    
+                    if len(dependencies) == 0:
+                        break
 
         return times_from_first_request
 

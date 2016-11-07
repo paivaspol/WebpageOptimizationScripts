@@ -11,7 +11,8 @@ page_list=$1
 # The directories to generate the data for.
 # directories=( ../../results/vroom_benefits/baseline ../../results/vroom_benefits/after_dependency_list_generation_and_XHR_fix )
 # directories=( ../../results/vroom_benefits/with_scheduler_combined_news_sports_new_chromium_throttled )
-directories=( ../../results/vroom_benefits/baseline ../../results/vroom_hotmobile_results/push_and_hints_with_cpu_and_network_measurements )
+# directories=( ../../results/vroom_debugging/network_utilizations/baseline_with_utilizations ../../results/vroom_debugging/network_utilizations/push_and_hints_after_server_side_dup_change_iframe_fifa_fix )
+directories=( ../../results/vroom_debugging/network_utilizations/baseline_with_utilizations ../../results/vroom_debugging/network_utilizations/push_and_hints_all_deps_corrected_dependencies_test_pages )
 
 # The directories for the target_resources
 target_resource_dirs=( ../../results/vroom_benefits/dependency_list_generation/dependency_trees/dependency_tree_up_to_iframes ../../results/vroom_benefits/dependency_list_generation/all_requests )
@@ -33,6 +34,9 @@ do
   else
     iterations=3
   fi
+
+  resource_count_directory=${dir}/resource_request_count
+  python get_dependency_request_count.py ${resource_server_side_logs} ${page_to_run_index} ${target_resource_dirs[0]} ${iterations} ${page_list} ${resource_count_directory}
 
   for mode in ${important_all[@]}; do
     for target_resource_dir in ${target_resource_dirs[@]}; do
@@ -56,6 +60,7 @@ do
 
         # Find the resource finish fetch fime on the server-side.
         # python find_all_dependencies_finished_loading_from_server_side_logs.py ../../results/vroom_benefits/with_scheduler_test_pages/server_side_logs/ ../../results/vroom_benefits/with_scheduler_test_pages/page_to_run_index.txt ../../results/dependencies_benefits_using_preload_headers/dependency_trees/dependency_trees_for_proxy 5 ../page_list/scheduler_test_pages.txt | sort -k 2 -g > ../../results/vroom_benefits/with_scheduler_test_pages/dependency_fetch_time.txt
+        echo python find_all_dependencies_finished_loading_from_server_side_logs.py ${resource_server_side_logs} ${page_to_run_index} ${target_resource_dir} ${iterations} ${page_list} --only-important --resource-output-dir ${server_side_resource_finish_load_time_dir}
         python find_all_dependencies_finished_loading_from_server_side_logs.py ${resource_server_side_logs} ${page_to_run_index} ${target_resource_dir} ${iterations} ${page_list} --only-important --resource-output-dir ${server_side_resource_finish_load_time_dir} \
           | sort -k 2 -g > ${server_side_fetch_time_output}
 
@@ -70,7 +75,6 @@ do
         # Find the resource finish fetch fime on the server-side.
         # python find_all_dependencies_finished_loading_from_server_side_logs.py ../../results/vroom_benefits/with_scheduler_test_pages/server_side_logs/ ../../results/vroom_benefits/with_scheduler_test_pages/page_to_run_index.txt ../../results/dependencies_benefits_using_preload_headers/dependency_trees/dependency_trees_for_proxy 5 ../page_list/scheduler_test_pages.txt | sort -k 2 -g > ../../results/vroom_benefits/with_scheduler_test_pages/dependency_fetch_time.txt
   
-        echo "python find_all_dependencies_finished_loading_from_server_side_logs.py ${resource_server_side_logs} ${page_to_run_index} ${target_resource_dir} ${iterations} ${page_list} --resource-output-dir ${server_side_resource_finish_load_time_dir}"
         python find_all_dependencies_finished_loading_from_server_side_logs.py ${resource_server_side_logs} ${page_to_run_index} ${target_resource_dir} ${iterations} ${page_list} --resource-output-dir ${server_side_resource_finish_load_time_dir} \
           | sort -k 2 -g > ${server_side_fetch_time_output}
 
