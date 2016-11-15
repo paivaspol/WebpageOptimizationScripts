@@ -81,6 +81,7 @@ if __name__ == '__main__':
     parser.add_argument('--aggregate-dir', default=None)
     parser.add_argument('--page-list', default=None)
     args = parser.parse_args()
+    page_list = None
     if args.page_list is not None:
         page_list = get_page_list(args.page_list)
     sorted_request_sizes = get_request_sizes_in_directory(args.root_dir, args.write_results, page_list)
