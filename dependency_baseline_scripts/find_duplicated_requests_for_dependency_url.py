@@ -12,24 +12,23 @@ def print_dependencies_with_duplicated_requests(duplicated_requests, dependencie
         dependency = dependency_entry[2]
         parsed_url = urlparse(dependency)
         if parsed_url.path in duplicated_requests:
-            print '{0} {1}'.format(dependency, dependency_entry[4])
+            print '{0} {1} {2}'.format(dependency, dependency_entry[4], duplicated_requests[parsed_url.path])
 
 def get_dependencies(dependency_file):
     with open(dependency_file, 'rb') as input_file:
         return [ line.strip().split() for line in input_file ]
 
 def find_duplicated_requests(server_side_log_file):
-    request_found = set()
-    duplicated_requests = set()
+    duplicated_requests = dict()
     with open(server_side_log_file, 'rb') as input_file:
         for raw_line in input_file:
             line = raw_line.strip().split()
             path = line[2]
-            if path not in request_found:
-                request_found.add(path)
+            if path not in duplicated_requests:
+                duplicated_requests[path] = 1
             else:
-                duplicated_requests.add(path)
-    return duplicated_requests
+                duplicated_requests[path] += 1
+    return { key: value for key, value in duplicated_requests.iteritems() if value >= 2 }
 
 if __name__ == '__main__':
     parser = ArgumentParser()

@@ -5,12 +5,11 @@ import dpkt
 import os
 import math
 import numpy
-import subprocess
 
 INTERVAL_SIZE = 100 # ms
 BANDWIDTH = 4 # mbps
 
-def main(root_dir, start_time_dict, end_time_offset_dict):
+def main(root_dir, end_time_offset_dict):
     pages = os.listdir(root_dir)
     if args.page_list is not None:
         pages = filter_page_not_on_page_list(pages, args.page_list)
@@ -22,40 +21,19 @@ def main(root_dir, start_time_dict, end_time_offset_dict):
             not os.path.exists(pcap_file):
             continue
         start_time, end_time = get_start_end_time(start_end_time_filename)
-        total_time = end_time - start_time
+        custom_end_time = end_time
         if page in end_time_offset_dict:
-            end_time = min(start_time + end_time_offset_dict[page], end_time)
-        if page in start_time_dict:
-            start_time = start_time + start_time_dict[page]
-        dependency_time = end_time - start_time
-        bytes_per_interval = populate_bytes_per_interval(pcap_file, start_time, end_time)
-        utilizations = compute_utilization(bytes_per_interval, start_time, end_time)
+            custom_end_time = min(start_time + end_time_offset_dict[page], end_time)
+        bytes_during_custom_end, bytes_per_interval = populate_bytes_per_interval(pcap_file, start_time, custom_end_time, end_time)
         # print len(utilizations)
         # print utilizations
-        if len(utilizations) > 0:
-            average_utilization = numpy.average(utilizations)
-            # print 'TotalTime: {0} {1}'.format(page, total_time)
-            # print 'DependencyTime: {0} {1}'.format(page, dependency_time)
-            # print '{0} {1}'.format(page, utilizations)
-            # print '{0} {1}'.format(page, len(utilizations))
-            print '{0} {1}'.format(page, average_utilization)
-            # print ''
-
-        if args.output_timeseries:
-            if not os.path.exists(args.output_timeseries):
-                os.mkdir(args.output_timeseries)
-            output_timeseries(args.output_timeseries, page, utilizations)
-
-def output_timeseries(output_dir, page, utilizations):
-    page_output_dir = os.path.join(output_dir, page)
-    if not os.path.exists(page_output_dir):
-        os.mkdir(page_output_dir)
-    page_output = os.path.join(page_output_dir, 'data.txt')
-    with open(page_output, 'wb') as output_file:
-        for i, utilization in enumerate(utilizations):
-            output_file.write('{0} {1}\n'.format(i, utilization))
-    # Copy the script for the timeseries.
-    subprocess.call('cp plot_timeseries.R {0}'.format(page_output_dir).split())
+        total_bytes_before_custom_end = sum(bytes_during_custom_end)
+        total_bytes = sum(bytes_per_interval)
+        try:
+            fraction = 1.0 * total_bytes_before_custom_end / total_bytes
+            print '{0} {1} {2} {3}'.format(page, total_bytes_before_custom_end, total_bytes, fraction)
+        except ZeroDivisionError:
+            pass
 
 def filter_page_not_on_page_list(pages, page_list):
     pages_set = set(pages)
@@ -66,11 +44,12 @@ def filter_page_not_on_page_list(pages, page_list):
             wanted_pages.add(escaped_page)
         return pages_set & wanted_pages
 
-def populate_bytes_per_interval(pcap_file, start_time, end_time):
+def populate_bytes_per_interval(pcap_file, start_time, custom_end_time, end_time):
+    bytes_during_custom_end = generate_buckets(start_time, custom_end_time)
     buckets = generate_buckets(start_time, end_time)
     with open(pcap_file, 'rb') as pcap_file:
+        pcap_objects = dpkt.pcap.Reader(pcap_file)
         try:
-            pcap_objects = dpkt.pcap.Reader(pcap_file)
             for ts, buf in pcap_objects:
                 ts = ts * 1000
                 if not start_time <= ts < end_time:
@@ -91,11 +70,13 @@ def populate_bytes_per_interval(pcap_file, start_time, end_time):
                     if int(ip.p) == int(dpkt.ip.IP_PROTO_UDP) or udp.sport == 1194:
                         index = int(1.0 * (ts - start_time) / INTERVAL_SIZE)
                         buckets[index] += ip.len
+                        if start_time <= ts < custom_end_time:
+                            bytes_during_custom_end[index] += ip.len
                 except Exception as e:
                     pass
         except dpkt.NeedData as e1:
             pass
-    return buckets
+    return bytes_during_custom_end, buckets
 
 def compute_utilization(bytes_received_list, start_interval, end_interval):
     '''
@@ -108,9 +89,6 @@ def compute_utilization(bytes_received_list, start_interval, end_interval):
         if i == len(bytes_received_list) - 1:
             interval_size = (end_interval - start_interval) % INTERVAL_SIZE
         try:
-            # utilization = min(1.0, common_module.compute_utilization(bytes_received, \
-            #                                                 bandwidth=BANDWIDTH, \
-            #                                                 interval=interval_size))
             utilization = common_module.compute_utilization(bytes_received, \
                                                             bandwidth=BANDWIDTH, \
                                                             interval=interval_size)
@@ -118,7 +96,6 @@ def compute_utilization(bytes_received_list, start_interval, end_interval):
         except Exception:
             # DivisionError
             pass
-    # result.append(min(1.0, common_module.compute_utilization(sum(bytes_received_list), bandwidth=BANDWIDTH, interval=(end_interval - start_interval))))
     return result
 
 def get_start_end_time(start_end_time_filename):
@@ -142,26 +119,13 @@ def populate_end_time_offset_dict(custom_end_time_filename, end_time_offset_dict
             line = raw_line.strip().split()
             end_time_offset_dict[line[0]] = float(line[1]) * 1000.0 # convert to ms
 
-def populate_start_time_dict(start_time_filename, start_time_dict):
-    with open(start_time_filename, 'rb') as input_file:
-        for raw_line in input_file:
-            line = raw_line.strip().split()
-            start_time_dict[line[0]] = float(line[1]) * 1000
-
 if __name__ == '__main__':
     parser = ArgumentParser()
     parser.add_argument('page_load_root_dir')
     parser.add_argument('--page-list', default=None)
-    parser.add_argument('--custom-start-time', default=None)
     parser.add_argument('--custom-end-time', default=None)
-    parser.add_argument('--output-timeseries', default=None)
     args = parser.parse_args()
-
-    start_time_dict = dict()
-    if args.custom_start_time:
-        populate_start_time_dict(args.custom_start_time, start_time_dict)
-
     end_time_offset_dict = dict()
     if args.custom_end_time is not None:
         populate_end_time_offset_dict(args.custom_end_time, end_time_offset_dict)
-    main(args.page_load_root_dir, start_time_dict, end_time_offset_dict)
+    main(args.page_load_root_dir, end_time_offset_dict)

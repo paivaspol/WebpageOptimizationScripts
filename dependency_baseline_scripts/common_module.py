@@ -46,6 +46,21 @@ def get_dependencies(dependency_filename, use_only_important_resources):
             results.append(line[2])
     return results
 
+def get_dependencies_without_other_iframes(dependency_filename, use_only_important_resources, page):
+    results = []
+    with open(dependency_filename, 'rb') as input_file:
+        for raw_line in input_file:
+            line = raw_line.strip().split()
+            url = escape_page(line[0])
+            resource_type = line[4]
+            if (use_only_important_resources \
+                and not (resource_type == 'Document' or resource_type == 'Script' or resource_type == 'Stylesheet')) \
+                or (url != page) \
+                or (resource_type == 'Document'):
+                continue
+            results.append(line[2])
+    return results
+
 def get_unimportant_dependencies(dependency_filename):
     results = []
     with open(dependency_filename, 'rb') as input_file:
@@ -55,3 +70,26 @@ def get_unimportant_dependencies(dependency_filename):
             if not (resource_type == 'Document' or resource_type == 'Script' or resource_type == 'Stylesheet'):
                 results.append(line[2])
     return results
+
+def get_page_to_run_index(page_to_run_index):
+    with open(page_to_run_index, 'rb') as input_file:
+        temp = [ line.strip().split() for line in input_file ]
+        return { key: int(value) for key, value in temp }
+
+import constants
+
+def is_request_from_scheduler(initiator_obj, page, request_type):
+    initiator_type = initiator_obj[constants.TYPE]
+    if initiator_type != 'script':
+        return False
+
+    callframes = initiator_obj['stack']['callFrames']
+    if len(callframes) != 1:
+        return False
+    url = callframes[0][constants.URL]
+    function_name = callframes[0]['functionName']
+    return request_type == 'XHR' \
+            and escape_page(url) == page \
+            and (function_name == 'important_url_handler' \
+                 or len(function_name) == 0 \
+                 or function_name == 'nrWrapper')

@@ -7,8 +7,9 @@ import common_module
 
 def traverse_root_directory(root_dir, pages, aggregate_dir):
     for page in pages:
-        # if 'nhl.com' not in page:
+        # if 'abcnews.go.com' not in page:
         #     continue
+
         url = common_module.escape_url(page)
         path = os.path.join(root_dir, url)
         print 'processing: ' + url
@@ -31,7 +32,7 @@ if __name__ == '__main__':
     parser = ArgumentParser()
     parser.add_argument('root_dir')
     parser.add_argument('pages_file')
-    parser.add_argument('--aggregate-dir', default=None)
+    parser.add_argument('aggregate_dir', default=None)
     args = parser.parse_args()
     pages = common_module.get_pages(args.pages_file)
     traverse_root_directory(args.root_dir, pages, args.aggregate_dir)

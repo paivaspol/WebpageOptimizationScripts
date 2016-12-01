@@ -21,14 +21,16 @@ def main(root_dir, dependency_dir):
 
     failed_pages = []
     for page in pages:
-
         dependency_filename = os.path.join(dependency_dir, page, 'dependency_tree.txt')
-
         network_filename = os.path.join(root_dir, page, 'network_' + page)
         if not (os.path.exists(dependency_filename) and os.path.exists(network_filename)):
             failed_pages.append(page)
             continue
+
         dependencies = common_module.get_dependencies(dependency_filename, args.only_important_resources)
+        # dependencies = common_module.get_dependencies_without_other_iframes(dependency_filename, \
+        #                                                                 args.only_important_resources, \
+        #                                                                 page)
         dependency_finish_download_time = get_dependency_finish_download_time(page, \
                                                                               network_filename, \
                                                                               dependencies)
@@ -62,10 +64,16 @@ def get_dependency_finish_download_time(page, network_filename, dependencies):
         first_request_timestamp = -1
         request_id_to_url_map = dict()
         for raw_line in input_file:
-            network_event = json.loads(json.loads(raw_line.strip()))
+            try:
+                network_event = json.loads(json.loads(raw_line.strip()))
+            except Exception:
+                network_event = json.loads(raw_line.strip())
             request_id = network_event[PARAMS][REQUEST_ID]
             if network_event[METHOD] == 'Network.requestWillBeSent':
                 url = network_event[PARAMS][REQUEST][URL]
+
+                # if 'redirectResponse' in network_event[PARAMS]:
+                #     url = network_event[PARAMS]['redirectResponse']['url']
 
                 # Make sure to find the first request before parsing the file.
                 if not found_first_request:

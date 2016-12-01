@@ -45,8 +45,12 @@ def find_dependencies(page, network_activities, page_start_end_time):
             ts = common_module.convert_to_ms(network_activity[PARAMS][WALLTIME])
             request_id = network_activity[PARAMS][REQUEST_ID]
             url = network_activity[PARAMS][REQUEST][URL]
-            if 'redirectResponse' in network_activity[PARAMS]:
-                url = network_activity[PARAMS]['redirectResponse']['url']
+
+            # if 'redirectResponse' in network_activity[PARAMS]:
+            #     # if url.endswith('static.adsafeprotected.com/skeleton.js'):
+            #     #     print 'request (0): ' +  url + ', ' + network_activity[PARAMS]['redirectResponse']['url']
+            #     url = network_activity[PARAMS]['redirectResponse']['url']
+
             # print 'page: ' + page + ' document_url: ' + document_url
             if not found_page and common_module.escape_url(url) == common_module.escape_url(page):
                 found_page = True
@@ -55,25 +59,44 @@ def find_dependencies(page, network_activities, page_start_end_time):
             #     # print 'start_time: {0} end_time: {1} ts: {2}'.format(start_time, end_time, ts)
             #     # If the event doesn't fall in the page load range.
             #     continue
+            # if url.endswith('static.adsafeprotected.com/skeleton.js'):
+            #     print 'request (1): ' +  url
+
             if not found_page:
                 continue
+
+            # if url.endswith('static.adsafeprotected.com/skeleton.js'):
+            #     print 'request (2): ' +  url
+
 
             if url.startswith('data:'):
                 continue
 
-            # print REQUEST + ': ' + str(network_activity[PARAMS][REQUEST][URL])
-            # print INITIATOR + ': ' + str(network_activity[PARAMS][INITIATOR]) + '\n'
-            requester = None
+            # if url.endswith('static.adsafeprotected.com/skeleton.js'):
+            #     print 'request (3): ' +  url
+
+
+            requester = DEFAULT_REQUESTER
+            # if url.endswith('static.adsafeprotected.com/skeleton.js'):
+            #     print 'request (4): ' +  url
+
             if network_activity[PARAMS][INITIATOR][TYPE] == 'script' and STACKTRACE in network_activity[PARAMS][INITIATOR]:
                 call_stack = network_activity[PARAMS][INITIATOR][STACKTRACE][CALL_FRAMES]
                 if len(call_stack) > 0:
                     requester = call_stack[len(call_stack) - 1][URL]
             elif network_activity[PARAMS][INITIATOR][TYPE] == 'parser' and URL in network_activity[PARAMS][INITIATOR]:
                 requester = network_activity[PARAMS][INITIATOR][URL]
-            else:
-                # Case where there isn't either URL or STACKTRACE
-                requester = DEFAULT_REQUESTER
+
+            # if url.endswith('static.adsafeprotected.com/skeleton.js'):
+            #     print 'request: {0} {1}'.format(url, requester)
+
             if requester is not None:
+                # if url.endswith('static.adsafeprotected.com/skeleton.js'):
+                #     print 'request (5): ' +  url + ' ' + requester
+
+                if requester == '':
+                    requester = DEFAULT_REQUESTER
+
                 request_id = network_activity[PARAMS][REQUEST_ID]
                 request_id_to_resource_map[request_id] = url
                 request_id_to_initiator_map[request_id] = requester
@@ -82,9 +105,14 @@ def find_dependencies(page, network_activities, page_start_end_time):
                 request_id_to_order_found[request_id] = counter
                 url_to_request_id[url] = request_id
                 counter += 1
+
         elif METHOD in network_activity and \
             network_activity[METHOD] == 'Network.responseReceived':
             request_id = network_activity[PARAMS][REQUEST_ID]
+            url = network_activity[PARAMS][RESPONSE][URL]
+            # if url.endswith('tags.bluekai.com/site/2981'):
+            #     print 'response: {0} {1}'.format(url, request_id_to_initiator_map[request_id])
+
             if request_id not in request_id_to_request_object:
                 continue
 
@@ -101,23 +129,28 @@ def find_dependencies(page, network_activities, page_start_end_time):
                 request_id_to_initiator_map[request_id] == DEFAULT_REQUESTER:
                 # Try to apply the third extraction rule: use the DocumentURL
                 request_id_to_initiator_map[request_id] = request_id_to_document_url[request_id]
+                # if url.endswith('tags.bluekai.com/site/2981'):
+                #     print 'response (1): {0} {1} {2}'.format(url, request_id, request_id_to_initiator_map[request_id])
 
-    dep_tree = populate_dependencies(request_id_to_initiator_map, request_id_to_resource_map, url_to_request_id)
+    dep_tree = populate_dependencies(request_id_to_initiator_map, request_id_to_resource_map, url_to_request_id, page)
     return dep_tree, request_id_to_order_found, request_id_to_type
 
-def populate_dependencies(request_id_to_initiator_map, request_id_to_dependency_url, url_to_request_id):
+def populate_dependencies(request_id_to_initiator_map, request_id_to_dependency_url, url_to_request_id, page_url):
     dep_tree = dict()
     for request_id, initiator in request_id_to_initiator_map.iteritems():
         # For each dependency's request id and its intiator map pair
-        if initiator != '':
-            try:
-                dependency_url = request_id_to_dependency_url[request_id]
-                initiator_request_id = url_to_request_id[initiator]
-                if (initiator, initiator_request_id) not in dep_tree:
-                    dep_tree[(initiator, initiator_request_id)] = []
-                dep_tree[(initiator, initiator_request_id)].append((dependency_url, request_id))
-            except KeyError as e:
-                pass
+        dependency_url = request_id_to_dependency_url[request_id]
+        try:
+            initiator_request_id = url_to_request_id[initiator]
+        except KeyError as e:
+            initiator = page_url
+            initiator_request_id = url_to_request_id[page_url]
+
+        # if 'tags.bluekai.com/site/2981' in dependency_url:
+        #     print 'populate: {0} {1} {2}'.format(dependency_url, request_id, initiator_request_id)
+        if (initiator, initiator_request_id) not in dep_tree:
+            dep_tree[(initiator, initiator_request_id)] = []
+        dep_tree[(initiator, initiator_request_id)].append((dependency_url, request_id))
     return dep_tree
 
 def convert_to_object(network_data_file):
