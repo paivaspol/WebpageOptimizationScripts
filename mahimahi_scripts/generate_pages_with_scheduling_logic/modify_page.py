@@ -38,7 +38,6 @@ for filename in files:
 
     #os.system("changeheader rewritten_" + index + "/" + filename + " Access-Control-Allow-Origin *")
 
-
     # convert response in protobuf to text (ungzip if necessary)
     command = "./protototext rewritten_" + index + "/" + filename + " rewritten_" + index + "/tempfile"
     proc = subprocess.Popen([command], stdout=subprocess.PIPE, shell=True)

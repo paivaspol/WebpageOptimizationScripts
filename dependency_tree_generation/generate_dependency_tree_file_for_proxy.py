@@ -13,6 +13,8 @@ def generate_dependencies_for_proxy(root_dir, pages, output_dir):
 
     for i in range(0, len(pages)):
         page = pages[i]
+        if 'money.cnn.com' in page or 'nba.com' in page:
+            continue
         url = common_module.escape_url(page)
         dependency_tree_path = os.path.join(root_dir, common_module.escape_url(page) + ".json")
         print 'path: ' + dependency_tree_path + ' url: ' + url
@@ -116,14 +118,16 @@ def generate_file_from_dependency_tree_object(dependency_tree_object, \
         #                                            next_origin_url, \
         #                                            result_dependencies)
         try:
-            generate_file_from_dependency_tree_object(dependency_tree_object, \
+            if not generate_file_from_dependency_tree_object(dependency_tree_object, \
                                                        child, \
                                                        dependency_url, \
                                                        next_origin_url, \
-                                                       result_dependencies)
+                                                       result_dependencies):
+                break
         except RuntimeError as e:
-            print str(e)
-            break
+            # print str(e)
+            return False
+    return True
 
 def extract_domain(url):
     '''
