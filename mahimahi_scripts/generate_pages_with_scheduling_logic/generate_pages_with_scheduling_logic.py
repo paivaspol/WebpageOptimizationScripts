@@ -35,8 +35,8 @@ def modify_page(page_timestamp_tuple, root_dir, output_dir, index):
     # This is already the source directory.
     # Use this directory and use the modify_page.py
     # To include the scheduler.
-    generate_command = 'python modify_page.py {0} {1} {2}'
-    subprocess.call(generate_command.format(page_directory, page_output_directory, index), shell=True)
+    generate_command = 'python modify_page.py {0} {1} {2} {3}'
+    subprocess.call(generate_command.format(page_directory, page_output_directory, index, page), shell=True)
 
 def get_times(time_filename):
     with open(time_filename, 'rb') as input_file:
