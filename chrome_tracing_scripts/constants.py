@@ -17,3 +17,5 @@ STACK = 'stack'
 CALLFRAMES = 'callFrames'
 
 NET_REQUEST_WILL_BE_SENT = 'Network.requestWillBeSent'
+NET_RESPONSE_RECEIVED = 'Network.responseReceived'
+NET_LOADING_FINISHED = 'Network.loadingFinished'
