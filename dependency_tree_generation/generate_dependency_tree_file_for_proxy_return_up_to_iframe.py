@@ -81,7 +81,7 @@ def output_to_file(result_dependencies, url, output_dir, given_dependencies):
                      result_dependency[4] == 'Stylesheet' or \
                      result_dependency[4] == 'Document'):
                 continue
-            dependency_line = '{0} {1} {2} {3} {4}'.format(origin_url, parent_url, result_dependency[2], result_dependency[3], result_dependency[4])
+            dependency_line = '{0} {1} {2} {3} {4} {5}'.format(origin_url, parent_url, result_dependency[2], result_dependency[3], result_dependency[4], result_dependency[5])
             if dependency_line not in printed_line:
                 output_file.write(dependency_line + '\n')
             printed_line.add(dependency_line)
@@ -94,9 +94,6 @@ def generate_file_from_dependency_tree_object(dependency_tree_object, \
     '''
     Recursive method for generating the dependency graph.
     '''
-    if dependency_url == 'http://ec2-54-237-249-55.compute-1.amazonaws.com':
-        dependency_url += '/'
-
     if dependency_url not in dependency_tree_object:
         print str(dependency_tree_object) + ' ' + dependency_url
         return
@@ -107,7 +104,8 @@ def generate_file_from_dependency_tree_object(dependency_tree_object, \
     for child in children:
         child_found_index = dependency_tree_object[child]['found_index']
         resource_type = dependency_tree_object[child]['type'] if 'type' in dependency_tree_object[child] else 'DEFAULT'
-        dependency_line = (origin_url, dependency_url, child, child_found_index, resource_type)
+        priority = dependency_tree_object[child]['priority'] if 'priority' in dependency_tree_object[child] else 'Low'
+        dependency_line = (origin_url, dependency_url, child, child_found_index, resource_type, priority)
         result_dependencies.append(dependency_line)
         next_domain = extract_domain(child)
         # print 'current: {0} child: {1}'.format(dependency_url, child)
@@ -157,7 +155,7 @@ if __name__ == '__main__':
     parser = ArgumentParser()
     parser.add_argument('root_dir')
     parser.add_argument('pages_file')
-    parser.add_argument('--output-dir', default='.')
+    parser.add_argument('output_dir')
     parser.add_argument('--use-only-given-dependencies', default='')
     parser.add_argument('--use-non-redirect', default=False, action='store_true')
     parser.add_argument('--serve-from-outer-html', default=False, action='store_true')

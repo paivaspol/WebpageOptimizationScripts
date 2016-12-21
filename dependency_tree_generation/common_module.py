@@ -68,6 +68,18 @@ def get_pages(pages_filename, index=-1):
             pages.append(line[index])
     return pages
 
+def get_pages_with_redirection(pages_filename, index=-1):
+    pages = []
+    with open(pages_filename, 'rb') as input_file:
+        for raw_line in input_file:
+            if raw_line.startswith("#"):
+                continue
+            line = raw_line.strip().split()
+            if index == -1:
+                index = len(line) - 1
+            pages.append((line[0], line[index]))
+    return pages
+
 def extract_url_from_path(path):
     '''
     Extracts the url from the path.

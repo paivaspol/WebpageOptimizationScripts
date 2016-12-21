@@ -78,7 +78,10 @@ def find_all_resources(network_filename, page):
     with open(network_filename, 'rb') as input_file:
         found_first_request = False
         for raw_line in input_file:
-            network_event = json.loads(json.loads(raw_line.strip()))
+            try:
+                network_event = json.loads(json.loads(raw_line.strip()))
+            except Exception:
+                network_event = json.loads(raw_line.strip())
             if not found_first_request and \
                 network_event[METHOD] == 'Network.requestWillBeSent':
                 if common_module.escape_url(network_event[PARAMS][REQUEST]['url']) \
