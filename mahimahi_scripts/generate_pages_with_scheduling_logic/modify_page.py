@@ -1,11 +1,13 @@
 import os
 import sys
 import subprocess
+import common_module
 
 # recorded folder to be copied and rewritten
 recorded_folder = sys.argv[1]
 rewritten_folder = sys.argv[2]
 index = sys.argv[3]
+page = sys.argv[4]
 
 # temp folder to store rewritten protobufs
 os.system("rm -rf rewritten_" + index)
@@ -14,21 +16,24 @@ os.system( "cp -r " + recorded_folder + " rewritten_" + index )
 files = os.listdir("rewritten_" + index)
 
 # iterate through files to get top-level HTML (must do this before processing files!)
-top_level_html = ''
+found_top_level_html = False
 top_files = []
+top_file_to_top_level_html = dict()
 for filename in files:
     top_cmd = "./protototext rewritten_" + index + "/" + filename + " top_level_temp_" + index
     proc_top = subprocess.Popen([top_cmd], stdout=subprocess.PIPE, shell=True)
     (out_top, err_top) = proc_top.communicate()
     out_top = out_top.strip("\n")
-    if ( "type=htmlindex" in out_top ): # this is the top-level HTML
-        top_level_html = out_top.split("na--me=")[1]
+    top_level_html = out_top.split("na--me=")[1]
+    if common_module.escape_page(top_level_html) == page:
         top_files.append(filename)
+        top_file_to_top_level_html[filename] = top_level_html
+        found_top_level_html = True
     os.system("rm top_level_temp_" + index)
 
 print "FOUND TOP LEVEL: " + str(top_files)
 
-if ( top_level_html == '' ): # didn't find top level HTML file
+if ( not found_top_level_html ): # didn't find top level HTML file
     print "Didn't find top-level HTML file in: " + recorded_folder
     os.system("rm -r rewritten_" + index + "/")
     exit()
@@ -37,7 +42,6 @@ for filename in files:
     # print filename
 
     #os.system("changeheader rewritten_" + index + "/" + filename + " Access-Control-Allow-Origin *")
-
 
     # convert response in protobuf to text (ungzip if necessary)
     command = "./protototext rewritten_" + index + "/" + filename + " rewritten_" + index + "/tempfile"
@@ -64,7 +68,7 @@ for filename in files:
 
             if ( "html" in res_type ): # rewrite all inline js in html files
                 if ( filename in top_files ):
-                    os.system('python html_rewrite.py rewritten_' + index + '/tempfile rewritten_' + index + '/htmltempfile "' + top_level_html + '"')
+                    os.system('python html_rewrite.py rewritten_' + index + '/tempfile rewritten_' + index + '/htmltempfile "' + top_file_to_top_level_html[filename] + '"')
                     os.system('mv rewritten_' + index + '/htmltempfile rewritten_' + index + '/tempfile')
 
             # get new length of response

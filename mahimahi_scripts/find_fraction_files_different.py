@@ -29,8 +29,8 @@ def find_fraction(first_dir, second_dir):
     return fraction
 
 if __name__ == '__main__':
-    parser = ArugmentParser()
+    parser = ArgumentParser()
     parser.add_argument('first_dir')
     parser.add_argument('second_dir')
     args = parser.parse_args()
-    main(args.first_dir, second_dir)
+    main(args.first_dir, args.second_dir)

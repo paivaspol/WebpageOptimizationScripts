@@ -8,7 +8,7 @@ def main(record_directory):
     files = os.listdir(record_directory)
     for f in files:
         full_path = os.path.join(record_directory, f)
-        print get_filename(full_path)
+        get_filename(full_path)
 
 def get_filename(filename):
     with open(filename, 'rb') as input_file:
@@ -16,15 +16,10 @@ def get_filename(filename):
         request_response = http_record_pb2.RequestResponse()
         request_response.ParseFromString(file_content)
         first_line = request_response.request.first_line
+        ip = request_response.ip
         
-        if 'analytics.js' in first_line:
-            print request_response
-
         splitted_first_line = first_line.split()
-        for header_pair in request_response.request.header:
-            if header_pair.key == 'Host':
-                host = header_pair.value
-        return splitted_first_line[1], host
+        print first_line + ' ' + ip
 
 if __name__ == '__main__':
     parser = ArgumentParser()

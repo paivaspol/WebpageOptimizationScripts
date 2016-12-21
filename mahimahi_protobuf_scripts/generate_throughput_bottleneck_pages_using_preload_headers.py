@@ -12,12 +12,8 @@ def main(root_dir, pages_to_timestamp, dependencies_dir, output_dir):
     
     for page, timestamp in pages_to_timestamp.iteritems():
         page_directory = os.path.join(root_dir, timestamp, page)
-        
-        # Find the page to resource sizes mapping.
-        resource_size_mapping_filename = os.path.join(page_resource_sizes_dir, page)
         dependency_filename = os.path.join(dependencies_dir, page, 'dependency_tree.txt')
-        if not os.path.exists(resource_size_mapping_filename) \
-            or not os.path.exists(dependency_filename):
+        if not os.path.exists(dependency_filename):
             continue
         
         timestamp_output_directory = os.path.join(output_dir, timestamp)
@@ -31,8 +27,8 @@ def main(root_dir, pages_to_timestamp, dependencies_dir, output_dir):
 
         resource_urls = common_module.get_dependencies(dependency_filename, False)
         files = os.listdir(page_output_directory)
-        top_level_htmls = find_top_level_htmls(files, page_output_directory)
-        print top_level_htmls
+        top_level_htmls = find_top_level_htmls(files, page_output_directory, page)
+        print 'page: {0} {1}'.format(page, top_level_htmls)
         for i, top_level_html in enumerate(top_level_htmls):
             top_level_html_full_path = os.path.join(page_output_directory, top_level_html)
             if generate_top_level_html(top_level_html_full_path, resource_urls, page_output_directory, i):
@@ -78,7 +74,7 @@ def remove_header(headers, header_key):
             del headers[i]
             break
 
-def find_top_level_htmls(files, base_directory):
+def find_top_level_htmls(files, base_directory, page):
     results = []
     for recorded_file in files:
         path_to_file = os.path.join(base_directory, recorded_file)
@@ -87,10 +83,12 @@ def find_top_level_htmls(files, base_directory):
         proc_top = subprocess.Popen([top_cmd], stdout=subprocess.PIPE, shell=True)
         (out_top, err_top) = proc_top.communicate()
         out_top = out_top.strip("\n")
-        if ( "type=htmlindex" in out_top ): # this is the top-level HTML
+        if 'na--me=' in out_top:
             top_level_html = out_top.split("na--me=")[1]
-            results.append(recorded_file)
-        os.remove(temp_filename)
+            if common_module.escape_page(top_level_html) == page:
+                results.append(recorded_file)
+        if os.path.exists(temp_filename):
+            os.remove(temp_filename)
     return results
 
 def get_urls(resource_size_mapping_filename, page):
