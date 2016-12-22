@@ -17,9 +17,10 @@ def main(root_dir, dependency_dir, page_list, iterations, output_dir):
         escaped_base_page = common_module.escape_url(base_page)
         dependency_filename = os.path.join(dependency_dir, escaped_base_page, 'dependency_tree.txt')
         dependencies = get_dependencies(dependency_filename)
+        devtools_request_intersections = find_devtools_request_intersection(root_dir, iterations, escaped_page)
+
         for i in range(0, iterations):
-            processing_time_filename = os.path.join(root_dir, 
-                                                    'extended_waterfall_' + str(i), 
+            processing_time_filename = os.path.join(root_dir, 'extended_waterfall_' + str(i), 
                                                     escaped_page, 'processing_time.txt')
             if not os.path.exists(processing_time_filename):
                 continue
@@ -31,7 +32,32 @@ def main(root_dir, dependency_dir, page_list, iterations, output_dir):
             # output_orderings(orderings)
             order_index = check_orderings(orderings)
             if order_index >= 0:
-                output_orderings_to_file(orderings, dependencies, output_dir, escaped_page, order_index)
+                output_orderings_to_file(orderings, dependencies, output_dir, escaped_page, order_index, devtools_request_intersections)
+
+def find_devtools_request_intersection(root_dir, iterations, page):
+    result = set()
+    first_iteration = True
+    for i in range(0, iterations):
+        request_filename = os.path.join(root_dir, 'extended_waterfall_' + str(i),
+                                        page, 'ResourceSendRequest.txt')
+        with open(request_filename, 'rb') as input_file:
+            cur_iteration = set()
+            for line in input_file:
+                cur_iteration.add(line.strip().split()[0])
+            if first_iteration:
+                result |= cur_iteration
+                first_iteration = False
+            else:
+                result &= cur_iteration
+    return result
+
+def get_urls_from_extended_waterfall_file(filename):
+    urls = set()
+    with open(filename, 'rb') as input_file:
+        for raw_line in input_file:
+            line = raw_line.strip().split()
+            urls.add(line[0])
+    return urls
 
 def get_dependencies(dependency_filename):
     result = dict()
@@ -42,24 +68,25 @@ def get_dependencies(dependency_filename):
             result[url] = line
     return result
 
-def output_orderings_to_file(orderings, dependencies, output_dir, page, order_index):
+def output_orderings_to_file(orderings, dependencies, output_dir, page, order_index, devtools_request_intersection):
     if not os.path.exists(os.path.join(output_dir, page)):
         os.mkdir(os.path.join(output_dir, page))
     output_filename = os.path.join(output_dir, page, 'dependency_tree.txt')
     with open(output_filename, 'wb') as output_file:
         for obj in orderings[order_index]:
             print obj
-            if obj in dependencies:
+            if obj in dependencies and obj in devtools_request_intersection:
                 line = dependencies[obj]
                 output_line = line[0] + ' ' + line[1] + ' ' + obj + ' ' + line[3] + ' ' + line[4] + ' ' + line[5]
                 output_file.write(output_line + '\n')
                 del dependencies[obj]
         sorted_dependencies = sorted(dependencies.iteritems(), key=lambda x: x[1][3])
         for obj, line in sorted_dependencies:
-            output_line = ''
-            for token in line:
-                output_line += token + ' '
-            output_file.write(output_line.strip() + '\n')
+            if obj in devtools_request_intersection:
+                output_line = ''
+                for token in line:
+                    output_line += token + ' '
+                output_file.write(output_line.strip() + '\n')
 
 def output_orderings(orderings):
     first_round = orderings[0]
