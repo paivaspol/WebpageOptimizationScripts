@@ -15,6 +15,7 @@ REQUEST_HEADERS = 'requestHeaders'
 ENCODED_DATA_LENGTH = 'encodedDataLength'
 STACK = 'stack'
 CALLFRAMES = 'callFrames'
+MIME_TYPE = 'mimeType'
 
 NET_REQUEST_WILL_BE_SENT = 'Network.requestWillBeSent'
 NET_RESPONSE_RECEIVED = 'Network.responseReceived'

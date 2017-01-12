@@ -1,6 +1,7 @@
 import simplejson as json
 import common_module
 import os
+import check_type
 
 from argparse import ArgumentParser 
 
@@ -19,6 +20,7 @@ TIMESTAMP = 'timestamp'
 WALLTIME = 'wallTime'
 CALL_FRAMES = 'callFrames'
 INITIAL_PRIORITY = 'initialPriority'
+MIME_TYPE = 'mimeType'
 
 DEFAULT_REQUESTER = '##default'
 
@@ -124,7 +126,8 @@ def find_dependencies(page, network_activities, page_start_end_time):
 
             request_network_activity = request_id_to_request_object[request_id]
             response = network_activity[PARAMS][RESPONSE]
-            request_id_to_type[request_id]  = network_activity[PARAMS][TYPE]
+            mime_type = network_activity[PARAMS][RESPONSE][MIME_TYPE]
+            request_id_to_type[request_id] = check_type.check_type(network_activity[PARAMS][TYPE], mime_type)
             if request_id in request_id_to_initiator_map and \
                 request_network_activity[PARAMS][INITIATOR][TYPE] == 'parser':
                 # Try to apply the second extraction rule: use the referer instead.

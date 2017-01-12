@@ -5,21 +5,29 @@ from collections import defaultdict
 import common_module
 import os
 
+THRESHOLD = 0.4
+
 def main(root_dir, dependency_dir, page_list, iterations, output_dir):
     if not os.path.exists(output_dir):
         os.mkdir(output_dir)
     for base_page, page in page_list:
-        # if not page.endswith('espncricinfo.com/'):
-        #     continue
-        # print page
         orderings = []
         escaped_page = common_module.escape_url(page)
         escaped_base_page = common_module.escape_url(base_page)
         dependency_filename = os.path.join(dependency_dir, escaped_base_page, 'dependency_tree.txt')
+        if not os.path.exists(dependency_filename):
+            dependency_filename = os.path.join(dependency_dir, escaped_page, 'dependency_tree.txt')
+
+        if not os.path.exists(dependency_filename):
+            print 'Missing dependency tree file: ' + page + ' escaped_page: ' + escaped_base_page
+            continue
         dependencies = get_dependencies(dependency_filename)
         devtools_request_intersections = find_devtools_request_intersection(root_dir, iterations, escaped_page)
 
-        for i in range(0, iterations):
+        start_iteration = 0
+        if args.skip_first_load:
+            start_iteration = 1
+        for i in range(start_iteration, iterations):
             processing_time_filename = os.path.join(root_dir, 'extended_waterfall_' + str(i), 
                                                     escaped_page, 'processing_time.txt')
             if not os.path.exists(processing_time_filename):
@@ -31,15 +39,24 @@ def main(root_dir, dependency_dir, page_list, iterations, output_dir):
             # check_domain_orderings('s.yimg.com', orderings)
             # output_orderings(orderings)
             order_index = check_orderings(orderings)
-            if order_index >= 0:
-                output_orderings_to_file(orderings, dependencies, output_dir, escaped_page, order_index, devtools_request_intersections)
+            if order_index < 0:
+                order_index = 0
+            output_orderings_to_file(root_dir, orderings, dependencies, output_dir, escaped_page, order_index, devtools_request_intersections, escaped_base_page)
+        else:
+            print 'No orderings'
 
 def find_devtools_request_intersection(root_dir, iterations, page):
     result = set()
     first_iteration = True
-    for i in range(0, iterations):
+    start_iteration = 0
+    if args.skip_first_load:
+        start_iteration = 1
+    for i in range(start_iteration, iterations):
         request_filename = os.path.join(root_dir, 'extended_waterfall_' + str(i),
                                         page, 'ResourceSendRequest.txt')
+        if not os.path.exists(request_filename):
+            continue
+
         with open(request_filename, 'rb') as input_file:
             cur_iteration = set()
             for line in input_file:
@@ -68,16 +85,30 @@ def get_dependencies(dependency_filename):
             result[url] = line
     return result
 
-def output_orderings_to_file(orderings, dependencies, output_dir, page, order_index, devtools_request_intersection):
+def output_orderings_to_file(root_dir, orderings, dependencies, output_dir, page, order_index, devtools_request_intersection, escaped_base_page):
     if not os.path.exists(os.path.join(output_dir, page)):
         os.mkdir(os.path.join(output_dir, page))
-    output_filename = os.path.join(output_dir, page, 'dependency_tree.txt')
+    output_filename = os.path.join(output_dir, escaped_base_page, 'dependency_tree.txt')
+    if not os.path.exists(os.path.join(output_dir, escaped_base_page)):
+        os.mkdir(os.path.join(output_dir, escaped_base_page))
+    file_index = order_index
+    if args.skip_first_load:
+        file_index = order_index + 1
+    plt_filename = os.path.join(root_dir, str(file_index), page, 'start_end_time_' + page)
+    request_filename = os.path.join(root_dir, 'extended_waterfall_' + str(file_index),
+                                    page, 'ResourceSendRequest.txt')
+    fetch_filename = os.path.join(root_dir, 'extended_waterfall_' + str(file_index),
+                                    page, 'ResourceFinish.txt')
+    plt = get_plt(plt_filename)
+    fetch_times = get_fetch_times(request_filename, fetch_filename)
     with open(output_filename, 'wb') as output_file:
+        print 'Writing to ' + output_filename
         for obj in orderings[order_index]:
             print obj
             if obj in dependencies and obj in devtools_request_intersection:
                 line = dependencies[obj]
-                output_line = line[0] + ' ' + line[1] + ' ' + obj + ' ' + line[3] + ' ' + line[4] + ' ' + line[5]
+                vroom_priority = infer_vroom_priority(plt, fetch_times[obj], line[4], line[5])
+                output_line = line[0] + ' ' + line[1] + ' ' + obj + ' ' + line[3] + ' ' + line[4] + ' ' + line[5] + ' ' + vroom_priority
                 output_file.write(output_line + '\n')
                 del dependencies[obj]
         sorted_dependencies = sorted(dependencies.iteritems(), key=lambda x: x[1][3])
@@ -86,7 +117,44 @@ def output_orderings_to_file(orderings, dependencies, output_dir, page, order_in
                 output_line = ''
                 for token in line:
                     output_line += token + ' '
-                output_file.write(output_line.strip() + '\n')
+                if obj in fetch_times:
+                    vroom_priority = infer_vroom_priority(plt, fetch_times[obj], line[4], line[5])
+                    output_line += vroom_priority
+                    output_file.write(output_line.strip() + '\n')
+
+def get_fetch_times(send_request_filename, finish_filename):
+    request_times = dict()
+    finish_times = dict()
+    with open(send_request_filename, 'rb') as input_file:
+        for raw_line in input_file:
+            line = raw_line.strip().split()
+            request_times[line[0]] = int(line[2])
+    with open(finish_filename, 'rb') as input_file:
+        for raw_line in input_file:
+            line = raw_line.strip().split()
+            finish_times[line[0]] = int(line[2])
+
+    fetch_times = dict()
+    for url in finish_times:
+        fetch_times[url] = (finish_times[url] - request_times[url]) / 1000.0
+    return fetch_times
+
+def get_plt(plt_filename):
+    with open(plt_filename, 'rb') as input_file:
+        line = input_file.readline().strip().split()
+        return float(line[2]) - float(line[1])
+
+def infer_vroom_priority(plt, obj_fetch_time, resource_type, request_priority):
+    fraction_of_plt = 1.0 * obj_fetch_time / plt
+    if ((resource_type == 'Document' or resource_type == 'Stylesheet' or resource_type == 'Script') and \
+        (request_priority == 'VeryHigh' or request_priority == 'High' or request_priority == 'Medium')) or \
+        (resource_type == 'XHR') or \
+        fraction_of_plt > THRESHOLD:
+        return 'Important'
+    elif (resource_type == 'Document' or resource_type == 'Stylesheet' or resource_type == 'Script'):
+        return 'Semi-important'
+    else:
+        return 'Unimportant'
 
 def output_orderings(orderings):
     first_round = orderings[0]
@@ -178,6 +246,7 @@ if __name__ == '__main__':
     parser.add_argument('dependency_dir')
     parser.add_argument('iterations', type=int)
     parser.add_argument('output_dir')
+    parser.add_argument('--skip-first-load', default=False, action='store_true')
     args = parser.parse_args()
     page_list = common_module.get_pages_with_redirection(args.pages_filename)
     main(args.root_dir, args.dependency_dir, page_list, args.iterations, args.output_dir)

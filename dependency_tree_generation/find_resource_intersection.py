@@ -20,7 +20,10 @@ def main(root_dir, num_iterations, pages, output_dir):
         skip_page = False # Indicator to decide whether to skip processing this page.
         page_common_resources = set()
         total_resources = []
-        for i in range(0, num_iterations):
+        start_iteration = 0
+        if args.skip_first_load:
+            start_iteration = 1
+        for i in range(start_iteration, num_iterations):
             run_path = os.path.join(root_dir, str(i), page)
             network_filename = os.path.join(run_path, 'network_' + page)
             if not os.path.exists(network_filename):
@@ -87,6 +90,7 @@ def find_all_resources(network_filename, page):
                 if common_module.escape_url(network_event[PARAMS][REQUEST]['url']) \
                     == page:
                     found_first_request = True
+                url = network_event[PARAMS][REQUEST][URL]
             if not found_first_request:
                 continue
             if network_event[METHOD] == 'Network.responseReceived':
@@ -124,6 +128,7 @@ if __name__ == '__main__':
     parser.add_argument('--output-to-stdout', default=False, action='store_true')
     parser.add_argument('--output-fraction-list', default=False, action='store_true')
     parser.add_argument('--only-important-resources', default=False, action='store_true')
+    parser.add_argument('--skip-first-load', default=False, action='store_true')
     args = parser.parse_args()
     pages = get_pages(args.pages_file)
     main(args.root_dir, args.num_iterations, pages, args.output_dir)

@@ -2,18 +2,14 @@
 
 set -e
 
-iterations=$1
-basedir=$2
+basedir=$1
+depdir=$2
 
 if [[ "$#" -ne 2 ]];
 then
-  echo './generate_extended_waterfall.sh [iterations] [base_dir]'
+  echo './generate_extended_waterfall.sh [base_dir] [dep_dir]'
   exit 1
 fi
 
-actual_iter=$((${iterations} - 1))
-
-for i in $(seq 0 1 ${actual_iter})
-do
-  python generate_extended_waterfall.py ${basedir}/${i} ${basedir}/extended_waterfall_${i}
-done
+python generate_extended_waterfall.py ${basedir}/median ${basedir}/extended_waterfall
+python find_dynamically_generated_urls.py ${basedir}/extended_waterfall/ ${depdir} ${basedir}/dynamic_urls

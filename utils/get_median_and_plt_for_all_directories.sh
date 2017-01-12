@@ -2,6 +2,11 @@
 
 root_dir=$1
 
+if [[ $# -ne 1 ]]; then
+  echo "Usage ./get_median_and_plt_for_all_directories.sh [root_dir]"
+  exit 1
+fi
+
 set -e
 
 for d in ${root_dir}/*
