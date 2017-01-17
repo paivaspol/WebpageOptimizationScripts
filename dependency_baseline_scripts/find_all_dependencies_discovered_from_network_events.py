@@ -17,7 +17,6 @@ def main(root_dir, dependency_dir):
     pages = os.listdir(root_dir)
     if args.page_list is not None:
         pages = common_module.get_pages(args.page_list)
-
     failed_pages = []
     for page in pages:
         dependency_filename = os.path.join(dependency_dir, page, 'dependency_tree.txt')
@@ -58,6 +57,8 @@ def get_dependency_finish_download_time(page, network_filename, dependencies):
         times_from_first_request = dict()
         found_first_request = False
         first_request_timestamp = -1
+        completed_urls = set()
+        request_id_to_url = dict()
         for raw_line in input_file:
             try:
                 network_event = json.loads(json.loads(raw_line.strip()))
@@ -65,10 +66,9 @@ def get_dependency_finish_download_time(page, network_filename, dependencies):
                 network_event = json.loads(raw_line.strip())
             request_id = network_event[PARAMS][REQUEST_ID]
             if network_event[METHOD] == 'Network.requestWillBeSent':
+                request_id = network_event[PARAMS][REQUEST_ID]
                 url = network_event[PARAMS][REQUEST][URL]
                 timestamp = network_event[PARAMS][TIMESTAMP]
-                # if 'redirectResponse' in network_event[PARAMS]:
-                #     url = network_event[PARAMS]['redirectResponse']['url']
 
                 # Make sure to find the first request before parsing the file.
                 if not found_first_request:
@@ -84,10 +84,22 @@ def get_dependency_finish_download_time(page, network_filename, dependencies):
                     # Get the current timestamp and find the time difference.
                     time_since_first_request = timestamp - first_request_timestamp
                     times_from_first_request[url] = time_since_first_request
+                    request_id_to_url[request_id] = url
                     dependencies.remove(url)
-                    
-                    if len(dependencies) == 0:
-                        break
+            elif found_first_request and (network_event[METHOD] == 'Network.loadingFinished' or \
+                    network_event[METHOD] == 'Network.loadingFailed'):
+                request_id = network_event[PARAMS][REQUEST_ID]
+                if request_id in request_id_to_url:
+                    url = request_id_to_url[request_id]
+                    completed_urls.add(url)
+        
+        urls_to_remove = []
+        for url in times_from_first_request:
+            if url not in completed_urls:
+                urls_to_remove.append(url)
+
+        for url in urls_to_remove:
+            del times_from_first_request[url]
 
         return times_from_first_request
 

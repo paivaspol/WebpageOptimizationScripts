@@ -118,3 +118,8 @@ def get_pages_without_pages_to_ignore(base_pages, pages_to_ignore_filename):
             pages_to_ignore.add(raw_line.strip())
     base_pages_set = set(base_pages)
     return base_pages_set - pages_to_ignore
+
+def get_pages(page_list_filename):
+    with open(page_list_filename, 'rb') as input_file:
+        temp = [ line.strip().split() for line in input_file ]
+        return [ escape_page(line[len(line) - 1]) for line in temp ]

@@ -21,7 +21,11 @@ def get_page_to_chosen_run(root_dir, num_iterations, run_type, pages):
         # print 'Processing: ' + page
         load_times = []
 
-        for i in range(0, num_iterations):
+        start = 0
+        if args.skip_first_load:
+            start = 1
+
+        for i in range(start, num_iterations):
             run_path = os.path.join(os.path.join(root_dir, str(i)), page)
             start_end_time_filename = os.path.join(run_path, 'start_end_time_{0}'.format(page))
             if not os.path.exists(start_end_time_filename):
@@ -80,6 +84,8 @@ def copy_chosen_runs(chosen_runs, root_dir, output_dir, num_iterations):
     counter = 0
     for page, run_index in chosen_runs.iteritems():
         if 0 <= run_index < num_iterations:
+            if args.skip_first_load:
+                run_index += 1
             run_path = os.path.join(os.path.join(root_dir, str(run_index)), page)
             copy_command = 'cp -r {0} {1}'.format(run_path, output_dir)
             subprocess.call(copy_command, shell=True)
@@ -92,6 +98,8 @@ def output_page_to_run_index(output_dir, chosen_runs):
     output_filename = os.path.join(output_dir, 'page_to_run_index.txt')
     with open(output_filename, 'wb') as output_file:
         for page, run_index in chosen_runs.iteritems():
+            if args.skip_first_load:
+                run_index += 1
             output_file.write('{0} {1}\n'.format(page, run_index))
 
 if __name__ == '__main__':
@@ -101,6 +109,7 @@ if __name__ == '__main__':
     parser.add_argument('num_iterations', type=int)
     parser.add_argument('run_type')
     parser.add_argument('output_dir')
+    parser.add_argument('--skip-first-load', action='store_true', default=False)
     args = parser.parse_args()
     if args.run_type == MIN or args.run_type == MEDIAN or args.run_type == MAX or args.run_type == RANDOM:
         pages = get_pages(args.pages_file)

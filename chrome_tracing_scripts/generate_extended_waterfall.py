@@ -33,13 +33,17 @@ def main(root_dir, output_dir):
         tracing_filename = os.path.join(root_dir, page, 'tracing_' + page)
         network_filename = os.path.join(root_dir, page, 'network_' + page)
         if not (os.path.exists(tracing_filename) and os.path.exists(network_filename)):
+            print 'here'
             continue
-        url_timings = get_timings(tracing_filename, network_filename)
-        output_to_file(url_timings, os.path.join(output_dir, page))
+        url_timings, first_request_time, url_priorities = get_timings(tracing_filename, network_filename)
+        output_to_file(url_timings, os.path.join(output_dir, page), first_request_time)
+        output_priorities(url_priorities, os.path.join(output_dir, page))
 
 def get_timings(tracing_filename, network_filename):
     url_to_resource_type = get_url_to_resource_type(network_filename)
     url_to_timings = defaultdict(lambda: defaultdict(list))
+    url_to_request_priority = dict()
+    first_request_time = None
     with open(tracing_filename, 'rb') as input_file:
         event = ''
         cur_line = input_file.readline()
@@ -51,7 +55,11 @@ def get_timings(tracing_filename, network_filename):
             if 'Tracing.dataCollected' in cur_line and \
                 event != '':
                 # process the current event.
-                parsed_event = json.loads(event)
+                try:
+                    parsed_event = json.loads(event)
+                except Exception:
+                    event = ''
+                    continue
                 params_values = parsed_event['params']['value']
 
                 for val in params_values: # Iterate through each value.
@@ -62,6 +70,10 @@ def get_timings(tracing_filename, network_filename):
                         timing_name == PARSING_PARSE_AUTHOR_STYLE_SHEET or \
                         timing_name == SCRIPT_EVALUATE_SCRIPT:
                         try:
+                            if first_request_time is None:
+                                first_request_time = timestamp
+                            else:
+                                first_request_time = min(first_request_time, timestamp)
                             data = val['args']['data']
                             if timing_name == PARSING_PARSE_AUTHOR_STYLE_SHEET:
                                 url = data['styleSheetUrl']
@@ -70,7 +82,9 @@ def get_timings(tracing_filename, network_filename):
 
                             if timing_name == NETWORK_RESOURCE_SEND_REQUEST:
                                 request_id = data['requestId']
+                                priority = data['priority']
                                 request_id_to_url[request_id] = url
+                                url_to_request_priority[url] = priority
                             if event_type == EVENT_INSTANT:
                                 url_to_timings[url][timing_name].append( timestamp )
                             elif event_type == EVENT_COMPLETE:
@@ -108,9 +122,17 @@ def get_timings(tracing_filename, network_filename):
         # Populate the ParseHTML times.
         for url, html_parse_time in parsed_html_timestamps.iteritems():
             url_to_timings[url][PARSING_PARSE_HTML].append((html_parse_time[0], html_parse_time[1]))
-    return url_to_timings       
+    return url_to_timings, first_request_time, url_to_request_priority
 
-def output_to_file(url_to_timings, output_dir):
+def output_priorities(url_priorities, output_dir):
+    output_filename = os.path.join(output_dir, 'url_priorities.txt')
+    with open(output_filename, 'wb') as output_file:
+        for url, priority in url_priorities.iteritems():
+            if url.startswith('data:') or len(url) == 0 or url == 'about:blank':
+                continue
+            output_file.write('{0} {1}\n'.format(url, priority))
+
+def output_to_file(url_to_timings, output_dir, first_request_time):
     # The output contains 4 files:
     #   1) Resource send request
     #   2) Resource receive response
@@ -144,9 +166,9 @@ def output_to_file(url_to_timings, output_dir):
             for t in timing:
                 output_line = '{0} {1} '.format(url, url_id)
                 if type(t) is tuple:
-                    output_line += str(t[0]) + ' ' + str(t[1]) + '\n'
+                    output_line += str(t[0] - first_request_time) + ' ' + str(t[1] - first_request_time) + '\n'
                 else:
-                    output_line += str(t) + '\n'
+                    output_line += str(t - first_request_time) + '\n'
 
                 if key in files:
                     files[key].write(output_line)

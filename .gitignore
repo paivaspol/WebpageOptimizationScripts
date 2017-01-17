@@ -4,3 +4,5 @@ temp.log
 *.txt
 *.pcap
 *.out
+*temp*
+*tmp*

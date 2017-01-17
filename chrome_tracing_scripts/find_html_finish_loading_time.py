@@ -21,7 +21,10 @@ def process_network_file(network_filename, page):
         first_request_id = None
         request_ts = None
         for raw_line in input_file:
-            network_event = json.loads(json.loads(raw_line.strip()))
+            try:
+                network_event = json.loads(json.loads(raw_line.strip()))
+            except:
+                network_event = json.loads(raw_line.strip())
             if 'requestId' in network_event['params']:
                 request_id = network_event['params']['requestId']
                 if network_event['method'] == 'Network.requestWillBeSent':

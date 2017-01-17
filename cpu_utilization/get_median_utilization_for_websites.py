@@ -38,10 +38,10 @@ def process_page(root_dir, page, start_time_offset_dict, end_time_offset_dict):
             utilization = float(line[1])
             utilizations.append(utilization)
     if len(utilizations) > 0:
-        median_utilization = numpy.median(utilizations)
+        median_utilization = numpy.average(utilizations)
         max_utilization = max(utilizations)
         min_utilization = min(utilizations)
-        print len(utilizations)
+        # print len(utilizations)
         print '{0} {1} {2} {3}'.format(page, median_utilization, min_utilization, max_utilization)
 
 def get_cpu_running_chrome(cpu_running_chrome_filename):

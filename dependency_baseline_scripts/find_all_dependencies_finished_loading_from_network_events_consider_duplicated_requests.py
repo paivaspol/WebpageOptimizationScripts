@@ -63,6 +63,8 @@ def get_dependency_finish_download_time(page, network_filename, dependencies):
         found_first_request = False
         first_request_timestamp = -1
         request_id_to_url_map = dict()
+        served_from_cache = set()
+        seen_url = set()
         for raw_line in input_file:
             try:
                 network_event = json.loads(json.loads(raw_line.strip()))
@@ -84,27 +86,32 @@ def get_dependency_finish_download_time(page, network_filename, dependencies):
                     else:
                         continue
                 
-                request_id_to_url_map[request_id] = url
+                if not url.startswith('data:') and url != 'about:blank':
+                    request_id_to_url_map[request_id] = url
+
+            elif found_first_request and network_event['method'] == 'Network.requestServedFromCache':
+                request_id = network_event['params']['requestId']
+                if request_id in request_id_to_url_map:
+                    served_from_cache.add(request_id)
+                
+            elif found_first_request and network_event['method'] == 'Network.responseReceived':
+                request_id = network_event['params']['requestId']
+                if request_id in request_id_to_url_map:
+                    if network_event['params']['response']['fromDiskCache']:
+                        served_from_cache.add(request_id)
 
             elif found_first_request and (network_event[METHOD] == 'Network.loadingFinished' or \
                     network_event[METHOD] == 'Network.loadingFailed'):
                 request_id = network_event[PARAMS][REQUEST_ID]
                 if request_id in request_id_to_url_map:
                     url = request_id_to_url_map[request_id]
-
-                    if url in dependencies and url not in times_from_first_request:
-                        # We have already discovered all the dependencies.
-                        # Get the current timestamp and find the time difference.
-                        finish_timestamp = network_event[PARAMS][TIMESTAMP]
-                        time_from_first_request = finish_timestamp - first_request_timestamp
-                        if args.print_ms:
-                            time_from_first_request = time_from_first_request * 1000.0
-                        times_from_first_request[url] = time_from_first_request
-
-                        dependencies.remove(url)
-                        
-                        if len(dependencies) == 0:
-                            break
+                    # We have already discovered all the dependencies.
+                    # Get the current timestamp and find the time difference.
+                    finish_timestamp = network_event[PARAMS][TIMESTAMP]
+                    time_from_first_request = finish_timestamp - first_request_timestamp
+                    if args.print_ms:
+                        time_from_first_request = time_from_first_request * 1000.0
+                    times_from_first_request[url] = time_from_first_request
 
         return times_from_first_request
 
