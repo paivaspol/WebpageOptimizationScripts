@@ -34,7 +34,7 @@ def get_page_to_chosen_run(root_dir, num_iterations, run_type, pages):
             load_times.append(this_run_page_load_time)
 
         # Choose the load time.
-        # print 'number of loads: ' + str(len(load_times))
+        print page + ': ' + str(len(load_times))
         if len(load_times) > 0:
             if run_type == MEDIAN:
                 chosen_load_time = numpy.median(load_times)
