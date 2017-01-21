@@ -4,6 +4,7 @@ from collections import defaultdict
 import constants
 import simplejson as json
 import os
+import urllib
 
 NETWORK_RESOURCE_SEND_REQUEST = 'ResourceSendRequest'
 NETWORK_RESOURCE_RECEIVE_RESPONSE = 'ResourceReceiveResponse'
@@ -30,6 +31,9 @@ def main(root_dir, output_dir):
     pages = os.listdir(root_dir)
     for page in pages:
         print 'Processing: ' + page
+        if 'huffingtonpost.com' in page:
+            continue
+        
         tracing_filename = os.path.join(root_dir, page, 'tracing_' + page)
         network_filename = os.path.join(root_dir, page, 'network_' + page)
         if not (os.path.exists(tracing_filename) and os.path.exists(network_filename)):
@@ -130,6 +134,7 @@ def output_priorities(url_priorities, output_dir):
         for url, priority in url_priorities.iteritems():
             if url.startswith('data:') or len(url) == 0 or url == 'about:blank':
                 continue
+            # output_file.write('{0} {1}\n'.format(urllib.quote(url), priority))
             output_file.write('{0} {1}\n'.format(url, priority))
 
 def output_to_file(url_to_timings, output_dir, first_request_time):
@@ -164,6 +169,7 @@ def output_to_file(url_to_timings, output_dir, first_request_time):
         for key, timing in timings.iteritems():
             # construct the line with this format: url url_id timings...
             for t in timing:
+                # output_line = '{0} {1} '.format(urllib.quote(url), url_id)
                 output_line = '{0} {1} '.format(url, url_id)
                 if type(t) is tuple:
                     output_line += str(t[0] - first_request_time) + ' ' + str(t[1] - first_request_time) + '\n'

@@ -3,13 +3,12 @@
 set -e
 
 basedir=$1
-depdir=$2
 
-if [[ "$#" -ne 2 ]];
+if [[ "$#" -ne 1 ]];
 then
-  echo './generate_extended_waterfall.sh [base_dir] [dep_dir]'
+  echo './generate_extended_waterfall.sh [base_dir]'
   exit 1
 fi
 
 python generate_extended_waterfall.py ${basedir}/median ${basedir}/extended_waterfall
-python find_dynamically_generated_urls.py ${basedir}/extended_waterfall/ ${depdir} ${basedir}/dynamic_urls
+python find_normalized_start_processing_times.py ${basedir}/extended_waterfall/ ${basedir}/extended_waterfall
