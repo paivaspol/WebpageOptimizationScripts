@@ -146,11 +146,12 @@ def get_plt(plt_filename):
 
 def infer_vroom_priority(plt, obj_fetch_time, resource_type, request_priority):
     fraction_of_plt = 1.0 * obj_fetch_time / plt
-    if ((resource_type == 'Document' or resource_type == 'Stylesheet' or resource_type == 'Script') and \
+    if ((resource_type == 'Stylesheet' or resource_type == 'Script') and \
         (request_priority == 'VeryHigh' or request_priority == 'High' or request_priority == 'Medium')) or \
-        (resource_type == 'XHR') or \
-        fraction_of_plt > THRESHOLD:
+        (resource_type == 'Document' or resource_type == 'XHR'):
         return 'Important'
+    # elif (resource_type == 'Document' or resource_type == 'Stylesheet' or resource_type == 'Script') or \
+    #     fraction_of_plt > THRESHOLD:
     elif (resource_type == 'Document' or resource_type == 'Stylesheet' or resource_type == 'Script'):
         return 'Semi-important'
     else:

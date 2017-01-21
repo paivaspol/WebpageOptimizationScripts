@@ -101,11 +101,18 @@ def generate_file_from_dependency_tree_object(dependency_tree_object, \
     dependency_node = dependency_tree_object[dependency_url]
     children = dependency_node['children']
     cur_domain = extract_domain(dependency_url)
+    # parent_domain = extract_domain(parent_url)
     for child in children:
         child_found_index = dependency_tree_object[child]['found_index']
         resource_type = dependency_tree_object[child]['type'] if 'type' in dependency_tree_object[child] else 'DEFAULT'
         priority = dependency_tree_object[child]['priority'] if 'priority' in dependency_tree_object[child] else 'Low'
-        dependency_line = (origin_url, dependency_url, child, child_found_index, resource_type, priority)
+        doc_url = dependency_tree_object[child]['documentURL'] if 'documentURL' in dependency_tree_object[child] else origin_url
+        
+        child_domain = extract_domain(child)
+        if resource_type == 'Document' and cur_domain != child_domain:
+            doc_url = parent_url
+
+        dependency_line = (doc_url, dependency_url, child, child_found_index, resource_type, priority)
         result_dependencies.append(dependency_line)
         next_domain = extract_domain(child)
         # print 'current: {0} child: {1}'.format(dependency_url, child)

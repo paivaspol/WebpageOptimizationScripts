@@ -21,6 +21,7 @@ WALLTIME = 'wallTime'
 CALL_FRAMES = 'callFrames'
 INITIAL_PRIORITY = 'initialPriority'
 MIME_TYPE = 'mimeType'
+STATUS = 'status'
 
 DEFAULT_REQUESTER = '##default'
 
@@ -118,10 +119,26 @@ def find_dependencies(page, network_activities, page_start_end_time):
             network_activity[METHOD] == 'Network.responseReceived':
             request_id = network_activity[PARAMS][REQUEST_ID]
             url = network_activity[PARAMS][RESPONSE][URL]
+            status_code = network_activity[PARAMS][RESPONSE][STATUS]
             # if url.endswith('tags.bluekai.com/site/2981'):
             #     print 'response: {0} {1}'.format(url, request_id_to_initiator_map[request_id])
 
-            if request_id not in request_id_to_request_object:
+            if request_id not in request_id_to_request_object or \
+                status_code == 404:
+                if request_id in request_id_to_initiator_map:
+                    del request_id_to_initiator_map[request_id]
+                if request_id in request_id_to_resource_map:
+                    del request_id_to_resource_map[request_id]
+                if request_id in request_id_to_document_url:
+                    del request_id_to_document_url[request_id]
+                if request_id in request_id_to_request_object:
+                    del request_id_to_request_object[request_id]
+                if request_id in request_id_to_order_found:
+                    del request_id_to_order_found[request_id]
+                if request_id in request_id_to_type:
+                    del request_id_to_type[request_id]
+                if request_id in request_id_to_priority:
+                    del request_id_to_priority[request_id]
                 continue
 
             request_network_activity = request_id_to_request_object[request_id]
@@ -165,7 +182,7 @@ def find_dependencies(page, network_activities, page_start_end_time):
             del request_id_to_priority[request_id]
 
     dep_tree = populate_dependencies(request_id_to_initiator_map, request_id_to_resource_map, url_to_request_id, page)
-    return dep_tree, request_id_to_order_found, request_id_to_type, request_id_to_priority
+    return dep_tree, request_id_to_order_found, request_id_to_type, request_id_to_priority, request_id_to_document_url
 
 def populate_dependencies(request_id_to_initiator_map, request_id_to_dependency_url, url_to_request_id, page_url):
     dep_tree = dict()
@@ -215,7 +232,7 @@ def iterate_dep_graph(dep_graph):
         print 'key: {0} len Values: {1}'.format(key, len(value))
         # print '\t{0}'.format(value)
 
-def convert_graph_to_json(dep_graph, request_id_to_order_found, request_id_to_type, request_id_to_priority):
+def convert_graph_to_json(dep_graph, request_id_to_order_found, request_id_to_type, request_id_to_priority, request_id_to_document_url):
     '''
     The json is list of objects where each object represents a node in the dependency graph.
     Each object has the following data:
@@ -242,6 +259,7 @@ def convert_graph_to_json(dep_graph, request_id_to_order_found, request_id_to_ty
             node_info['found_index'] = request_id_to_order_found[node[1]]
             node_info['type'] = request_id_to_type[node[1]]
             node_info['priority'] = request_id_to_priority[node[1]]
+            node_info['documentURL'] = request_id_to_document_url[node[1]]
 
         if 'children' not in result_dict[node[0]]:
             result_dict[node[0]]['children'] = []
@@ -263,6 +281,9 @@ def convert_graph_to_json(dep_graph, request_id_to_order_found, request_id_to_ty
                 result_dict[child]['type'] = resource_type
                 priority = request_id_to_priority[request_id] if request_id in request_id_to_priority else 'Low' # TODO: infer from type
                 result_dict[child]['priority'] = priority
+                doc_url = request_id_to_document_url[request_id] if request_id in request_id_to_document_url else DEFAULT_REQUESTER # TODO: infer from type
+                result_dict[child]['documentURL'] = doc_url
+
             result_dict[child]['parent'] = node[0]
             result_dict[child]['isRoot'] = False
     sanity_check(result_dict)
@@ -302,8 +323,8 @@ if __name__ == '__main__':
     args = parser.parse_args()
     network_activities = convert_to_object(args.network_data_file)
     page_start_end_time = common_module.parse_page_start_end_time(args.page_start_end_time)
-    dep_graph, request_id_to_found_index, request_id_to_type, request_id_to_priority = find_dependencies(args.page, network_activities, page_start_end_time)
-    result_dict = convert_graph_to_json(dep_graph, request_id_to_found_index, request_id_to_type, request_id_to_priority)
+    dep_graph, request_id_to_found_index, request_id_to_type, request_id_to_priority, request_id_to_document_url = find_dependencies(args.page, network_activities, page_start_end_time)
+    result_dict = convert_graph_to_json(dep_graph, request_id_to_found_index, request_id_to_type, request_id_to_priority, request_id_to_document_url)
     dump_object_to_json(result_dict, args.output_dir)
     # iterate_dep_graph(dep_graph)
     # output_dep_graph(dep_graph, DEFAULT_REQUESTER, '')
