@@ -10,6 +10,8 @@ def main(root_dir, output_dir, times):
     page_to_samples = dict()
     for record_time in times:
         pcap_dir = os.path.join(root_dir, record_time, 'pcap')
+        if not os.path.exists(pcap_dir):
+            continue
         files = os.listdir(pcap_dir)
         for pcap_filename in files:
             page_name = extract_page_from_filename(pcap_filename)
