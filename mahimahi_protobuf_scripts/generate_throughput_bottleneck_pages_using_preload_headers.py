@@ -6,15 +6,22 @@ import common_module
 import os
 import subprocess
 
-def main(root_dir, pages_to_timestamp, dependencies_dir, output_dir):
+def main(root_dir, pages_filename, pages_to_timestamp, dependencies_dir, output_dir):
     if not os.path.exists(output_dir):
         os.mkdir(output_dir)
+
+    page_mapping = get_pages(pages_filename)
     
     for page, timestamp in pages_to_timestamp.iteritems():
         page_directory = os.path.join(root_dir, timestamp, page)
         dependency_filename = os.path.join(dependencies_dir, page, 'dependency_tree.txt')
         if not os.path.exists(dependency_filename):
             continue
+
+        if page not in page_mapping:
+            continue
+
+        page_set = page_mapping[page]
         
         timestamp_output_directory = os.path.join(output_dir, timestamp)
         if not os.path.exists(timestamp_output_directory):
@@ -27,13 +34,21 @@ def main(root_dir, pages_to_timestamp, dependencies_dir, output_dir):
 
         resource_urls = common_module.get_dependencies(dependency_filename, False)
         files = os.listdir(page_output_directory)
-        top_level_htmls = find_top_level_htmls(files, page_output_directory, page)
+        top_level_htmls = find_top_level_htmls(files, page_output_directory, page_set)
         print 'page: {0} {1}'.format(page, top_level_htmls)
         for i, top_level_html in enumerate(top_level_htmls):
             top_level_html_full_path = os.path.join(page_output_directory, top_level_html)
             if generate_top_level_html(top_level_html_full_path, resource_urls, page_output_directory, i):
                 # Remove the original top-level HTML from the output directory.
                 os.remove(top_level_html_full_path)
+
+def get_pages(pages_filename):
+    result = dict()
+    with open(pages_filename, 'rb') as input_file:
+        for raw_line in input_file:
+            line = raw_line.strip().split()
+            result[common_module.escape_page(line[0])] = { common_module.escape_page(line[0]), common_module.escape_page(line[1]) }
+    return result
 
 def generate_top_level_html(top_level_html, resource_urls, output_dir, index):
     # We have to do some modifications to the request response object.
@@ -74,7 +89,7 @@ def remove_header(headers, header_key):
             del headers[i]
             break
 
-def find_top_level_htmls(files, base_directory, page):
+def find_top_level_htmls(files, base_directory, page_set):
     results = []
     for recorded_file in files:
         path_to_file = os.path.join(base_directory, recorded_file)
@@ -85,7 +100,8 @@ def find_top_level_htmls(files, base_directory, page):
         out_top = out_top.strip("\n")
         if 'na--me=' in out_top:
             top_level_html = out_top.split("na--me=")[1]
-            if common_module.escape_page(top_level_html) == page:
+            res_type = out_top.split("*")[0].split("=")[1]
+            if 'html' in res_type and common_module.escape_page(top_level_html) in page_set:
                 results.append(recorded_file)
         if os.path.exists(temp_filename):
             os.remove(temp_filename)
@@ -125,10 +141,11 @@ def modify_http_header(http_headers, header_key, header_value):
 
 if __name__ == '__main__':
     parser = ArgumentParser()
-    parser.add_argument('root_dir')
+    parser.add_argument('root_dir', help='Long running page load done')
+    parser.add_argument('page_list')
     parser.add_argument('pages_to_timestamp')
     parser.add_argument('dependencies_dir')
     parser.add_argument('output_dir')
     args = parser.parse_args()
     pages_to_timestamp = common_module.get_page_to_time_mapping(args.pages_to_timestamp)
-    main(args.root_dir, pages_to_timestamp, args.dependencies_dir, args.output_dir)
+    main(args.root_dir, args.page_list, pages_to_timestamp, args.dependencies_dir, args.output_dir)
