@@ -29,12 +29,11 @@ def main(root_dirs, iterations, pages):
         max_val = max_objs[page]
         min_val = min_objs[page]
         percent_difference = 1.0 * (max_val - min_val) / min_val
-        if not (percent_difference > THRESHOLD and (max_val - min_val > 10)):
+        if not args.print_pages_to_ignore and not (percent_difference > THRESHOLD and (max_val - min_val > 10)):
             print '{0} {1} {2} {3}'.format(page, min_val, max_val, percent_difference)
             # print '{0} {1}'.format(page, distribution[page])
-        else:
-            pass
-            # print '{0} {1} {2} {3}'.format(page, min_val, max_val, percent_difference)
+        elif args.print_pages_to_ignore and (percent_difference > THRESHOLD and (max_val - min_val > 10)):
+            print '{0} {1} {2} {3}'.format(page, min_val, max_val, percent_difference)
         # print '{0} {1}'.format(page, distribution[page])
 
 if __name__ == '__main__':
@@ -42,6 +41,7 @@ if __name__ == '__main__':
     parser.add_argument('root_dirs', nargs='+')
     parser.add_argument('iterations', type=int)
     parser.add_argument('pages_filename')
+    parser.add_argument('--print-pages-to-ignore', action='store_true', default=False)
     args = parser.parse_args()
     pages = common_module.get_pages(args.pages_filename)
     main(args.root_dirs, args.iterations, pages)
