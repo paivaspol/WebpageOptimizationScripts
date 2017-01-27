@@ -89,7 +89,7 @@ def get_timings(tracing_filename, network_filename):
                                 priority = data['priority']
                                 request_id_to_url[request_id] = url
                                 url_to_request_priority[url] = priority
-                            if event_type == EVENT_INSTANT:
+                            if event_type == EVENT_INSTANT and url not in url_to_timings:
                                 url_to_timings[url][timing_name].append( timestamp )
                             elif event_type == EVENT_COMPLETE:
                                 duration = int(val['dur'])

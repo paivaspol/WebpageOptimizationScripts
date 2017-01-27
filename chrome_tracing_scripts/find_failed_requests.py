@@ -1,20 +1,26 @@
 from argparse import ArgumentParser
+from collections import defaultdict
 
+import common_module
 import constants
 import os
 import simplejson as json
 
-def main(root_dir, output_dir):
+def main(root_dirs, iterations, page_list_filename, output_dir):
     if not os.path.exists(output_dir):
         os.mkdir(output_dir)
-    pages = os.listdir(root_dir)
-    for page in pages:
-        # if 'sbnation.com' not in page:
-        #     continue
-        network_filename = os.path.join(root_dir, page, 'network_' + page)
-        if not os.path.exists(network_filename):
-            continue
-        failed_urls = get_failed_requests(network_filename)
+    pages = common_module.get_pages(page_list_filename)
+    page_to_failed_urls = defaultdict(set)
+    for root_dir in root_dirs:
+        for page in pages:
+            for i in range(0, iterations):
+                # if 'sbnation.com' not in page:
+                #     continue
+                network_filename = os.path.join(root_dir, str(i), page, 'network_' + page)
+                if not os.path.exists(network_filename):
+                    continue
+                page_to_failed_urls[page].update(get_failed_requests(network_filename))
+    for page, failed_urls in page_to_failed_urls.iteritems():
         output_to_file(output_dir, page, failed_urls)
 
 def output_to_file(output_dir, page, urls):
@@ -36,13 +42,17 @@ def get_failed_requests(network_filename):
             elif network_event[constants.METHOD] == constants.NET_LOADING_FAILED:
                 request_id = network_event[constants.PARAMS][constants.REQUEST_ID]
                 if request_id in request_id_to_url and network_event[constants.PARAMS]['errorText'] == 'net::ERR_INTERNET_DISCONNECTED':
+                # if request_id in request_id_to_url:
+                #     print network_event[constants.PARAMS]['errorText']
                     url = request_id_to_url[request_id]
                     failed_requests.add(url)
     return failed_requests
 
 if __name__ == '__main__':
     parser = ArgumentParser()
-    parser.add_argument('root_dir')
+    parser.add_argument('root_dir', nargs='+')
+    parser.add_argument('iterations', type=int)
+    parser.add_argument('page_list')
     parser.add_argument('output_dir')
     args = parser.parse_args()
-    main(args.root_dir, args.output_dir)
+    main(args.root_dir, args.iterations, args.page_list, args.output_dir)

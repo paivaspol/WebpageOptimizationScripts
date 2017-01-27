@@ -1,13 +1,12 @@
 import os, sys, json, numpy
 
 if len(sys.argv) < 3:
-    print 'usage: [dep_tree] [timing] [node]'
+    print 'usage: [dep_tree] [timing] [dependency_filename]'
     sys.exit(1)
 
 dep_tree = sys.argv[1]
 timing = sys.argv[2]
-node = sys.argv[3]
-
+dependency_filename = sys.argv[3]
 
 # iterate through the dependency graph and make a list of all root-to-leaf paths
 def find_path(start, path, root_to_leaf_paths, object_mappings):
@@ -20,7 +19,7 @@ def find_path(start, path, root_to_leaf_paths, object_mappings):
             curr_path.append(child)
             find_path(child, curr_path, root_to_leaf_paths, object_mappings)
 
-def compute(dep_tree, timing, node):
+def compute(dep_tree, timing, dependencies):
     results = {}
     try:
         object_mappings = {}
@@ -53,28 +52,38 @@ def compute(dep_tree, timing, node):
         critical_path = []
         max_finish_time = -1
         critical_path_time = -1
+        critical_path_dynamic_resource_network_delay = -1
         for path in root_to_leaf_paths:
-            # pick the pack with the node as the last one
-            if ( path[-1] != node ):
-                continue
-            if ( path[-1] in timings ):
-                finish_time = timings[path[-1]][2]
-            else:
-                print "node is not listed in timings file!"
-                exit()
             network_delay = 0
+            finish_time = -1
+            dynamic_resource_delay = 0
             for node in path:
                 if ( node in timings ):
                     network_delay += (timings[node][2] - timings[node][0])
-            print "PATH: " + str(path)
-            print "Total network delay: " + str(network_delay)
-            for obj in path:
-                if ( obj in timings ):
-                    print "OBJ: " + str(obj) + " has timings: " + str(timings[obj])
-                else:
-                    print "NO TIMING INFO FOR: " + obj
-            break
+                    finish_time = max(finish_time, timings[node][2])
+                    if node not in dependencies:
+                        dynamic_resource_delay += (timings[node][2] - timings[node][0])
+
+            if critical_path_time < finish_time:
+                critical_path_time = network_delay
+                critical_path = path
+                critical_path_dynamic_resource_network_delay = dynamic_resource_delay
+
+        fraction = 1.0 * critical_path_dynamic_resource_network_delay / critical_path_time
+        return critical_path, critical_path_time, critical_path_dynamic_resource_network_delay, fraction
     except Exception as e:
         print e
         pass
-compute(dep_tree, timing, node)
+
+def get_dependencies(dependency_filename):
+    result = set()
+    with open(dependency_filename, 'rb') as input_file:
+        for raw_line in input_file:
+            line = raw_line.strip().split()
+            result.add(line[2])
+    return result
+
+dependencies = get_dependencies(dependency_filename)
+critical_path, critical_path_time, critical_path_dynamic_resource_network_delay, fraction = compute(dep_tree, timing, dependencies)
+print '{0} {1} {2}'.format(critical_path_dynamic_resource_network_delay, critical_path_time, fraction)
+print critical_path

@@ -4,7 +4,7 @@ from collections import defaultdict
 import common_module
 import os
 
-THRESHOLD = 0.2
+THRESHOLD = 0.20
 
 def main(root_dirs, iterations, pages):
     max_objs = defaultdict(lambda: -1)
@@ -29,10 +29,10 @@ def main(root_dirs, iterations, pages):
         max_val = max_objs[page]
         min_val = min_objs[page]
         percent_difference = 1.0 * (max_val - min_val) / min_val
-        if not args.print_pages_to_ignore and not (percent_difference > THRESHOLD and (max_val - min_val > 10)):
+        if not args.print_pages_to_ignore and (max_val - min_val <= 12 or percent_difference < THRESHOLD):
             print '{0} {1} {2} {3}'.format(page, min_val, max_val, percent_difference)
             # print '{0} {1}'.format(page, distribution[page])
-        elif args.print_pages_to_ignore and (percent_difference > THRESHOLD and (max_val - min_val > 10)):
+        elif args.print_pages_to_ignore and (max_val - min_val > 12):
             print '{0} {1} {2} {3}'.format(page, min_val, max_val, percent_difference)
         # print '{0} {1}'.format(page, distribution[page])
 

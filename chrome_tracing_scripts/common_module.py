@@ -123,3 +123,8 @@ def get_pages(page_list_filename):
     with open(page_list_filename, 'rb') as input_file:
         temp = [ line.strip().split() for line in input_file ]
         return [ escape_page(line[len(line) - 1]) for line in temp ]
+
+def get_pages_with_redirection(page_list_filename):
+    with open(page_list_filename, 'rb') as input_file:
+        temp = [ line.strip().split() for line in input_file ]
+        return [ (escape_page(line[0]), escape_page(line[len(line) - 1])) for line in temp if not line[0].startswith('#') ]
