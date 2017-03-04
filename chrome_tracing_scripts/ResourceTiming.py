@@ -3,13 +3,19 @@ import constants
 class ResourceTiming:
 
     def get_final_timings(self):
+        # print self
         result = dict()
+        if len(self.resource_send_request) == 0 or \
+            len(self.resource_receive_response) == 0 or \
+            len(self.resource_finish) == 0:
+            return None
         result[constants.TRACING_NETWORK_RESOURCE_SEND_REQUEST] = self.resource_send_request[-1]
         result[constants.TRACING_NETWORK_RESOURCE_RECEIVE_RESPONSE] = self.resource_receive_response[-1]
         result[constants.TRACING_NETWORK_RESOURCE_FINISH] = self.resource_finish[-1]
         result[constants.TRACING_DISCOVERY_TIME] = self.resource_discovered[-1]
-        result[constants.TRACING_PROCESSING_TIME] = ( self.start_processing[-1], self.end_processing[-1] )
         result[constants.TRACING_PRIORITIES] = self.request_priority
+        if len(self.start_processing) > 0 and len(self.end_processing) > 0:
+            result[constants.TRACING_PROCESSING_TIME] = ( self.start_processing[-1], self.end_processing[-1] )
         return result
 
     def __str__(self):

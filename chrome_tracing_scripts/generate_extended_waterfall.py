@@ -18,15 +18,14 @@ def main(root_dir, output_dir):
             continue
         
         tracing_filename = os.path.join(root_dir, page, 'tracing_' + page)
-        if not (os.path.exists(tracing_filename) and os.path.exists(network_filename)):
+        if not (os.path.exists(tracing_filename)):
             continue
 
         url_to_timings, first_request_time = parse_trace_file(tracing_filename)
         # for url, timing in url_to_timings.iteritems():
         #     print url
-        #     print timing
         #     print timing.get_final_timings()
-        output_to_file(url_to_timings, 'temp', first_request_time)
+        output_to_file(url_to_timings, output_dir, first_request_time)
 
 def output_to_file(url_to_timings, output_dir, first_request_time):
     # The output contains 4 files:
@@ -56,7 +55,10 @@ def output_to_file(url_to_timings, output_dir, first_request_time):
     url_id = len(sorted_url_by_request_time)
     for url, _ in sorted_url_by_request_time:
         timings = url_to_timings[url].get_final_timings()
-        if url.startswith('data:') or len(url) == 0 or url == 'about:blank':
+        if url.startswith('data:') or \
+            len(url) == 0 or \
+            url == 'about:blank' or \
+            timings is None:
             continue
         # print timings
         for key, t in timings.iteritems():
@@ -174,9 +176,11 @@ def parse_trace_file(tracing_filename):
                         timing_name == constants.TRACING_BLINK_REQUEST_RESOURCE:
                         url = val['args']['url']['url']
                         if url not in url_to_timings and \
-                            not url.startswith('data:'):
+                            not url.startswith('data:') and \
+                            not url.startswith('about:blank'):
                             url_to_timings[url] = ResourceTiming(url)
-                        getattr(url_to_timings[url], 'resource_discovered').append( timestamp )
+                        if url in url_to_timings:
+                            getattr(url_to_timings[url], 'resource_discovered').append( timestamp )
 
                     histogram[val['name']] += 1
                 event = ''
@@ -185,8 +189,9 @@ def parse_trace_file(tracing_filename):
 
         # Populate the ParseHTML times.
         for url, html_parse_time in parsed_html_timestamps.iteritems():
-            url_to_timings[url].start_processing.append(html_parse_time[0])
-            url_to_timings[url].end_processing.append(html_parse_time[1])
+            if url in url_to_timings:
+                url_to_timings[url].start_processing.append(html_parse_time[0])
+                url_to_timings[url].end_processing.append(html_parse_time[1])
     return url_to_timings, first_request_time
 
 if __name__ == '__main__':
