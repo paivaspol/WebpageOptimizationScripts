@@ -1,3 +1,5 @@
+import re
+
 METHOD = 'method'
 PARAMS = 'params'
 TIMESTAMP = 'timestamp'
@@ -21,3 +23,34 @@ NET_REQUEST_WILL_BE_SENT = 'Network.requestWillBeSent'
 NET_RESPONSE_RECEIVED = 'Network.responseReceived'
 NET_LOADING_FINISHED = 'Network.loadingFinished'
 NET_LOADING_FAILED = 'Network.loadingFailed'
+
+# Tracing constants
+TRACING_NETWORK_RESOURCE_SEND_REQUEST = 'ResourceSendRequest'
+TRACING_NETWORK_RESOURCE_RECEIVE_RESPONSE = 'ResourceReceiveResponse'
+TRACING_NETWORK_RESOURCE_FINISH = 'ResourceFinish'
+
+TRACING_PARSING_PARSE_HTML = 'ParseHTML'
+TRACING_PARSING_PARSE_AUTHOR_STYLE_SHEET = 'ParseAuthorStyleSheet'
+
+TRACING_SCRIPT_EVALUATE_SCRIPT = 'EvaluateScript'
+TRACING_SCRIPT_FUNCTION_CALL = 'FunctionCall'
+TRACING_SCRIPT_TIMER_FIRE = 'TimerFire'
+
+TRACING_EVENT_INSTANT = 'I'
+TRACING_EVENT_COMPLETE = 'X'
+TRACING_EVENT_BEGIN = 'B'
+TRACING_EVENT_END = 'E'
+
+TRACING_BLINK = 'blink'
+TRACING_BLINK_REQUEST_RESOURCE = 'ResourceFetcher::requestResource'
+
+TRACING_DISCOVERY_TIME = 'discovery_time'
+TRACING_PROCESSING_TIME = 'processing_time'
+TRACING_PRIORITIES = 'priorities'
+
+def to_underscore(name):
+    s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', name)
+    return re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1).lower()
+
+def to_camelcase(s):
+    return re.sub(r'(?!^)_([a-zA-Z])', lambda m: m.group(1).upper(), s)
