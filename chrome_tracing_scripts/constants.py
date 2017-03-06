@@ -43,6 +43,7 @@ TRACING_EVENT_END = 'E'
 
 TRACING_BLINK = 'blink'
 TRACING_BLINK_REQUEST_RESOURCE = 'ResourceFetcher::requestResource'
+TRACING_BLINK_UPDATE_STYLE = 'Document::updateStyle'
 
 TRACING_DISCOVERY_TIME = 'discovery_time'
 TRACING_PROCESSING_TIME = 'processing_time'

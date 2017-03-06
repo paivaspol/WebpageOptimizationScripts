@@ -22,10 +22,13 @@ def main(root_dir, output_dir):
             continue
 
         url_to_timings, first_request_time = parse_trace_file(tracing_filename)
-        # for url, timing in url_to_timings.iteritems():
-        #     print url
-        #     print timing.get_final_timings()
-        output_to_file(url_to_timings, output_dir, first_request_time)
+        if not args.output_resources:
+            output_to_file(url_to_timings, os.path.join(output_dir, page), first_request_time)
+        else:
+            for url, timing in url_to_timings.iteritems():
+                print url
+                print timing
+                print timing.get_final_timings()
 
 def output_to_file(url_to_timings, output_dir, first_request_time):
     # The output contains 4 files:
@@ -109,8 +112,11 @@ def parse_trace_file(tracing_filename):
         cur_line = input_file.readline()
         histogram = defaultdict(lambda: 0)
         parse_html_stack = []
+        blink_update_style_stack = []
         parsed_html_timestamps = defaultdict(lambda: [-1, -1])
         request_id_to_url = dict()
+        script_eval_end = -1
+        in_script_eval = False
         while cur_line != '':
             if 'Tracing.dataCollected' in cur_line and \
                 event != '':
@@ -127,13 +133,15 @@ def parse_trace_file(tracing_filename):
                     category = val['cat']
                     timestamp = int(val['ts'])
                     event_type = val['ph']  # The type of the event
+                    if timestamp > script_eval_end and in_script_eval:
+                        in_script_eval = False
+
                     if timing_name == constants.TRACING_NETWORK_RESOURCE_SEND_REQUEST or \
                         timing_name == constants.TRACING_PARSING_PARSE_AUTHOR_STYLE_SHEET or \
                         timing_name == constants.TRACING_SCRIPT_EVALUATE_SCRIPT or \
                         timing_name == constants.TRACING_NETWORK_RESOURCE_RECEIVE_RESPONSE or \
                         timing_name == constants.TRACING_NETWORK_RESOURCE_FINISH:
                         try:
-
                             first_request_time = timestamp if first_request_time is None else \
                                                  min(first_request_time, timestamp)
                             data = val['args']['data']
@@ -147,8 +155,11 @@ def parse_trace_file(tracing_filename):
 
                             if event_type == constants.TRACING_EVENT_INSTANT:
                                 getattr(url_to_timings[url], constants.to_underscore(timing_name)).append( timestamp )
-                            elif event_type == constants.TRACING_EVENT_COMPLETE:
+                            elif event_type == constants.TRACING_EVENT_COMPLETE and \
+                                timing_name == constants.TRACING_SCRIPT_EVALUATE_SCRIPT:
                                 duration = int(val['dur'])
+                                script_eval_end = timestamp + duration
+                                in_script_eval = True
                                 getattr(url_to_timings[url], constants.to_underscore('start_processing')).append( timestamp )
                                 getattr(url_to_timings[url], constants.to_underscore('end_processing')).append( timestamp + duration )
 
@@ -172,6 +183,8 @@ def parse_trace_file(tracing_filename):
                             url = parse_html_stack.pop()
                             if url in parsed_html_timestamps:
                                 parsed_html_timestamps[url][1] = max(parsed_html_timestamps[url][1], timestamp)
+                        # print 'len parse_html_stack: ' + str(len(parse_html_stack))
+
                     elif category == constants.TRACING_BLINK and \
                         timing_name == constants.TRACING_BLINK_REQUEST_RESOURCE:
                         url = val['args']['url']['url']
@@ -179,8 +192,19 @@ def parse_trace_file(tracing_filename):
                             not url.startswith('data:') and \
                             not url.startswith('about:blank'):
                             url_to_timings[url] = ResourceTiming(url)
-                        if url in url_to_timings:
+                        # print timing_name + ' ' + str(timestamp) + ' ' + url + ' ' + str(in_script_eval)
+                        if url in url_to_timings and \
+                            (len(parse_html_stack) > 0 or \
+                            len(url_to_timings[url].resource_discovered) == 0 or \
+                            in_script_eval or \
+                            len(blink_update_style_stack) > 0): # while we are parsing HTML or during script evaluation or during CSS update style
                             getattr(url_to_timings[url], 'resource_discovered').append( timestamp )
+
+                    elif timing_name == constants.TRACING_BLINK_UPDATE_STYLE:
+                        if event_type == constants.TRACING_EVENT_BEGIN:
+                            blink_update_style_stack.append(0)
+                        elif event_type == constants.TRACING_EVENT_END:
+                            blink_update_style_stack.pop()
 
                     histogram[val['name']] += 1
                 event = ''
@@ -198,5 +222,6 @@ if __name__ == '__main__':
     parser = ArgumentParser()
     parser.add_argument('root_dir')
     parser.add_argument('output_dir')
+    parser.add_argument('--output-resources', default=False, action='store_true')
     args = parser.parse_args()
     main(args.root_dir, args.output_dir)

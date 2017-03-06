@@ -128,3 +128,22 @@ def get_pages_with_redirection(page_list_filename):
     with open(page_list_filename, 'rb') as input_file:
         temp = [ line.strip().split() for line in input_file ]
         return [ (escape_page(line[0]), escape_page(line[len(line) - 1])) for line in temp if not line[0].startswith('#') ]
+
+from ResourceTiming import ResourceTiming
+import constants
+
+def populate_url_to_timings_field(filename, field, url_to_timings):
+    with open(filename, 'rb') as input_file:
+        for raw_line in input_file:
+            line = raw_line.strip().split()
+            url = line[0]
+            if url not in url_to_timings:
+                url_to_timings[url] = ResourceTiming(url)
+            if field != constants.TRACING_PROCESSING_TIME:
+                timestamp = int(line[2])
+                getattr(url_to_timings[url], field).append(timestamp)
+            else:
+                timestamp = int(line[2])
+                url_to_timings[url].start_processing.append(timestamp)
+                timestamp = int(line[3])
+                url_to_timings[url].end_processing.append(timestamp)
