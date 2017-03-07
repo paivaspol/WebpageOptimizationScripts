@@ -16,11 +16,12 @@ def main(data_dir, pages_filename, dependency_dir):
                 os.path.exists(dependency_filename)):
             cmd = '[ERROR] python find_fraction_of_dynamic_resources_on_critical_path.py {0} {1} {2}'.format(dep_tree_filename, timing_filename, dependency_filename)
             continue
-        cmd = 'python find_fraction_of_wait_time_of_dynamic_resources_on_critical_path.py {0} {1} {2}'.format(dep_tree_filename, timing_filename, dependency_filename)
+        cmd = 'python find_fraction_of_wait_time_of_dynamic_resources_on_critical_path.py {0} {1} {2} {3}'.format(dep_tree_filename, timing_filename, dependency_filename, page_r)
         proc = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         stdout, stderr = proc.communicate()
-        if not stdout.startswith('max'):
+        if not stdout.startswith('max') and len(stdout.strip().split(' ')) > 0:
             print '{0} {1}'.format(page, stdout.strip())
+        break
 
 if __name__ == '__main__':
     parser = ArgumentParser()

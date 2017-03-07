@@ -147,3 +147,9 @@ def populate_url_to_timings_field(filename, field, url_to_timings):
                 url_to_timings[url].start_processing.append(timestamp)
                 timestamp = int(line[3])
                 url_to_timings[url].end_processing.append(timestamp)
+
+def remove_json(filename):
+    if filename.endswith('.json'):
+        return filename[:len(filename) - len('.json')]
+    return filename
+

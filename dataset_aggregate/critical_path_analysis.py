@@ -17,6 +17,8 @@ def main(root_dir, pages, output_dir):
         request_filename = os.path.join(page_extended_waterfall, 'ResourceSendRequest.txt')
         response_filename = os.path.join(page_extended_waterfall, 'ResourceReceiveResponse.txt')
         fetch_filename = os.path.join(page_extended_waterfall, 'ResourceFinish.txt')
+        processing_times_filename = os.path.join(page_extended_waterfall, 'processing_time.txt')
+
         if not (os.path.exists(request_filename) and \
                 os.path.exists(response_filename) and \
                 os.path.exists(fetch_filename)):
@@ -30,6 +32,7 @@ def main(root_dir, pages, output_dir):
 
         # Aggregate the timings
         timings = get_timings(request_filename, response_filename, fetch_filename)
+        processing_times, start_processing_times = get_processing_times(processing_times_filename)
 
         # Create the output directory
         page_output_directory = os.path.join(output_dir, redirected_page)
@@ -46,10 +49,13 @@ def main(root_dir, pages, output_dir):
                                       'timings.txt')
         with open(output_filename, 'wb') as output_file:
             for url, timing in timings.iteritems():
-                output_file.write('{0} {1} {2} {3}\n'.format(url, \
-                                                           timing[0], \
-                                                           timing[1], \
-                                                           timing[2]))
+                if url in processing_times:
+                    output_file.write('{0} {1} {2} {3} {4} {5}\n'.format(url, \
+                                                               timing[0], \
+                                                               timing[1], \
+                                                               timing[2], \
+                                                               start_processing_times[url], \
+                                                               processing_times[url]))
 
 def get_timings(request_filename, response_filename, fetch_filename):
     request_timings = populate_timings(request_filename)
@@ -66,6 +72,26 @@ def get_timings(request_filename, response_filename, fetch_filename):
             timings[url] = timing_tuple
     return timings
 
+def get_processing_times(filename):
+    result = dict()
+    with open(filename, 'rb') as input_file:
+        for raw_line in input_file:
+            line = raw_line.strip().split()
+            url = line[0]
+            start_processing_time = int(line[2])
+            end_processing_time = int(line[3])
+            if url not in result:
+                result[url] = [ ]
+            result[url].append(start_processing_time)
+            result[url].append(end_processing_time)
+    final_result = dict()
+    start_processing_times = dict()
+    for url in result:
+        sorted_processing_time = sorted(result[url])
+        final_result[url] = sorted_processing_time[-1] - sorted_processing_time[0]
+        start_processing_times[url] = sorted_processing_time[0]
+    return final_result, start_processing_times
+
 def populate_timings(filename):
     result = dict()
     with open(filename, 'rb') as input_file:
@@ -73,7 +99,8 @@ def populate_timings(filename):
             line = raw_line.strip().split()
             url = line[0]
             time = line[2]
-            result[url] = time
+            if url not in result:
+                result[url] = time
     return result
 
 if __name__ == '__main__':

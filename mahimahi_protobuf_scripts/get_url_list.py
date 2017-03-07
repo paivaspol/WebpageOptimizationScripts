@@ -24,7 +24,7 @@ def get_filename(filename):
         for header_pair in request_response.request.header:
             if header_pair.key == 'Host':
                 host = header_pair.value
-        return str(splitted_first_line[1]) + " " + str(host) + " " + filename
+        return str(splitted_first_line[1]) + "\n" + str(host) + "\n" + filename + "\n"
 
 if __name__ == '__main__':
     parser = ArgumentParser()

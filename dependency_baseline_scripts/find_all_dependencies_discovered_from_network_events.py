@@ -13,23 +13,21 @@ REQUEST_ID = 'requestId'
 STATUS = 'status'
 URL = 'url'
 
-def main(root_dir, dependency_dir):
-    pages = os.listdir(root_dir)
-    if args.page_list is not None:
-        pages = common_module.get_pages(args.page_list)
+def main(root_dir, page_list, dependency_dir):
+    # pages = common_module.get_pages_with_redirection(page_list)
     failed_pages = []
+    pages = common_module.get_pages_with_redirection(page_list)
     for page in pages:
+        page_r = page[1]
+        page = page[0]
         dependency_filename = os.path.join(dependency_dir, page, 'dependency_tree.txt')
-
-        network_filename = os.path.join(root_dir, page, 'network_' + page)
+        # network_filename = os.path.join(root_dir, page_r, 'network_' + page)
+        network_filename = os.path.join(root_dir, page_r, 'network_' + page_r)
         if not (os.path.exists(dependency_filename) and os.path.exists(network_filename)):
             failed_pages.append(page)
             continue
         dependencies = common_module.get_dependencies(dependency_filename, args.only_important_resources)
-        # dependencies = common_module.get_dependencies_without_other_iframes(dependency_filename, \
-        #                                                                 args.only_important_resources, \
-        #                                                                 page)
-        dependency_finish_download_time = get_dependency_finish_download_time(page, \
+        dependency_finish_download_time = get_dependency_finish_download_time(page_r, \
                                                                               network_filename, \
                                                                               dependencies)
         if len(dependency_finish_download_time) > 0:
@@ -106,10 +104,10 @@ def get_dependency_finish_download_time(page, network_filename, dependencies):
 if __name__ == '__main__':
     parser = ArgumentParser()
     parser.add_argument('root_dir')
+    parser.add_argument('page_list')
     parser.add_argument('dependency_dir')
-    parser.add_argument('--page-list', default=None)
     parser.add_argument('--only-important-resources', default=False, action='store_true')
     parser.add_argument('--print-failed-pages', default=False, action='store_true')
     parser.add_argument('--output-discovery-times', default=None)
     args = parser.parse_args()
-    main(args.root_dir, args.dependency_dir)
+    main(args.root_dir, args.page_list, args.dependency_dir)
