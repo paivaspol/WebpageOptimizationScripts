@@ -23,12 +23,31 @@ def main(root_dir, output_dir):
 
         url_to_timings, first_request_time = parse_trace_file(tracing_filename)
         if not args.output_resources:
-            output_to_file(url_to_timings, os.path.join(output_dir, page), first_request_time)
+            if args.output_json:
+                output_as_json(url_to_timings, os.path.join(output_dir, page), first_request_time)
+            else:
+                output_to_file(url_to_timings, os.path.join(output_dir, page), first_request_time)
         else:
             for url, timing in url_to_timings.iteritems():
                 print url
                 print timing
                 print timing.get_final_timings()
+
+def output_as_json(url_to_timings, output_dir, first_request_time):
+    if not os.path.exists(output_dir):
+        os.mkdir(output_dir)
+
+    with open(os.path.join(output_dir, 'timings.txt'), 'wb') as output_file:
+        for url, timings in url_to_timings.iteritems():
+            result_dict = timings.get_final_timings()
+            if result_dict is not None:
+                subtract_offset(result_dict, first_request_time)
+                output_file.write(json.dumps(result_dict) + '\n')
+
+def subtract_offset(origin_dict, offset):
+    for key in origin_dict:
+        if type(origin_dict[key]) is int:
+            origin_dict[key] = max(origin_dict[key] - offset, -1)
 
 def output_to_file(url_to_timings, output_dir, first_request_time):
     # The output contains 4 files:
@@ -115,6 +134,7 @@ def parse_trace_file(tracing_filename):
         blink_update_style_stack = []
         parsed_html_timestamps = defaultdict(lambda: [-1, -1])
         request_id_to_url = dict()
+        pending_preload_urls = set()
         script_eval_end = -1
         in_script_eval = False
         while cur_line != '':
@@ -193,7 +213,11 @@ def parse_trace_file(tracing_filename):
                             not url.startswith('about:blank'):
                             url_to_timings[url] = ResourceTiming(url)
                         # print timing_name + ' ' + str(timestamp) + ' ' + url + ' ' + str(in_script_eval)
-                        if url in url_to_timings and \
+                        if url in pending_preload_urls and len(url_to_timings[url].resource_discovered) == 0:
+                            getattr(url_to_timings[url], 'resource_preload_time').append( timestamp )
+                            url_to_timings[url].preloaded = True
+                            pending_preload_urls.remove(url)
+                        elif url in url_to_timings and \
                             (len(parse_html_stack) > 0 or \
                             len(url_to_timings[url].resource_discovered) == 0 or \
                             in_script_eval or \
@@ -205,6 +229,10 @@ def parse_trace_file(tracing_filename):
                             blink_update_style_stack.append(0)
                         elif event_type == constants.TRACING_EVENT_END:
                             blink_update_style_stack.pop()
+
+                    elif timing_name == constants.TRACING_BLINK_PRELOADED:
+                        url = val['args']['url']['url']
+                        pending_preload_urls.add(url)
 
                     histogram[val['name']] += 1
                 event = ''
@@ -223,5 +251,6 @@ if __name__ == '__main__':
     parser.add_argument('root_dir')
     parser.add_argument('output_dir')
     parser.add_argument('--output-resources', default=False, action='store_true')
+    parser.add_argument('--output-json', default=False, action='store_true')
     args = parser.parse_args()
     main(args.root_dir, args.output_dir)
