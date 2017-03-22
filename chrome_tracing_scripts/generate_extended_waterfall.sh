@@ -11,4 +11,4 @@ then
 fi
 
 python generate_extended_waterfall.py ${basedir}/median ${basedir}/extended_waterfall
-# python find_normalized_start_processing_times.py ${basedir}/extended_waterfall/ ${basedir}/extended_waterfall
+python generate_extended_waterfall.py ${basedir}/median ${basedir}/extended_waterfall_json --output-json

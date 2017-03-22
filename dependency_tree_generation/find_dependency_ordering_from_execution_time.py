@@ -11,6 +11,7 @@ def main(root_dir, dependency_dir, page_list, iterations, output_dir):
     if not os.path.exists(output_dir):
         os.mkdir(output_dir)
     for base_page, page in page_list:
+        # print 'processing: ' + page
         orderings = []
         escaped_page = common_module.escape_url(page)
         escaped_base_page = common_module.escape_url(base_page)
@@ -34,7 +35,7 @@ def main(root_dir, dependency_dir, page_list, iterations, output_dir):
                 continue
             iter_ordering = parse_processing_time_file(processing_time_filename, escaped_page)
             orderings.append(iter_ordering)
-        # print orderings
+        print orderings
         if len(orderings) > 0:
             # check_domain_orderings('s.yimg.com', orderings)
             # output_orderings(orderings)
@@ -238,6 +239,7 @@ def parse_processing_time_file(processing_time_filename, page):
                     result.append( (url, start_processing_time) )
                     url_found.add(url)
     result.sort(key=lambda x: x[1])
+    print result
     return [ x[0] for x in result ]
 
 if __name__ == '__main__':

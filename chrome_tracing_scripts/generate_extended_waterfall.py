@@ -48,6 +48,8 @@ def subtract_offset(origin_dict, offset):
     for key in origin_dict:
         if type(origin_dict[key]) is int:
             origin_dict[key] = max(origin_dict[key] - offset, -1)
+        elif type(origin_dict[key]) is tuple:
+            origin_dict[key] = (max(origin_dict[key][0] - offset, -1), max(origin_dict[key][1] - offset, -1))
 
 def output_to_file(url_to_timings, output_dir, first_request_time):
     # The output contains 4 files:
@@ -83,22 +85,22 @@ def output_to_file(url_to_timings, output_dir, first_request_time):
             timings is None:
             continue
         # print timings
-        for key, t in timings.iteritems():
+        for key in filenames:
+            t = timings[key]
             # construct the line with this format: url url_id timings...
             output_line = '{0} {1} '.format(url, url_id)
+            should_output = False
             if key != constants.TRACING_PRIORITIES:
-                if type(t) is tuple:
+                if key == constants.TRACING_PROCESSING_TIME and len(t) > 0:
                     output_line += str(t[0] - first_request_time) + ' ' + str(t[1] - first_request_time) + '\n'
-                else:
-                    output_line += str(t - first_request_time) + '\n'
-
-                if key in files:
                     files[key].write(output_line)
                 else:
-                    files[PROCESSING_TIME].write(output_line)
+                    if type(t) is int:
+                        output_line += str(t - first_request_time) + '\n'
+                        files[key].write(output_line)
             else:
                 output_line = '{0} {1} '.format(url, url_id)
-                files[key].write(output_line + t)
+                files[key].write(output_line + t + '\n')
 
         url_id -= 1
 
@@ -176,7 +178,8 @@ def parse_trace_file(tracing_filename):
                             if event_type == constants.TRACING_EVENT_INSTANT:
                                 getattr(url_to_timings[url], constants.to_underscore(timing_name)).append( timestamp )
                             elif event_type == constants.TRACING_EVENT_COMPLETE and \
-                                timing_name == constants.TRACING_SCRIPT_EVALUATE_SCRIPT:
+                                (timing_name == constants.TRACING_SCRIPT_EVALUATE_SCRIPT or \
+                                timing_name == constants.TRACING_PARSING_PARSE_AUTHOR_STYLE_SHEET):
                                 duration = int(val['dur'])
                                 script_eval_end = timestamp + duration
                                 in_script_eval = True

@@ -1,0 +1,42 @@
+Processing: nypost.com
+nypost.com critical path:
+[u'http://nypost.com/', u'http://video.unrulymedia.com/native/native-loader.js', u'http://video.unrulymedia.com/native/native_v1.0.617-1-ga40ee28.js', u'http://ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js', u'http://video.unrulymedia.com/native/skins/skin-622640.json']
+1211334 11058218 0.109541519257
+fraction not hinted: 0.4
+fraction critical path net delay: 0.623782581851
+
+Processing: scout.com
+scout.com critical path:
+[u'http://www.scout.com/', u'http://www.googletagmanager.com/gtm.js?id=GTM-NWKC2Z', u'http://redir.adap.tv/redir/javascript/lightintegration.js', u'http://ads.adaptv.advertising.com/cookie?pageUrl=http://www.scout.com/&isTop=true&callback=1']
+296311 6909905 0.0428820656724
+fraction not hinted: 0.25
+fraction critical path net delay: 0.362561056784
+
+Processing: manutd.com
+manutd.com critical path:
+[u'http://www.manutd.com/', u'http://www.google-analytics.com/ga.js']
+255723 3402287 0.0751620895004
+fraction not hinted: 0.5
+fraction critical path net delay: 0.27141888256
+
+Processing: tsn.ca
+tsn.ca critical path:
+[u'http://www.tsn.ca/', u'http://www.tsn.ca/js/tsn/vendor/jquery/jquery.min.js?51', u'http://capi.9c9media.com/destinations/tsn_web/platforms/desktop/contents/939547/contentpackages/1203113/stacks?$include=[ManifestHost.f4m]&callback=Get42Stacks_JqueryCallBackmediaplayerelement73251701465911080']
+922085 16755228 0.0550326739809
+fraction not hinted: 0.666666666667
+fraction critical path net delay: 0.764312546833
+
+Processing: abcnews.go.com
+abcnews.go.com critical path:
+[u'http://abcnews.go.com/', u'http://a.abcnews.com/images/Sports/160817_wabc_lochte_confusion_16x9_992.jpg']
+639047 15079011 0.0423799014405
+fraction not hinted: 1.0
+fraction critical path net delay: 1.0
+
+Processing: fortune.com
+fortune.com critical path:
+[u'http://fortune.com/', u'http://cdn.krxd.net/ctjs/controltag.js.b108a1549c1307656f955f9ea84d9100', u'http://cdn.krxd.net/userdata/get?pub=d54d2f52-5c13-4a4e-ad6e-ef0b74895ee4&technographics=1&callback=Krux.ns._default.kxjsonp_userdata']
+1053895 12644479 0.083348234435
+fraction not hinted: 0.666666666667
+fraction critical path net delay: 0.646868513024
+

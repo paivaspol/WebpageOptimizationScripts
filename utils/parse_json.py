@@ -1,7 +1,7 @@
 from argparse import ArgumentParser
 
 import os
-import simplejson as json
+import json
 
 def main(root_dir, output_dir):
     if not os.path.exists(output_dir):

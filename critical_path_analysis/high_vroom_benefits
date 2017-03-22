@@ -1,0 +1,21 @@
+Processing: bbc.co.uk_news
+bbc.co.uk_news critical path:
+[u'http://www.bbc.co.uk/news', u'https://fig.bbc.co.uk/frameworks/fig/1/fig.js', u'http://www.bbc.com/news', u'http://static.bbci.co.uk/bbcdotcom/1.26.0/script/dist/bbcdotcom.js', u'http://me-cdn.effectivemeasure.net/em.js', u'http://s.effectivemeasure.net/html/frame_2.3.4.html', u'http://s.effectivemeasure.net/d/6/p?pu=http%3A%2F%2Fwww.bbc.com%2Fnews&ru=http%3A%2F%2Fwww.bbc.co.uk%2Fnews&tz=-5&fv=382bddf6d382391022e8461c96f357b51058c2fda3-9072797157b53227&ft=26c4ed0845f9fe49ff4a8629747a57b530beb9ecb5-7943692857b53227&fc=true&ii=false&ua=Mozilla%2F5.0%20(Linux%3B%20Android%206.0.1%3B%20Nexus%206%20Build%2FMMB29S)%20AppleWebKit%2F537.36%20(KHTML%2C%20like%20Gecko)%20Chrome%2F55.0.2856.0%20Mobile%20Safari%2F537.36&ftm=false&tc=true']
+792007 4661483 0.16990451322
+fraction not hinted: 0.142857142857
+fraction critical path net delay: 0.248640806996
+
+Processing: redbull.com
+redbull.com critical path:
+[u'http://www.redbull.com/us/en', u'http://cdn.creative.medialytics.com/raw_assets/servo_prod/campaigns/CA-DEJT8S6/creatives/CR-67CE2AN/versions/1/SHELL%20_LUBR%20_Red%20Bull_BMNF_Static%20_320x50%20_OIL-MOTOR-SYNTH%20_JPEG.jpg']
+1152746 8846250 0.130309000989
+fraction not hinted: 1.0
+fraction critical path net delay: 1.0
+
+Processing: eurosport.com
+eurosport.com critical path:
+[u'http://www.eurosport.com/', u'http://layout1.eurosport.com/j/v8_5/merged/common.js']
+393788 3225636 0.122080730746
+fraction not hinted: 0.5
+fraction critical path net delay: 0.36857489702
+
