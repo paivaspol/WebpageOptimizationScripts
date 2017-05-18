@@ -46,7 +46,7 @@ def get_dependencies(dependency_filename, use_only_important_resources):
         for raw_line in input_file:
             line = raw_line.strip().split()
             resource_type = line[4]
-            if use_only_important_resources and not (resource_type == 'Document' or resource_type == 'Script' or resource_type == 'Stylesheet'):
+            if use_only_important_resources and (line[6] != "Important"):
                 continue
             results.append(line[2])
     return results

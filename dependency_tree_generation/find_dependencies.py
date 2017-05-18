@@ -4,6 +4,7 @@ import os
 import check_type
 
 from argparse import ArgumentParser 
+from DependencyNode import DependencyNode
 
 METHOD = 'method'
 PARAMS = 'params'
@@ -33,6 +34,7 @@ def find_dependencies(page, network_activities, page_start_end_time):
         2) From referer in HTTP header in Network.responseReceived
         3) From DocumentURL in the Network.requestWillBeSent event
     '''
+    request_id_to_request_obj = dict()
     request_id_to_initiator_map = dict() # Maps from the resource to initiator.
     request_id_to_resource_map = dict() # Maps from the request id to the resource url
     request_id_to_document_url = dict() # Maps from the request id to the document url.
@@ -43,6 +45,7 @@ def find_dependencies(page, network_activities, page_start_end_time):
     url_to_request_id = dict() # Reverse mapping from the URL to the request id.
     start_time, end_time = page_start_end_time[1]
     found_page = False
+    root_url = ''
     counter = 0
     requested_resources = set()
     finished_resources = set()
@@ -61,6 +64,7 @@ def find_dependencies(page, network_activities, page_start_end_time):
             # print 'page: ' + page + ' document_url: ' + document_url
             if not found_page and common_module.escape_url(url) == common_module.escape_url(page):
                 found_page = True
+                root_url = url
 
             # if not start_time <= ts <= end_time:
             #     # print 'start_time: {0} end_time: {1} ts: {2}'.format(start_time, end_time, ts)
@@ -103,14 +107,20 @@ def find_dependencies(page, network_activities, page_start_end_time):
 
                 if requester == '':
                     requester = DEFAULT_REQUESTER
+                elif requester == 'about:blank':
+                    requester = root_url
 
                 request_id = network_activity[PARAMS][REQUEST_ID]
                 request_id_to_resource_map[request_id] = url
                 request_id_to_initiator_map[request_id] = requester
-                request_id_to_document_url[request_id] = network_activity[PARAMS]['documentURL']
+
+                doc_url = network_activity[PARAMS]['documentURL']
+                request_id_to_document_url[request_id] = doc_url if doc_url != 'about:blank' else root_url
                 request_id_to_request_object[request_id] = network_activity
                 request_id_to_order_found[request_id] = counter
-                request_id_to_priority[request_id] = network_activity[PARAMS][REQUEST][INITIAL_PRIORITY]
+
+                priority = network_activity[PARAMS][REQUEST][INITIAL_PRIORITY]
+                request_id_to_priority[request_id] = priority
                 url_to_request_id[url] = request_id
                 requested_resources.add(request_id)
                 counter += 1
@@ -154,7 +164,10 @@ def find_dependencies(page, network_activities, page_start_end_time):
             elif request_id in request_id_to_document_url and \
                 request_id_to_initiator_map[request_id] == DEFAULT_REQUESTER:
                 # Try to apply the third extraction rule: use the DocumentURL
-                request_id_to_initiator_map[request_id] = request_id_to_document_url[request_id]
+                requester = request_id_to_document_url[request_id]
+                if requester == 'about:blank':
+                    requester = root_url
+                request_id_to_initiator_map[request_id] = requester
                 # if url.endswith('tags.bluekai.com/site/2981'):
                 #     print 'response (1): {0} {1} {2}'.format(url, request_id, request_id_to_initiator_map[request_id])
         elif METHOD in network_activity and \

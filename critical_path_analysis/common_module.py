@@ -20,10 +20,33 @@ def get_preloaded_timings(timing_filename):
             discovery_time = timing['discovery_time']
             preload_discovery_time = timing['ResourcePreloadDiscovery']
             net_wait_time = max(0, timing['ResourceFinish'] - timing['discovery_time'] )
-            result.append( (url, discovery_time, net_wait_time, preload_discovery_time) )
+            result.append( (url, discovery_time, net_wait_time, preload_discovery_time, timing['ResourceFinish']) )
 
     sorted_result = sorted(result, key=lambda x: x[1])
     return sorted_result
+
+def get_not_preloaded_but_hinted(timing_filename, hinted_urls):
+    url_to_timing = {}
+    with open(timing_filename, 'rb') as input_file:
+        for raw_line in input_file:
+            timing = json.loads(raw_line.strip())
+            url_to_timing[timing['url']] = timing
+
+    result = []
+    for url, timing in url_to_timing.iteritems():
+        if not timing['preloaded'] and url in hinted_urls:
+            # print timing
+            # Wait time is define max(0, discovery - resource finish)
+            # print 'url: ' + url + ' discovery_time: ' + str(timing['discovery_time']) + ' finish: ' + str(timing['ResourceFinish'])
+            send_request = timing['ResourceSendRequest']
+            discovery_time = timing['discovery_time']
+            preload_discovery_time = timing['ResourcePreloadDiscovery']
+            net_wait_time = max(0, timing['ResourceFinish'] - timing['discovery_time'] )
+            result.append( (url, discovery_time, net_wait_time, preload_discovery_time, timing['ResourceFinish']) )
+
+    sorted_result = sorted(result, key=lambda x: x[1])
+    return sorted_result
+
 
 def get_requestid_and_timestamp(event):
     '''

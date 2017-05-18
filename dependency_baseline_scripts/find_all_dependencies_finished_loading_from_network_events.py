@@ -2,7 +2,7 @@ from argparse import ArgumentParser
 
 import common_module
 import os
-import simplejson as json
+import json
 import numpy
 
 METHOD = 'method'
@@ -38,7 +38,7 @@ def main(root_dir, page_list, dependency_dir):
         if len(dependency_finish_download_time) > 0:
             if not args.use_median_finish_time:
                 if not args.output_last_resource:
-                    print '{0} {1}'.format(page, max(dependency_finish_download_time.values()))
+                    print '{0} {1}'.format(r_page, max(dependency_finish_download_time.values()))
                 else:
                     max_resource = ''
                     max_time = -1
@@ -46,7 +46,7 @@ def main(root_dir, page_list, dependency_dir):
                         if max_time < time:
                             max_time = time
                             max_resource = url
-                    print '{0} {1} {2}'.format(page, max_time, max_resource)
+                    print '{0} {1} {2}'.format(r_page, max_time, max_resource)
             else:
                 print '{0} {1}'.format(page, numpy.median(dependency_finish_download_time.values()))
         else:

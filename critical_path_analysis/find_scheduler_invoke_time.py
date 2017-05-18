@@ -9,26 +9,31 @@ def main(page, timing_filename, dependency_filename):
     dep_cat_map = get_dependencies_category_map(dependency_filename)
 
     result = { 'Important': -1, 'Semi-important': -1, 'Unimportant': -1 }
+    found_cat_set = set()
     for obj in preload_timings:
-        url, discovery_time, net_wait_time, preload_discovery = obj
+        url, discovery_time, net_wait_time, preload_discovery, _ = obj
         found_cat = None
         for cat in dep_cat_map:
-            if url in dep_cat_map[cat]:
+            if url in dep_cat_map[cat] and \
+                cat not in found_cat_set:
                 result[cat] = preload_discovery
                 found_cat = cat
                 break
-        if found_cat in dep_cat_map:
-            if found_cat == 'Important':
-                print url + ' ' + str(preload_discovery)
-            del dep_cat_map[found_cat]
-        if len(dep_cat_map) == 0:
+        found_cat_set.add(found_cat)
+        if len(found_cat_set) == 3:
             break
+
+    if result['Unimportant'] == -1:
+        for obj in preload_timings:
+            url, _, _, _, resource_finish = obj
+            if url in dep_cat_map['Semi-important']:
+                result['Unimportant'] = max(resource_finish, result['Semi-important'])
+
     output_line = page
     output_line += ' ' + str(result['Important'])
     output_line += ' ' + str(result['Semi-important'])
     output_line += ' ' + str(result['Unimportant'])
     print output_line
-    
 
 def get_dependencies_category_map(dependency_filename):
     result = defaultdict(set)
@@ -46,8 +51,6 @@ if __name__ == '__main__':
     parser.add_argument('dependency_dir')
     args = parser.parse_args()
     for p in os.listdir(args.root_dir):
-        if 'espn.com' not in p:
-            continue
         timing_filename = os.path.join(args.root_dir, p, 'timings.txt')
         dependency_filename = os.path.join(args.dependency_dir, p, 'dependency_tree.txt')
         if not (os.path.exists(timing_filename) and \

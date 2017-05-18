@@ -122,11 +122,6 @@ def generate_file_from_dependency_tree_object(dependency_tree_object, \
         next_origin_url = origin_url
         if resource_type == 'Document':
             next_origin_url = child
-        # generate_file_from_dependency_tree_object(dependency_tree_object, \
-        #                                            child, \
-        #                                            dependency_url, \
-        #                                            next_origin_url, \
-        #                                            result_dependencies)
         try:
             generate_file_from_dependency_tree_object(dependency_tree_object, \
                                                        child, \

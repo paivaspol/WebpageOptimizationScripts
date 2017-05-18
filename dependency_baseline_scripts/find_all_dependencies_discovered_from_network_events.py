@@ -31,7 +31,7 @@ def main(root_dir, page_list, dependency_dir):
                                                                               network_filename, \
                                                                               dependencies)
         if len(dependency_finish_download_time) > 0:
-            print '{0} {1}'.format(page, max(dependency_finish_download_time.values()))
+            print '{0} {1}'.format(page_r, max(dependency_finish_download_time.values()))
         else:
             failed_pages.append(page)
 

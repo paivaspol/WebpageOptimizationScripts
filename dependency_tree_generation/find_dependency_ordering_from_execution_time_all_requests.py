@@ -11,9 +11,6 @@ def main(root_dir, dependency_dir, page_list, iterations, output_dir):
     if not os.path.exists(output_dir):
         os.mkdir(output_dir)
     for base_page, page in page_list:
-        # print 'processing: ' + page
-        # if 'fortune.com' not in page:
-        #     continue
         orderings = []
         escaped_page = common_module.escape_url(page)
         escaped_base_page = common_module.escape_url(base_page)
@@ -25,7 +22,6 @@ def main(root_dir, dependency_dir, page_list, iterations, output_dir):
             print 'Missing dependency tree file: ' + page + ' escaped_page: ' + escaped_base_page
             continue
         dependencies = get_dependencies(dependency_filename)
-        devtools_request_intersections = find_devtools_request_intersection(root_dir, iterations, escaped_page)
 
         start_iteration = 0
         if args.skip_first_load:
@@ -37,14 +33,14 @@ def main(root_dir, dependency_dir, page_list, iterations, output_dir):
                 continue
             iter_ordering = parse_processing_time_file(processing_time_filename, escaped_page)
             orderings.append(iter_ordering)
-        print orderings
+        # print orderings
         if len(orderings) > 0:
             # check_domain_orderings('s.yimg.com', orderings)
             # output_orderings(orderings)
             order_index = check_orderings(orderings)
             if order_index < 0:
                 order_index = 0
-            output_orderings_to_file(root_dir, orderings, dependencies, output_dir, escaped_page, order_index, devtools_request_intersections, escaped_base_page)
+            output_orderings_to_file(root_dir, orderings, dependencies, output_dir, escaped_page, order_index, escaped_base_page)
         else:
             print 'No orderings'
 
@@ -88,7 +84,7 @@ def get_dependencies(dependency_filename):
             result[url] = line
     return result
 
-def output_orderings_to_file(root_dir, orderings, dependencies, output_dir, page, order_index, devtools_request_intersection, escaped_base_page):
+def output_orderings_to_file(root_dir, orderings, dependencies, output_dir, page, order_index, escaped_base_page):
     if not os.path.exists(os.path.join(output_dir, page)):
         os.mkdir(os.path.join(output_dir, page))
     output_filename = os.path.join(output_dir, escaped_base_page, 'dependency_tree.txt')
@@ -108,25 +104,21 @@ def output_orderings_to_file(root_dir, orderings, dependencies, output_dir, page
         print 'Writing to ' + output_filename
         for obj in orderings[order_index]:
             print obj
-            if obj in dependencies and obj in devtools_request_intersection:
+            if obj in dependencies:
                 line = dependencies[obj]
-                vroom_priority = infer_vroom_priority(plt, fetch_times[obj], line[4], line[5])
-                escaped_url = common_module.escape_url(line[0])
-                if escaped_url != page:
-                    vroom_priority = bump_priority(vroom_priority)
+                vroom_priority = infer_vroom_priority(plt, line[4], line[5])
                 output_line = line[0] + ' ' + line[1] + ' ' + obj + ' ' + line[3] + ' ' + line[4] + ' ' + line[5] + ' ' + vroom_priority
                 output_file.write(output_line + '\n')
                 del dependencies[obj]
         sorted_dependencies = sorted(dependencies.iteritems(), key=lambda x: x[1][3])
         for obj, line in sorted_dependencies:
-            if obj in devtools_request_intersection:
-                output_line = ''
-                for token in line:
-                    output_line += token + ' '
-                if obj in fetch_times:
-                    vroom_priority = infer_vroom_priority(plt, fetch_times[obj], line[4], line[5])
-                    output_line += vroom_priority
-                    output_file.write(output_line.strip() + '\n')
+            output_line = ''
+            for token in line:
+                output_line += token + ' '
+            if obj in fetch_times:
+                vroom_priority = infer_vroom_priority(plt, line[4], line[5])
+                output_line += vroom_priority
+                output_file.write(output_line.strip() + '\n')
 
 def get_fetch_times(send_request_filename, finish_filename):
     request_times = dict()
@@ -150,24 +142,15 @@ def get_plt(plt_filename):
         line = input_file.readline().strip().split()
         return float(line[2]) - float(line[1])
 
-def infer_vroom_priority(plt, obj_fetch_time, resource_type, request_priority):
+def infer_vroom_priority(plt, resource_type, request_priority):
     if ((resource_type == 'Stylesheet' or resource_type == 'Script') and \
         (request_priority == 'VeryHigh' or request_priority == 'High' or request_priority == 'Medium')) or \
         (resource_type == 'Document' or resource_type == 'XHR'):
         return 'Important'
-    # elif (resource_type == 'Document' or resource_type == 'Stylesheet' or resource_type == 'Script') or \
-    #     fraction_of_plt > THRESHOLD:
     elif (resource_type == 'Document' or resource_type == 'Stylesheet' or resource_type == 'Script'):
         return 'Semi-important'
     else:
         return 'Unimportant'
-
-def bump_priority(priority):
-    return 'Important'
-    # if priority == 'Semi-important':
-    # elif priority == 'Unimportant':
-    #     return 'Semi-important'
-    # return priority
 
 def output_orderings(orderings):
     first_round = orderings[0]
@@ -250,7 +233,6 @@ def parse_processing_time_file(processing_time_filename, page):
                     result.append( (url, start_processing_time) )
                     url_found.add(url)
     result.sort(key=lambda x: x[1])
-    print result
     return [ x[0] for x in result ]
 
 if __name__ == '__main__':

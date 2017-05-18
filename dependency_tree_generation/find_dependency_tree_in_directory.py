@@ -7,9 +7,6 @@ import common_module
 
 def traverse_root_directory(root_dir, pages, aggregate_dir):
     for page in pages:
-        # if 'abcnews.go.com' not in page:
-        #     continue
-
         url = common_module.escape_url(page)
         path = os.path.join(root_dir, url)
         print 'processing: ' + url
