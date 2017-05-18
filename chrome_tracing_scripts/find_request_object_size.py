@@ -1,7 +1,7 @@
 from argparse import ArgumentParser
 
 import common_module
-import simplejson as json
+import json
 import os
 
 def get_request_sizes(network_filename, page):
@@ -10,7 +10,10 @@ def get_request_sizes(network_filename, page):
     with open(network_filename, 'rb') as input_file:
         found_first_request = False
         for raw_line in input_file:
-            network_event = json.loads(json.loads(raw_line.strip()))
+            try:
+                network_event = json.loads(json.loads(raw_line.strip()))
+            except:
+                network_event = json.loads(raw_line.strip())
             if not found_first_request:
                 if network_event['method'] == 'Network.requestWillBeSent' and \
                     common_module.escape_page(network_event['params']['request']['url']) == page:
@@ -20,8 +23,10 @@ def get_request_sizes(network_filename, page):
             
             request_id = network_event['params']['requestId']
             if network_event['method'] == 'Network.requestWillBeSent':
-                request_size[request_id] = 0
-                request_id_to_url[request_id] = network_event['params']['request']['url']
+                url = network_event['params']['request']['url']
+                if not url.startswith('data'):
+                    request_size[request_id] = 0
+                    request_id_to_url[request_id] = url
             elif network_event['method'] == 'Network.dataReceived':
                 if request_id in request_size:
                     request_size[request_id] += network_event['params']['encodedDataLength']

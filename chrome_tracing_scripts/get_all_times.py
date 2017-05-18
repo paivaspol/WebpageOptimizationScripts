@@ -40,6 +40,8 @@ def parse_trace_file(tracing_filename):
                         if event_type == constants.TRACING_EVENT_BEGIN:
                             if (timestamp > cur_end_time and cur_end_time > -1) or \
                                 (cur_start_time == -1):
+                                if cur_end_time > -1:
+                                    all_timings['idle'] += timestamp - cur_end_time
                                 cur_start_time = timestamp
                                 cur_end_time = -1
                                 # print val
@@ -62,6 +64,8 @@ def parse_trace_file(tracing_filename):
                             if timestamp > cur_end_time:
                                 cur_start_time = timestamp
                                 if 'dur' in val:
+                                    if cur_end_time > -1:
+                                        all_timings['idle'] += timestamp - cur_end_time
                                     cur_end_time = timestamp + int(val['dur'])
                                     time_tuple = ( cur_start_time, cur_end_time )
                                     time_pairs.append(time_tuple)
@@ -92,9 +96,11 @@ def print_times(timing_types, aggregated_timings):
         output_line += ' ' + str(aggregated_timings[t])
     print output_line
 
-def filter_keys(keys, original):
-    return { key: value for key, value in original.iteritems() if key in keys }
-    
+def filter_keys(keys, original, exclude=False):
+    if exclude:
+        return { key: value for key, value in original.iteritems() if key not in keys }
+    else:
+        return { key: value for key, value in original.iteritems() if key in keys }
 
 if __name__ == '__main__':
     parser = ArgumentParser()
@@ -106,7 +112,13 @@ if __name__ == '__main__':
             continue
         time_pairs, aggregated_timings = parse_trace_file(tracing_filename)
         # check_times(time_pairs)
-        timing_types = [ 'XHRReadyStateChange', 'Layout', 'XHRLoad', 'MajorGC', 'MinorGC', 'TimerFire', 'TimerFire', 'FunctionCall' ]
-        filtered = filter_keys(timing_types, aggregated_timings)
+        # timing_types = [ 'XHRReadyStateChange', 'Layout', 'XHRLoad', 'MajorGC', 'MinorGC', 'TimerFire', 'TimerFire', 'FunctionCall', 'EventDispatch', 'BlinkGCMarking', 'UpdateLayerTree', 'CommitLoad', 'UpdateLayoutTree', 'ThreadState::performIdleLazySweep', 'FireAnimationFrame', 'Paint', 'idle' ]
+        # excluding_types = [ 'EvaluateScript', 'ParseHTML', 'ParseAuthorStyleSheet' ]
+        excluding_types = [ ]
+        filtered = filter_keys(excluding_types, aggregated_timings, exclude=True)
+        filtered['total_time'] = sum([ value for _, value in filtered.iteritems() ])
         filtered['page'] = p
-        print json.dumps(filtered)
+        # print json.dumps(filtered)
+        aggregated_timings['total_time'] = sum([ value for _, value in aggregated_timings.iteritems() ])
+        aggregated_timings['page'] = p
+        print json.dumps(aggregated_timings)
