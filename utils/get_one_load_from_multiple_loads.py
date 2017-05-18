@@ -86,8 +86,12 @@ def copy_chosen_runs(chosen_runs, root_dir, output_dir, num_iterations):
         if 0 <= run_index < num_iterations:
             if args.skip_first_load:
                 run_index += 1
-            run_path = os.path.join(os.path.join(root_dir, str(run_index)), page)
-            copy_command = 'cp -r {0} {1}'.format(run_path, output_dir)
+            run_path = os.path.join(root_dir, str(run_index), page)
+            output_path = os.path.join(output_dir, page)
+            if os.path.islink(output_path):
+                os.unlink(output_path)
+            # copy_command = 'cp -r {0} {1}'.format(run_path, output_path)
+            copy_command = 'ln -s {0} {1}'.format(run_path, output_path)
             subprocess.call(copy_command, shell=True)
             counter += 1
             print '{0} {1}'.format(page, run_index)
