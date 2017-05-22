@@ -6,3 +6,39 @@ temp.log
 *.out
 *temp*
 *tmp*
+
+# Archives 
+*.tar.gz
+*.bak
+*.zip
+
+# Images
+*.png
+*.jpg
+*.jpeg
+
+# Ignore all subdirectories.
+README/*/
+ToggleCPUMeasurements/*/
+aft_debug/*/
+chrome_tracing_scripts/*/
+const/*/
+convert_har_to_mahimahi/*/
+cpu_utilization/*/
+critical_path_analysis/*/
+dataset_aggregate/*/
+dependency_baseline_scripts/*/
+dependency_tree_generation/*/
+experiments/*/
+external_domain_analysis/*/
+first_party_adoption_debug/*/
+graph_generation/*/
+mahimahi_protobuf_scripts/*/
+mahimahi_scripts/*/
+network_utilization/*/
+parsers/*/
+pcap_scripts/*/
+per_packet_delay/*/
+squid_cache_analysis/*/
+stylesheet_script_website_interaction/*/
+utils/*/

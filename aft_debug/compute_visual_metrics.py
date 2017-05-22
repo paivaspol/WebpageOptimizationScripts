@@ -8,11 +8,14 @@ import subprocess
 def main(root_dir, output_dir):
     if not os.path.exists(output_dir):
         os.mkdir(output_dir)
-    worker_pool = Pool(4)
-    worker_pool.map(process_page_wrapper, itertools.izip( \
-                                            itertools.repeat(root_dir), \
-                                            os.listdir(root_dir), \
-                                            itertools.repeat(output_dir)))
+    if args.debug:
+        process_page(root_dir, 'android.livescore.com', output_dir)
+    else:
+        worker_pool = Pool(4)
+        worker_pool.map(process_page_wrapper, itertools.izip( \
+                                                itertools.repeat(root_dir), \
+                                                os.listdir(root_dir), \
+                                                itertools.repeat(output_dir)))
 
 def process_page_wrapper(args):
     process_page(*args)
@@ -48,5 +51,6 @@ if __name__ == '__main__':
     parser = ArgumentParser()
     parser.add_argument('root_dir')
     parser.add_argument('output_dir')
+    parser.add_argument('--debug', default=False, action='store_true')
     args = parser.parse_args()
     main(args.root_dir, args.output_dir)
