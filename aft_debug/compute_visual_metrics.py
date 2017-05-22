@@ -28,7 +28,6 @@ def process_page(root_dir, p, output_dir):
     with open(os.path.join(page_output_dir, 'visual_metrics'), 'wb') as output_file:
         output_file.write(output)
 
-
 def parse_visual_metrics(visual_metric_str):
     speedindex = -1
     aft = -1
