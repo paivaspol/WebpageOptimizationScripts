@@ -17,10 +17,10 @@ def main(directory, output_dir):
             img2 = img.crop((0, 280, 1440, 2560))
             img2.save(output_filename)
 
-
 if __name__ == '__main__':
     parser = ArgumentParser()
     parser.add_argument('dir')
     parser.add_argument('output_dir')
     args = parser.parse_args()
+    print 'Cropping images...'
     main(args.dir, args.output_dir)
