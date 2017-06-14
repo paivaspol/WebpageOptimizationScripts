@@ -141,6 +141,22 @@ def get_network_timings(timing_filename, first_req_time):
                 result[url] = [ send_request, discovery_time, preload_discovery_time, first_byte_time, finish_time ]
     return result
 
+def get_network_timings_unhinted_resources(timing_filename, first_req_time, dependencies):
+    result = dict()
+    with open(timing_filename, 'rb') as input_file:
+        for l in input_file:
+            l = l.strip()
+            timing = json.loads(l)
+            if timing['url'] not in dependencies:
+                send_request = timing['ResourceSendRequest'] + first_req_time
+                discovery_time = timing['discovery_time'] + first_req_time
+                preload_discovery_time = timing['ResourcePreloadDiscovery'] + first_req_time
+                finish_time = timing['ResourceFinish'] + first_req_time
+                first_byte_time = timing['ResourceReceiveResponse'] + first_req_time
+                url = timing['url']
+                result[url] = [ send_request, discovery_time, preload_discovery_time, first_byte_time, finish_time ]
+    return result
+
 def construct_timing_pair_list(keys, original, exclude=False):
     result = []
     if exclude:
@@ -249,10 +265,12 @@ if __name__ == '__main__':
         hinted_and_preloaded_output_dir = os.path.join(args.output_dir, 'hinted_and_preloaded')
         hinted_and_not_preloaded_output_dir = os.path.join(args.output_dir, 'hinted_but_not_preloaded')
         first_byte_time_dir = os.path.join(args.output_dir, 'hinted_and_preloaded_first_byte_time')
+        unhinted_output_dir = os.path.join(args.output_dir, 'not_hinted')
         if not os.path.exists(hinted_and_preloaded_output_dir):
             os.mkdir(hinted_and_preloaded_output_dir)
             os.mkdir(hinted_and_not_preloaded_output_dir)
             os.mkdir(first_byte_time_dir)
+            os.mkdir(unhinted_output_dir)
 
         time_pairs, aggregated_timings, first_req_time = parse_trace_file(tracing_filename)
         network_timings = get_network_timings(timing_filename, first_req_time)
@@ -269,6 +287,10 @@ if __name__ == '__main__':
         network_timings_hinted_but_not_preloaded = get_network_timings_hinted_not_preloaded(timing_filename, first_req_time, dependencies)
         actual_wait_time = get_actual_network_wait_time(network_timings_hinted_but_not_preloaded, timing_pair_list)
         output_to_file(actual_wait_time, hinted_and_not_preloaded_output_dir, first_req_time)
+
+        network_timings_unhinted_resources = get_network_timings_unhinted_resources(timing_filename, first_req_time, dependencies)
+        actual_wait_time = get_actual_network_wait_time(network_timings_unhinted_resources, timing_pair_list)
+        output_to_file(actual_wait_time, unhinted_output_dir, first_req_time)
 
         important_invocation = get_invocation_time(cat_to_deps, 'Important', network_timings) - first_req_time
         semi_important_invocation = get_invocation_time(cat_to_deps, 'Semi-important', network_timings) - first_req_time
