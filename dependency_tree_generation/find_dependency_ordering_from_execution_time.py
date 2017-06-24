@@ -26,6 +26,8 @@ def main(root_dir, dependency_dir, page_list, iterations, output_dir):
             continue
         dependencies = get_dependencies(dependency_filename)
         devtools_request_intersections = find_devtools_request_intersection(root_dir, iterations, escaped_page)
+        if args.use_all_resources:
+            devtools_request_intersection = None
 
         start_iteration = 0
         if args.skip_first_load:
@@ -108,7 +110,7 @@ def output_orderings_to_file(root_dir, orderings, dependencies, output_dir, page
         print 'Writing to ' + output_filename
         for obj in orderings[order_index]:
             print obj
-            if obj in dependencies and obj in devtools_request_intersection:
+            if devtools_request_intersection is None or (obj in dependencies and obj in devtools_request_intersection):
                 line = dependencies[obj]
                 vroom_priority = infer_vroom_priority(plt, fetch_times[obj], line[4], line[5])
                 escaped_url = common_module.escape_url(line[0])
@@ -261,6 +263,7 @@ if __name__ == '__main__':
     parser.add_argument('iterations', type=int)
     parser.add_argument('output_dir')
     parser.add_argument('--skip-first-load', default=False, action='store_true')
+    parser.add_argument('--use-all-resources', default=False, action='store_true')
     args = parser.parse_args()
     page_list = common_module.get_pages_with_redirection(args.pages_filename)
     main(args.root_dir, args.dependency_dir, page_list, args.iterations, args.output_dir)

@@ -332,7 +332,6 @@ if __name__ == '__main__':
     parser.add_argument('network_data_file', help='The file containing the chrome network capture file.')
     parser.add_argument('page_start_end_time', help='The file containing the page start and end time.')
     parser.add_argument('--output-dir', default='.')
-    parser.add_argument('--common-resource-file', default=None)
     args = parser.parse_args()
     network_activities = convert_to_object(args.network_data_file)
     page_start_end_time = common_module.parse_page_start_end_time(args.page_start_end_time)
