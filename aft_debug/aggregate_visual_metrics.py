@@ -5,6 +5,8 @@ import os
 def main(root_dir):
     for p in os.listdir(root_dir):
         visual_metrics_filename = os.path.join(root_dir, p, 'visual_metrics')
+        if not os.path.exists(visual_metrics_filename):
+            continue
         with open(visual_metrics_filename, 'rb') as input_file:
             v = -1
             dont_print = False

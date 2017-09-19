@@ -14,6 +14,7 @@ def main(root_dir, page_list_filename, output_dir):
         print page
         network_event = os.path.join(root_dir, page, 'network_' + page)
         if not os.path.exists(network_event):
+            print network_event + ' not found'
             continue
         try:
             output_page = page if not args.use_redirected_url else page_list[page]
@@ -24,9 +25,12 @@ def main(root_dir, page_list_filename, output_dir):
             pass
 
 def output_to_file(output_dir, page, dependency_lines):
-    if not os.path.exists(os.path.join(output_dir, page)):
-        os.mkdir(os.path.join(output_dir, page))
-    output_filename = os.path.join(output_dir, page, 'dependency_tree.txt')
+    if args.output_to_dir:
+        if not os.path.exists(os.path.join(output_dir, page)):
+            os.mkdir(os.path.join(output_dir, page))
+        output_filename = os.path.join(output_dir, page, 'dependency_tree.txt')
+    else:
+        output_filename = os.path.join(output_dir, page)
     with open(output_filename, 'wb') as output_file:
         for dependency_line in dependency_lines:
             output_file.write(dependency_line)
@@ -72,5 +76,6 @@ if __name__ == '__main__':
     parser.add_argument('page_list')
     parser.add_argument('output_dir')
     parser.add_argument('--use-redirected-url', default=False, action='store_true')
+    parser.add_argument('--output-to-dir', default=False, action='store_true')
     args = parser.parse_args()
     main(args.root_dir, args.page_list, args.output_dir)

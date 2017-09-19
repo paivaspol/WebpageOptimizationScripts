@@ -12,7 +12,7 @@ def main(root_dir, dependency_dir, page_list, iterations, output_dir):
         os.mkdir(output_dir)
     for base_page, page in page_list:
         # print 'processing: ' + page
-        # if 'fortune.com' not in page:
+        # if 'abcnews.go.com' not in page:
         #     continue
         orderings = []
         escaped_page = common_module.escape_url(page)
@@ -36,13 +36,12 @@ def main(root_dir, dependency_dir, page_list, iterations, output_dir):
             processing_time_filename = os.path.join(root_dir, 'extended_waterfall_' + str(i), 
                                                     escaped_page, 'processing_time.txt')
             if not os.path.exists(processing_time_filename):
+                print 'Missing processing time: ' + str(processing_time_filename)
                 continue
             iter_ordering = parse_processing_time_file(processing_time_filename, escaped_page)
             orderings.append(iter_ordering)
-        print orderings
         if len(orderings) > 0:
-            # check_domain_orderings('s.yimg.com', orderings)
-            # output_orderings(orderings)
+            print '[ORDERING]' + str(orderings)
             order_index = check_orderings(orderings)
             if order_index < 0:
                 order_index = 0
@@ -60,6 +59,7 @@ def find_devtools_request_intersection(root_dir, iterations, page):
         request_filename = os.path.join(root_dir, 'extended_waterfall_' + str(i),
                                         page, 'ResourceSendRequest.txt')
         if not os.path.exists(request_filename):
+            print 'Missing request file: ' + str(request_filename)
             continue
 
         with open(request_filename, 'rb') as input_file:
@@ -108,6 +108,7 @@ def output_orderings_to_file(root_dir, orderings, dependencies, output_dir, page
     fetch_times = get_fetch_times(request_filename, fetch_filename)
     with open(output_filename, 'wb') as output_file:
         print 'Writing to ' + output_filename
+        print 'Len(orderings): ' + str(len(orderings[order_index]))
         for obj in orderings[order_index]:
             print obj
             if devtools_request_intersection is None or (obj in dependencies and obj in devtools_request_intersection):
@@ -121,7 +122,7 @@ def output_orderings_to_file(root_dir, orderings, dependencies, output_dir, page
                 del dependencies[obj]
         sorted_dependencies = sorted(dependencies.iteritems(), key=lambda x: x[1][3])
         for obj, line in sorted_dependencies:
-            if obj in devtools_request_intersection:
+            if devtools_request_intersection is None or (obj in devtools_request_intersection):
                 output_line = ''
                 for token in line:
                     output_line += token + ' '

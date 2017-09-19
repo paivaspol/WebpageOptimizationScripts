@@ -17,7 +17,7 @@ mkdir -p ${output_dir}
 
 # First find the resource intersection
 echo 'Finding resource intersection...'
-# python find_resource_intersection.py ${root_dir} ${page_list_filename} ${iterations} ${output_dir}/resource_intersection --skip-first-load
+python find_resource_intersection.py ${root_dir} ${page_list_filename} ${iterations} ${output_dir}/resource_intersection --skip-first-load
 
 echo 'Generating raw dependency files...'
 # Generate the raw dependency file
@@ -32,4 +32,4 @@ python generate_dependency_tree_file_for_proxy_return_up_to_iframe.py ${output_d
 # echo "python find_dependency_ordering_from_execution_time.py ${root_dir} ${page_list_filename} ${output_dir}/dependency_list_sorted_by_request_time ${iterations} ${output_dir}/dependency_list_sorted_by_execution_time --skip-first-load"
 python find_dependency_ordering_from_execution_time.py ${root_dir} ${page_list_filename} ${output_dir}/dependency_list_sorted_by_request_time ${iterations} ${output_dir}/dependency_list_sorted_by_execution_time --skip-first-load
 
-python find_dependency_ordering_from_execution_time.py ${root_dir} ${page_list_filename} ${output_dir}/all_resources_list_sorted_by_request_time ${iterations} ${output_dir}/dependency_list_sorted_by_execution_time --skip-first-load --use-all-resources
+# python find_dependency_ordering_from_execution_time.py ${root_dir} ${page_list_filename} ${output_dir}/all_resources_list_sorted_by_request_time ${iterations} ${output_dir}/all_resource_list_sorted_by_execution_time --skip-first-load --use-all-resources

@@ -15,10 +15,7 @@ def main(root_dir, pages_filename, pages_to_timestamp, dependencies_dir, output_
     for page, timestamp in pages_to_timestamp.iteritems():
         page_directory = os.path.join(root_dir, timestamp, page)
         dependency_filename = os.path.join(dependencies_dir, page, 'dependency_tree.txt')
-        if not os.path.exists(dependency_filename):
-            continue
-
-        if page not in page_mapping:
+        if not os.path.exists(dependency_filename) or page not in page_mapping:
             continue
 
         page_set = page_mapping[page]
