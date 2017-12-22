@@ -106,6 +106,7 @@ def output_orderings_to_file(root_dir, orderings, dependencies, output_dir, page
                                     page, 'ResourceFinish.txt')
     plt = get_plt(plt_filename)
     fetch_times = get_fetch_times(request_filename, fetch_filename)
+
     with open(output_filename, 'wb') as output_file:
         print 'Writing to ' + output_filename
         print 'Len(orderings): ' + str(len(orderings[order_index]))
