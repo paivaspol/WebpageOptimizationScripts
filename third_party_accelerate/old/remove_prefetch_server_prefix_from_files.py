@@ -1,0 +1,42 @@
+from argparse import ArgumentParser
+
+import common_module
+import urllib
+import os
+import subprocess
+
+def main():
+    pages = common_module.get_pages(args.page_list)
+    prefixed_pages = {}
+    for page in pages:
+        hostname = args.prefix if args.prefix.endswith('/') else args.prefix + '/'
+        query = { 'dstPage': page }
+        prefixed_page = '{0}prefetch?{1}'.format(hostname, urllib.urlencode(query))
+        prefixed_pages[common_module.escape_url(page)] = common_module.escape_url(prefixed_page)
+
+    for i in range(0, args.iterations):
+        iter_dir = os.path.join(args.root_dir, str(i))
+        for p in os.listdir(iter_dir):
+            page_dir = os.path.join(iter_dir, p)
+            prefixed_page = prefixed_pages[p]
+            for f in os.listdir(page_dir):
+                if prefixed_page not in f:
+                    continue
+                first_idx = f.find(prefixed_page)
+                unprefixed_f = f[:first_idx] + p
+
+                # Move the file.
+                src = os.path.join(page_dir, f)
+                dst = os.path.join(page_dir, unprefixed_f)
+                mv_cmd = 'mv {0} {1}'.format(src, dst)
+                print mv_cmd
+                subprocess.call(mv_cmd.split())
+
+if __name__ == '__main__':
+    parser = ArgumentParser()
+    parser.add_argument('root_dir')
+    parser.add_argument('iterations', type=int)
+    parser.add_argument('page_list')
+    parser.add_argument('prefix')
+    args = parser.parse_args()
+    main()
