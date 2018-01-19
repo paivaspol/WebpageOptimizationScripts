@@ -8,14 +8,14 @@ def main():
     for p in os.listdir(args.root_dir):
         page_prefetch_urls = prefetch_urls[p]
         network_filename = os.path.join(args.root_dir, p, 'network_' + p)
-        request_counter = CheckPrefetchedUrls(network_filename, page_prefetch_urls)
-        Output(p, request_counter)
+        request_counter, response_counter, request_hitting_cache = CheckPrefetchedUrls(network_filename, page_prefetch_urls)
+        Output(p, request_counter, response_counter, request_hitting_cache)
 
-def Output(p, request_counter):
+def Output(p, request_counter, response_counter, request_hitting_cache):
     print 'page: ' + p
     urls_used = set()
     for url, count in request_counter.iteritems():
-        print '\t{0}\t{1}'.format(url, count)
+        print '\t{0}\t{1}\t{2}\t{3}'.format(url, count, response_counter[url], request_hitting_cache[url])
         if count >= 2:
             urls_used.add(url)
     print '\tused: {0}/{1} frac: {2}'.format(len(urls_used), len(request_counter), 1.0 * len(urls_used) / len(request_counter))
@@ -23,6 +23,8 @@ def Output(p, request_counter):
 
 def CheckPrefetchedUrls(network_filename, page_prefetch_urls):
     request_counter = { url: 0 for url in page_prefetch_urls }
+    response_counter = { url: 0 for url in page_prefetch_urls }
+    request_hit_cache = { url: False for url in page_prefetch_urls }
     with open(network_filename, 'rb') as input_file:
         for l in input_file:
             l = l.strip()
@@ -32,7 +34,16 @@ def CheckPrefetchedUrls(network_filename, page_prefetch_urls):
                 if url not in request_counter:
                     continue
                 request_counter[url] += 1
-    return request_counter
+            elif event['method'] == 'Network.responseReceived':
+                url = event['params']['response']['url']
+                if url not in response_counter:
+                    continue
+                response_counter[url] += 1
+
+                if url not in request_counter:
+                    continue
+                request_hit_cache[url] = event['params']['response']['fromDiskCache']
+    return request_counter, response_counter, request_hit_cache
 
 
 def GetPrefetchUrls(prefetch_urls_dir):
