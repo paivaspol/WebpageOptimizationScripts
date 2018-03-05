@@ -30,7 +30,7 @@ def main(root_dir, last_n_days, pages, output_dir):
                 skip_page = True
                 skipped_pages.add(page)
                 break
-            resources_set, resources_list = find_all_resources(network_filename, page)
+            resources_set, resources_list, resource_type_map = find_all_resources(network_filename, page)
             if request_order is None:
                 request_order = resources_list
 
@@ -50,12 +50,18 @@ def main(root_dir, last_n_days, pages, output_dir):
                 os.mkdir(order_output_dir)
 
             prefetch_urls_filename = os.path.join(args.output_dir, 'prefetch', page)
-            output(prefetch_urls_filename, [ x for x in request_order if x in page_common_resources ])
+            output_with_resource_type(prefetch_urls_filename, [ x for x in request_order if x in page_common_resources ], resource_type_map)
 
             order_filename = os.path.join(args.output_dir, 'order', page)
-            output(order_filename, request_order)
+            output(order_filename, request_order,)
     print 'skipped: ' + str(skipped_pages)
                 
+def output_with_resource_type(output_filename, resource_list, resource_type_map):
+    with open(output_filename, 'wb') as output_file:
+        lines = []
+        for r in resource_list:
+            lines.append('{0} {1}'.format(r, resource_type_map[r]))
+        output_file.write('\n'.join(lines).strip())
 
 def output(output_filename, resource_list):
     with open(output_filename, 'wb') as output_file:
@@ -64,6 +70,7 @@ def output(output_filename, resource_list):
 def find_all_resources(network_filename, page):
     resource_set = set()
     resource_list = []
+    resource_type_map = {}
     with open(network_filename, 'rb') as input_file:
         found_first_request = False
         for raw_line in input_file:
@@ -87,7 +94,8 @@ def find_all_resources(network_filename, page):
                         continue
                     resource_list.append(url)
                     resource_set.add(url)
-    return resource_set, resource_list
+                    resource_type_map[url] = resource_type
+    return resource_set, resource_list, resource_type_map
 
 def get_pages(pages_file):
     '''

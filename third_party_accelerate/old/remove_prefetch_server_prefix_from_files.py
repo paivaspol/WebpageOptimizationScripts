@@ -18,6 +18,8 @@ def main():
         iter_dir = os.path.join(args.root_dir, str(i))
         for p in os.listdir(iter_dir):
             page_dir = os.path.join(iter_dir, p)
+            if p not in prefixed_pages:
+                continue
             prefixed_page = prefixed_pages[p]
             for f in os.listdir(page_dir):
                 if prefixed_page not in f:
