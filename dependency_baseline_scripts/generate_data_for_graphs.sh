@@ -3,14 +3,16 @@
 set -e
 
 if [ "$#" -ne 1 ]; then
+  print "Usage: $0 [page_list]"
   exit 1
 fi
 
 page_list=$1
 
 # The directories to generate the data for.
-directories=( /Users/vaspol/Documents/research/MobileWebPageOptimization/results/vroom_debugging/current_debugging/vroom /Users/vaspol/Documents/research/MobileWebPageOptimization/results/vroom_debugging/current_debugging/baseline )
+# directories=( /Users/vaspol/Documents/research/MobileWebPageOptimization/results/vroom_debugging/current_debugging/vroom /Users/vaspol/Documents/research/MobileWebPageOptimization/results/vroom_debugging/current_debugging/baseline )
 # directories=( ../../results/vroom_debugging/network_utilizations/no_push_only_hints.new )
+directories=( /Users/vaspol/Documents/research/MobileWebPageOptimization/results/third-party-speedup/specific_sites/03_06_serialize_no_pri /Users/vaspol/Documents/research/MobileWebPageOptimization/results/third-party-speedup/specific_sites/03_06_prioritized )
 
 # The directories for the target_resources
 target_resource_dirs=( /Users/vaspol/Documents/research/MobileWebPageOptimization/scripts/dependency_tree_generation/temp_all_iframe_descendants_important/dependency_list_sorted_by_execution_time/ )

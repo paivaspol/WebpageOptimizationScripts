@@ -45,10 +45,16 @@ def get_dependencies(dependency_filename, use_only_important_resources):
     with open(dependency_filename, 'rb') as input_file:
         for raw_line in input_file:
             line = raw_line.strip().split()
-            resource_type = line[4]
+            if len(line) == 2:
+                resource_type = line[1]
+            else:
+                resource_type = line[4]
             if use_only_important_resources and (line[6] != "Important"):
                 continue
-            results.append(line[2])
+            if len(line) == 2:
+                results.append(line[0])
+            else:
+                results.append(line[2])
     return results
 
 def get_dependencies_without_other_iframes(dependency_filename, use_only_important_resources, page):

@@ -21,6 +21,8 @@ def main(network_filename):
             # The start time of a subsequent response is before the end time of a previous response.
             print 'Response overlapped... {0} and {1}'.format(cur_response, r)
             break
+        cur_response_time = r_response_time
+        cur_response = r
     print 'No overlap'
 
 def construct_response_times(network_filename):

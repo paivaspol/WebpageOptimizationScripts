@@ -8,7 +8,7 @@ import numpy
 import subprocess
 
 INTERVAL_SIZE = 100 # ms
-BANDWIDTH = 4 # mbps
+BANDWIDTH = 12 # mbps
 
 def main(root_dir, start_time_dict, end_time_offset_dict):
     pages = os.listdir(root_dir)

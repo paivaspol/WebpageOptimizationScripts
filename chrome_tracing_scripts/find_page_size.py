@@ -27,7 +27,10 @@ def get_request_sizes(network_filename, page):
     with open(network_filename, 'rb') as input_file:
         found_root = False
         for raw_line in input_file:
-            network_event = json.loads(json.loads(raw_line.strip()))
+            try:
+                network_event = json.loads(json.loads(raw_line.strip()))
+            except Exception as e:
+                network_event = json.loads(raw_line.strip())
             if not found_root and network_event[METHOD] == 'Network.requestWillBeSent':
                 request_url = network_event[PARAMS]['request']['url']
                 # print 'request url: {0} page: {1}'.format(request_url, page)
