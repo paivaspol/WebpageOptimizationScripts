@@ -26,7 +26,7 @@ def process_page(root_dir, p, output_dir):
     page_output_dir = os.path.join(output_dir, p)
     if not os.path.exists(page_output_dir):
         os.mkdir(page_output_dir)
-    cmd = 'python visualmetrics.py --start 2000 --end {0} -i {1} --full --dir {2}'.format((plt + 1500 + 2000), input_filename, page_output_dir)
+    cmd = 'python visualmetrics.py --start 2000 --end {0} -i {1} --full --dir {2}'.format((plt + args.time_after_onload_ms + 2000), input_filename, page_output_dir)
     output = subprocess.check_output(cmd.split())
     with open(os.path.join(page_output_dir, 'visual_metrics'), 'wb') as output_file:
         output_file.write(output)
@@ -52,5 +52,6 @@ if __name__ == '__main__':
     parser.add_argument('root_dir')
     parser.add_argument('output_dir')
     parser.add_argument('--debug', default=False, action='store_true')
+    parser.add_argument('--time-after-onload-ms', default=1500, type=int)
     args = parser.parse_args()
     main(args.root_dir, args.output_dir)
