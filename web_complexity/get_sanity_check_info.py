@@ -27,31 +27,18 @@ class PageInfo:
         self.total_encoded_bytes_ += max(0, num_bytes)
 
 
-    def AddTotalBytes(self, num_bytes):
-        '''
-        Adds the number of bytes into the total non-encoded bytes.
-        '''
-        self.total_bytes_ += max(0, num_bytes)
-
-
     def __str__(self):
         '''
         Returns the string representation of this PageInfo object.
         '''
-        # retval = '{0} {1} {2}'.format( \
-        #         len(self.requests), \
-        #         self.total_bytes_, \
-        #         self.total_encoded_bytes_)
         retval = args.delim.join(
                 [ str(len(self.requests)), \
-                str(self.total_bytes_), \
                 str(self.total_encoded_bytes_) ])
         return retval
 
 
     def __init__(self):
         self.requests = set()
-        self.total_bytes_ = 0
         self.total_encoded_bytes_ = 0
 
 
@@ -67,7 +54,6 @@ def GetInfo(network_filename):
                 url = e['params']['request']['url']
                 page_info.AddRequest(url)
             elif e['method'] == 'Network.dataReceived':
-                page_info.AddTotalBytes(e['params']['dataLength'])
                 page_info.AddTotalEncodedBytes(e['params']['encodedDataLength'])
         return page_info
 

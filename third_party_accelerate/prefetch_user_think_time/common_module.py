@@ -21,6 +21,8 @@ def GetURLsFromPageList(page_list_filename):
     urls = []
     with open(page_list_filename, 'r') as input_file:
         for l in input_file:
+            if l.startswith('#') or len(l.strip()) == 0:
+                continue
             urls.append(l.strip())
     return urls
 
