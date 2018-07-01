@@ -23,3 +23,26 @@ def GetURLsFromPageList(page_list_filename):
         for l in input_file:
             urls.append(l.strip())
     return urls
+
+
+def GetURLs(network_filename):
+    '''
+    Returns a set containing the URLs of the requests.
+    '''
+    import json
+    urls = set()
+    found_first_request = False
+    with open(network_filename, 'r') as input_file:
+        for l in input_file:
+            e = json.loads(l.strip())
+            if e['method'] == 'Network.requestWillBeSent':
+                if not found_first_request:
+                    found_first_request = True
+                    continue
+
+                url = e['params']['request']['url']
+                if not url.startswith('http'):
+                    continue 
+                urls.add(url)
+    return urls
+ 

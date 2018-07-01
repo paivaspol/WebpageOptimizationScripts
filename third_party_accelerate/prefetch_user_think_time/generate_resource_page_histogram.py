@@ -2,6 +2,7 @@ from argparse import ArgumentParser
 from collections import defaultdict
 from urlparse import urlparse
 
+import common_module
 import json
 import os
 
@@ -11,7 +12,7 @@ def Main():
         network_filename = os.path.join(args.root_dir, p, 'network_' + p)
         if not os.path.exists(network_filename):
             continue
-        urls = GetURLs(network_filename)
+        urls = common_module.GetURLs(network_filename)
         for u in urls:
             histogram[u] += 1
     sorted_histogram = sorted(histogram.iteritems(), key=lambda x: x[1], reverse=True)
@@ -26,24 +27,6 @@ def Main():
         print '{0} {1} {2} {3}'.format(k, counter, v, color)
         counter += 1
 
-
-def GetURLs(network_filename):
-    urls = set()
-    found_first_request = False
-    with open(network_filename, 'r') as input_file:
-        for l in input_file:
-            e = json.loads(l.strip())
-            if e['method'] == 'Network.requestWillBeSent':
-                if not found_first_request:
-                    found_first_request = True
-                    continue
-
-                url = e['params']['request']['url']
-                if not url.startswith('http'):
-                    continue 
-                urls.add(url)
-    return urls
- 
 
 if __name__ == '__main__':
     parser = ArgumentParser()

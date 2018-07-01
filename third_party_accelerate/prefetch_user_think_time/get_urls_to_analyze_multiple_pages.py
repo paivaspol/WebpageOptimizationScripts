@@ -15,6 +15,8 @@ def Main():
         escaped_page = common_module.EscapeURL(p)
         # python get_urls_to_analyze.py ../../../results/prefetch-user-think-time/crawl/main_page/0/etsy.com/onload_root_html http://www.etsy.com
         root_html_filename = os.path.join(args.root_dir, escaped_page, 'onload_root_html')
+        if not os.path.exists(root_html_filename):
+            continue
         command = 'python get_urls_to_analyze.py {0} {1}'.format(root_html_filename, p)
         print command
         output = subprocess.check_output(command.split())
