@@ -11,6 +11,7 @@ def Main():
     os.mkdir(args.output_dir)
 
     pages = common_module.GetURLsFromPageList(args.page_list)
+    print(pages)
     for p in pages:
         escaped_page = common_module.EscapeURL(p)
         # python get_urls_to_analyze.py ../../../results/prefetch-user-think-time/crawl/main_page/0/etsy.com/onload_root_html http://www.etsy.com
@@ -18,7 +19,7 @@ def Main():
         if not os.path.exists(root_html_filename):
             continue
         command = 'python get_urls_to_analyze.py {0} {1}'.format(root_html_filename, p)
-        print command
+        print(command)
         output = subprocess.check_output(command.split())
         output_filename = os.path.join(args.output_dir, escaped_page)
         with open(output_filename, 'w') as output_file:

@@ -10,7 +10,7 @@ how common the resource is across outgoing links.
 '''
 from argparse import ArgumentParser
 from collections import defaultdict
-from urllib.parse import urlparse
+from urlparse import urlparse
 
 import common_module
 import os
@@ -57,7 +57,7 @@ def ComputeFetchTime(resource_size, download_bandwidth):
       - resource_size bytes
       - download_bandwidth bps
     '''
-    return resource_size * 8 / download_bandwidth
+    return 1.0 * resource_size * 8 / download_bandwidth
 
 
 def GenerateResourceHistogramAndResourceSizeAcrossPages(crawl_dir):
@@ -67,11 +67,19 @@ def GenerateResourceHistogramAndResourceSizeAcrossPages(crawl_dir):
     '''
     histogram = defaultdict(int)
     resource_sizes = defaultdict(int)
-    for p in os.listdir(args.root_dir):
+    base_page = common_module.GetBasePage(crawl_dir)
+    all_pages = os.listdir(crawl_dir)
+    if args.group_pages:
+        all_pages = common_module.GetUrlsWithMostCommonPrefix(all_pages)
+
+    for p in all_pages:
         network_filename = os.path.join(args.root_dir, p, 'network_' + p)
         if not os.path.exists(network_filename):
             continue
-        urls, page_resource_sizes = GetURLsAndResourceSize(network_filename)
+        urls, page_resource_sizes, first_request = GetURLsAndResourceSize(network_filename)
+        if first_request is None:
+            continue
+
         for u in urls:
             histogram[u] += 1
 
@@ -86,7 +94,7 @@ def GetURLsAndResourceSize(network_filename):
     '''
     import json
     urls = set()
-    found_first_request = False
+    first_request = None
 
     request_id_url = {}
     resource_sizes = {}
@@ -94,8 +102,8 @@ def GetURLsAndResourceSize(network_filename):
         for l in input_file:
             e = json.loads(l.strip())
             if e['method'] == 'Network.requestWillBeSent':
-                if not found_first_request:
-                    found_first_request = True
+                if first_request is None:
+                    first_request = e['params']['request']['url']
                     continue
 
                 request_id = e['params']['requestId']
@@ -112,7 +120,10 @@ def GetURLsAndResourceSize(network_filename):
                 url = request_id_url[request_id]
                 response_size = e['params']['encodedDataLength']
                 resource_sizes[url] = response_size
-    return urls, resource_sizes
+
+    if first_request is None:
+        return None, None, None
+    return urls, resource_sizes, common_module.RemoveFragments(first_request)
 
 
 if __name__ == '__main__':
@@ -131,5 +142,8 @@ if __name__ == '__main__':
                         type=int, \
                         help='The max number of resource to consider', \
                         default=sys.maxsize)
+    parser.add_argument('--group-pages', \
+                        help='Whether to group the pages by a common prefix',\
+                        default=False, action='store_true')
     args = parser.parse_args()
     Main()
