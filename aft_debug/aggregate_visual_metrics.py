@@ -24,7 +24,8 @@ def main(root_dir):
                         try:
                             if splitted_t[1] == '100%':
                                 if args.mode == 'AFT':
-                                    v = int(splitted_t[0]) - 2000
+                                    # v = int(splitted_t[0]) - 2000
+                                    v = int(splitted_t[0])
                                 else:
                                     v = int(splitted_t[0])
                                 break

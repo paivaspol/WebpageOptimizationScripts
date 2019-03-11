@@ -4,7 +4,8 @@ main HTML.
 '''
 from argparse import ArgumentParser
 from bs4 import BeautifulSoup
-from urlparse import urldefrag
+# from urllib.parse import urldefrag, urlparse
+from urlparse import urldefrag, urlparse
 
 import os
 import random
@@ -16,14 +17,15 @@ def Main():
         valid_url = GenerateValidURL(u, args.url_prefix)
         if valid_url == '':
             continue
-        print valid_url
+        print(valid_url.encode('utf-8'))
 
 
 def GenerateValidURL(url, url_prefix):
     if url.startswith('http'):
         return url
     elif url.startswith('/'):
-        return url_prefix + url
+        parsed_url = urlparse(url_prefix)
+        return parsed_url.scheme + '://' + parsed_url.netloc + url
     else:
         return ''
 
@@ -43,10 +45,6 @@ def GetURLs(html_filename):
             link = link.rstrip('/')
             all_urls.add(urldefrag(link)[0])
         return all_urls
-
-
-def ReconstructURL(parsed_url):
-    return parsed_url.scheme + parsed_url.netloc + parsed_url.path + parsed_url.params + parsed_url.fragment
 
 
 if __name__ == '__main__':

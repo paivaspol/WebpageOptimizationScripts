@@ -1040,6 +1040,7 @@ def get_timeline_event_navigate_time(timeline_event):
 
 def calculate_histograms(directory, histograms_file, force):
     if not os.path.isfile(histograms_file) or force:
+        print 'here calculating histograms'
         try:
             extension = None
             directory = os.path.realpath(directory)
@@ -1103,7 +1104,7 @@ def calculate_image_histogram(file):
                         histogram['b'][pixel[2]] += 1
                 except BaseException:
                     pass
-    except BaseException:
+    except BaseException as e:
         histogram = None
         logging.exception('Error calculating histogram for ' + file)
     return histogram

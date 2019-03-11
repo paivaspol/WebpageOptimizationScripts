@@ -10,8 +10,6 @@ def Main():
     os.mkdir(args.output_dir)
 
     for p in os.listdir(args.root_dir):
-        if 'nypost' not in p:
-            continue
         print 'Processing: ' + p
         page_output_dir = os.path.join(args.output_dir, p)
         os.mkdir(page_output_dir)
@@ -22,9 +20,13 @@ def Main():
 
         # Usage: python visualmetrics.py --dir nypost.com/ --timeline ../../results/webpage-complexity/adblocking/data/with_adblock_plus_fixed_25mbps_bw_10ms_rtt/chrome_tracing/nypost.com
         cmd = 'python visualmetrics.py --dir {0} --timeline {1}'.format(raw_frames_dir, timeline_filename)
-        output = subprocess.check_output(cmd.split())
-        with open(os.path.join(page_output_dir, 'visual_metrics'), 'w') as output_file:
-            output_file.write(output)
+        print cmd
+        try:
+            output = subprocess.check_output(cmd.split())
+            with open(os.path.join(page_output_dir, 'visual_metrics'), 'w') as output_file:
+                output_file.write(output)
+        except:
+            pass
 
 
 def ExtractImagesFromTimeline(page_output_dir, timeline_filename):
