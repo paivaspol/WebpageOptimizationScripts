@@ -1,37 +1,45 @@
 from argparse import ArgumentParser
 from collections import defaultdict
 from ResourceTiming import ResourceTiming
+from multiprocessing import Pool
 
 import constants
 import json
 import os
 import sys
+import traceback
 
 def main(root_dir, output_dir):
     if not os.path.exists(output_dir):
         os.mkdir(output_dir)
 
     pages = os.listdir(root_dir)
-    for page in pages:
-        print 'Processing: ' + page
-        if 'huffingtonpost.com' in page:
-            continue
-        
+    pool = Pool()
+    for i, page in enumerate(pages):
+        print('Processing: ' + page)
+
         tracing_filename = os.path.join(root_dir, page, 'tracing_' + page)
         if not (os.path.exists(tracing_filename)):
             continue
 
-        url_to_timings, first_request_time = parse_trace_file(tracing_filename)
-        if not args.output_resources:
-            if args.output_json:
-                output_as_json(url_to_timings, os.path.join(output_dir, page), first_request_time)
-            else:
-                output_to_file(url_to_timings, os.path.join(output_dir, page), first_request_time)
+        pool.apply_async(ProcessForPage, args=(tracing_filename,
+            os.path.join(output_dir, page)))
+    pool.close()
+    pool.join()
+
+
+def ProcessForPage(tracing_filename, output_dir):
+    url_to_timings, first_request_time = parse_trace_file(tracing_filename)
+    if not args.output_resources:
+        if args.output_json:
+            output_as_json(url_to_timings, output_dir, first_request_time)
         else:
-            for url, timing in url_to_timings.iteritems():
-                print url
-                print timing
-                print timing.get_final_timings()
+            output_to_file(url_to_timings, output_dir, first_request_time)
+    else:
+        for url, timing in url_to_timings.iteritems():
+            print(url)
+            print(timing)
+            print(timing.get_final_timings())
 
 def output_as_json(url_to_timings, output_dir, first_request_time):
     if not os.path.exists(output_dir):
@@ -44,12 +52,14 @@ def output_as_json(url_to_timings, output_dir, first_request_time):
                 subtract_offset(result_dict, first_request_time)
                 output_file.write(json.dumps(result_dict) + '\n')
 
+
 def subtract_offset(origin_dict, offset):
     for key in origin_dict:
         if type(origin_dict[key]) is int:
             origin_dict[key] = max(origin_dict[key] - offset, -1)
         elif type(origin_dict[key]) is tuple:
             origin_dict[key] = (max(origin_dict[key][0] - offset, -1), max(origin_dict[key][1] - offset, -1))
+
 
 def output_to_file(url_to_timings, output_dir, first_request_time):
     # The output contains 4 files:
@@ -74,7 +84,7 @@ def output_to_file(url_to_timings, output_dir, first_request_time):
                   constants.TRACING_PROCESSING_TIME ]
     files = dict()
     for filename in filenames:
-        files[filename] = open(os.path.join(output_dir, filename + '.txt'), 'wb')
+        files[filename] = open(os.path.join(output_dir, filename + '.txt'), 'w')
 
     url_id = len(sorted_url_by_request_time)
     for url, _ in sorted_url_by_request_time:
@@ -87,6 +97,7 @@ def output_to_file(url_to_timings, output_dir, first_request_time):
         # print timings
         for key in filenames:
             t = timings[key]
+
             # construct the line with this format: url url_id timings...
             output_line = '{0} {1} '.format(url, url_id)
             should_output = False
@@ -108,6 +119,7 @@ def output_to_file(url_to_timings, output_dir, first_request_time):
     for key, file_obj in files.iteritems():
         file_obj.close()
 
+
 def print_timing_sorted_by_time(timing):
     timing_dict = timing.__dict__
     result = []
@@ -122,7 +134,8 @@ def print_timing_sorted_by_time(timing):
         timing_dict[min_key].pop(0)
         if len(timing_dict[min_key]) == 0:
             del timing_dict[min_key]
-        print '\t{0} {1}'.format(min_key, min_time)
+        print('\t{0} {1}'.format(min_key, min_time))
+
 
 def parse_trace_file(tracing_filename):
     first_request_time = None
@@ -147,6 +160,7 @@ def parse_trace_file(tracing_filename):
                     parsed_event = json.loads(event)
                 except Exception:
                     event = ''
+                    print('Unable to parse JSON exception: {0}'.format(e))
                     continue
                 params_values = parsed_event['params']['value']
 
@@ -175,7 +189,21 @@ def parse_trace_file(tracing_filename):
                                 request_id = data['requestId']
                                 url = request_id_to_url[request_id]
 
+                            if url.startswith('data:') or url.startswith('about:blank'):
+                                # Ignore all non-HTTP requests.
+                                continue
+
                             if event_type == constants.TRACING_EVENT_INSTANT:
+                                if timing_name == constants.TRACING_NETWORK_RESOURCE_SEND_REQUEST:
+
+                                    if url not in url_to_timings:
+                                        url_to_timings[url] = ResourceTiming(url)
+
+                                    request_id = data['requestId']
+                                    request_id_to_url[request_id] = url
+                                    setattr(url_to_timings[url], 'request_id', data['requestId'])
+                                    setattr(url_to_timings[url], 'request_priority', data['priority'])
+
                                 getattr(url_to_timings[url], constants.to_underscore(timing_name)).append( timestamp )
                             elif event_type == constants.TRACING_EVENT_COMPLETE and \
                                 (timing_name == constants.TRACING_SCRIPT_EVALUATE_SCRIPT or \
@@ -186,12 +214,8 @@ def parse_trace_file(tracing_filename):
                                 getattr(url_to_timings[url], constants.to_underscore('start_processing')).append( timestamp )
                                 getattr(url_to_timings[url], constants.to_underscore('end_processing')).append( timestamp + duration )
 
-                            if timing_name == constants.TRACING_NETWORK_RESOURCE_SEND_REQUEST:
-                                request_id = data['requestId']
-                                request_id_to_url[request_id] = url
-                                setattr(url_to_timings[url], 'request_id', data['requestId'])
-                                setattr(url_to_timings[url], 'request_priority', data['priority'])
                         except KeyError as e:
+                            # print('Caught KeyError Exception: {0}'.format(e))
                             pass
 
                     elif timing_name == constants.TRACING_PARSING_PARSE_HTML:
@@ -210,7 +234,8 @@ def parse_trace_file(tracing_filename):
 
                     elif category == constants.TRACING_BLINK and \
                         timing_name == constants.TRACING_BLINK_REQUEST_RESOURCE:
-                        url = val['args']['url']['url']
+                        # url = val['args']['url']['url']
+                        url = val['args']['url']
                         if url not in url_to_timings and \
                             not url.startswith('data:') and \
                             not url.startswith('about:blank'):
