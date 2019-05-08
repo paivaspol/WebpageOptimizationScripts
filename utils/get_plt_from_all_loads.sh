@@ -11,6 +11,7 @@ fi
 correct_iter=$((${iterations} - 1))
 for i in `seq 0 ${correct_iter}`;
 do
+  echo "Processing: ${i}"
   python get_page_load_time.py ${root_dir}/${i} > ${root_dir}/page_load_time_${i}.txt
-  python parse_json.py ${root_dir}/${i} ${root_dir}/chrome_tracing_${i}
+  # python parse_json.py ${root_dir}/${i} ${root_dir}/chrome_tracing_${i}
 done

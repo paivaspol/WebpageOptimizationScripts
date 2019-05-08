@@ -18,7 +18,7 @@ def escape_page(url):
 def parse_pages_to_ignore(pages_to_ignore_filename):
     pages = set()
     if pages_to_ignore_filename is not None:
-        with open(pages_to_ignore_filename, 'rb') as input_file:
+        with open(pages_to_ignore_filename, 'r') as input_file:
             for raw_line in input_file:
                 line = raw_line.strip().split()[0]
                 pages.add(escape_page(line))

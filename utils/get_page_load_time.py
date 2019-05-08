@@ -16,20 +16,20 @@ def find_load_times(root_dir, pages_to_ignore):
         if not os.path.exists(full_path):
             continue
 
-        with open(full_path, 'rb') as input_file:
+        with open(full_path, 'r') as input_file:
             line = input_file.readline().strip().split()
             load_time = float(line[2]) - float(line[1])
             result[page] = load_time
-    sorted_result = sorted(result.iteritems(), key=lambda x: x[1])
+    sorted_result = sorted(result.items(), key=lambda x: x[1])
     print_result(sorted_result)
 
 def get_pages(pages_filename):
-    with open(pages_filename, 'rb') as input_file:
+    with open(pages_filename, 'r') as input_file:
         return [ common_module.escape_page(line.strip().split()[len(line.split()) - 1]) for line in input_file if not line.startswith("#") ]
 
 def print_result(results):
     for result in results:
-        print str(result[0]) + ' ' + str(result[1])
+        print(str(result[0]) + ' ' + str(result[1]))
 
 def extract_url_from_path(path):
     '''

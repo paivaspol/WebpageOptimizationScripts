@@ -34,7 +34,7 @@ def get_page_to_chosen_run(root_dir, num_iterations, run_type, pages):
             load_times.append(this_run_page_load_time)
 
         # Choose the load time.
-        print page + ': ' + str(len(load_times))
+        print(page + ': ' + str(len(load_times)))
         if len(load_times) > 0:
             if run_type == MEDIAN:
                 chosen_load_time = numpy.median(load_times)
@@ -58,7 +58,7 @@ def get_page_load_time(start_end_time_filename):
     '''
     Returns the page load time from the file.
     '''
-    with open(start_end_time_filename, 'rb') as start_end_time_file:
+    with open(start_end_time_filename, 'r') as start_end_time_file:
         line = start_end_time_file.readline().strip().split()
         return int(line[2]) - int(line[1])
 
@@ -67,7 +67,7 @@ def get_pages(pages_file):
     Returns a list of page names.
     '''
     result = []
-    with open(pages_file, 'rb') as input_file:
+    with open(pages_file, 'r') as input_file:
         for raw_line in input_file:
             line = raw_line.strip().split()
             page = common_module.escape_page(line[len(line) - 1])
@@ -80,9 +80,9 @@ def copy_chosen_runs(chosen_runs, root_dir, output_dir, num_iterations):
     '''
     if not os.path.exists(output_dir):
         os.mkdir(output_dir)
-    
+
     counter = 0
-    for page, run_index in chosen_runs.iteritems():
+    for page, run_index in chosen_runs.items():
         if 0 <= run_index < num_iterations:
             if args.skip_first_load:
                 run_index += 1
@@ -94,14 +94,14 @@ def copy_chosen_runs(chosen_runs, root_dir, output_dir, num_iterations):
             copy_command = 'ln -s {0} {1}'.format(run_path, output_path)
             subprocess.call(copy_command, shell=True)
             counter += 1
-            print '{0} {1}'.format(page, run_index)
+            print('{0} {1}'.format(page, run_index))
     output_page_to_run_index(root_dir, chosen_runs)
-    print 'Copied {0} sites from {1} sites'.format(counter, len(chosen_runs))
+    print('Copied {0} sites from {1} sites'.format(counter, len(chosen_runs)))
 
 def output_page_to_run_index(output_dir, chosen_runs):
     output_filename = os.path.join(output_dir, 'page_to_run_index.txt')
-    with open(output_filename, 'wb') as output_file:
-        for page, run_index in chosen_runs.iteritems():
+    with open(output_filename, 'w') as output_file:
+        for page, run_index in chosen_runs.items():
             if args.skip_first_load:
                 run_index += 1
             output_file.write('{0} {1}\n'.format(page, run_index))
