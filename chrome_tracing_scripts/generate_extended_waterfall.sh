@@ -11,6 +11,6 @@ then
 fi
 
 python generate_extended_waterfall.py ${basedir}/median ${basedir}/extended_waterfall
-python generate_extended_waterfall.py ${basedir}/median ${basedir}/extended_waterfall_json --output-json
-
-python get_all_times.py ${basedir}/median/ > ${basedir}/main_process_timings
+# python generate_extended_waterfall.py ${basedir}/median ${basedir}/extended_waterfall_json --output-json
+#
+# python get_all_times.py ${basedir}/median/ > ${basedir}/main_process_timings

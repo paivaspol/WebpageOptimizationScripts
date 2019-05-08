@@ -1,2 +1,0 @@
-Connecting to ec2-54-208-18-221.compute-1.amazonaws.com
-Connected to ec2-54-208-18-221.compute-1.amazonaws.com

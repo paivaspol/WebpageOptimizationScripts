@@ -1,0 +1,9 @@
+https://m.vk.com/css/s_cfmxwr.css?522
+https://counter.yadro.ru/hit?uhttps%3A%2F%2Fm.vk.com%2F;r;35890336
+https://m.vk.com/
+https://m.vk.com/images/mobile/fb_icon_2x.png?1
+https://top-fwz1.mail.ru/counter?id=2579437;pid=0;r=
+https://m.vk.com/css/s_zgt.css?200
+https://m.vk.com/js/s_c.js?369
+https://sb.scorecardresearch.com/p?c1=2&c2=13765216&c3=&c4=https%3A%2F%2Fm.vk.com%2F&c5=&c9=&c15=&cv=2.0&cj=1&rn=35890336
+https://m.vk.com/images/mobile/logo/logo_2x.png

@@ -80,13 +80,15 @@ def GetURLsAndResourceSizes(network_filename):
                     continue 
                 urls.add(url)
                 req_id_to_url[e['params']['requestId']] = url
-            elif e['method'] == 'Network.finishedLoading':
+            elif e['method'] == 'Network.loadingFinished':
                 request_id = e['params']['requestId']
+                if request_id not in req_id_to_url:
+                    continue
                 url = req_id_to_url[request_id]
                 resource_sizes[url] = e['params']['encodedDataLength']
 
     if first_request is None:
-        return None, None
+        return None, None, None
     return urls, RemoveFragments(first_request), resource_sizes
 
 
@@ -126,6 +128,21 @@ def GetUrlsWithMostCommonPrefix(urls):
             continue
         filtered.append(url)
     return filtered
+
+
+def FilterUrlsFromDifferentDomain(lp_domain, urls):
+    '''
+    Returns a list of URLs from the lp_domain.
+    '''
+    retval = []
+    for url in urls:
+        escaped = EscapeURL(url)
+        splitted = escaped.split('_')
+        first_token = splitted[0]
+        if lp_domain not in first_token:
+            continue
+        retval.append(url)
+    return retval
 
 
 def GetUrlsAndCacheTimes(network_filename, expiry_time_threshold=-1):

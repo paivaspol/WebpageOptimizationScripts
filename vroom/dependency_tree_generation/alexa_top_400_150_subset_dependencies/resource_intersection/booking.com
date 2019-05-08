@@ -1,0 +1,14 @@
+http://tags.tiqcdn.com/utag/booking.com/main/prod/utag.js
+http://www.google-analytics.com/analytics.js
+http://bstatic.com/static/img/gwarning.gif
+http://q-ec.bstatic.com/static/fonts/booking-iconset/26a9c76d207e98a810cc74429d68fa5f55f10373.woff
+http://www.booking.com/
+http://q-ec.bstatic.com/mobile/js/core-deps_edgecast/76bcac149cf48cb07dbaf788e15113a731deab65.js
+http://r-ec.bstatic.com/mobile/images/loader_db/2ba7cff11f840f10028118d4c5069cc79a6e1734.gif
+http://q-ec.bstatic.com/static/css/destfinder_icon_font_edgecast/0ce5c4986ed831bd19b382ca7a6bab4e5b9112dc.css
+http://r-ec.bstatic.com/mobile/images/hotelMarkerImgLoader/211f81a092a43bf96fc2a7b1dff37e5bc08fbbbf.gif
+http://r-ec.bstatic.com/static/img/flags/32/us/99502fe320347ceacd44a4b03154dba03ce2b4ba.png
+http://r-ec.bstatic.com/mobile/images/exps/android_app_image/8c2b5dbc47dc522080e5aab7b50be5b8ddac9a97.png
+http://r-ec.bstatic.com/mobile/css/core_app_edgecast/293ca2a7e4ff8924435f1855562f5715162d6636.css
+http://r-ec.bstatic.com/static/css/fonticons_clean_edgecast/9acd547e63486440421f4eb5b6ac7f890bdf4730.css
+http://r-ec.bstatic.com/mobile/js/core_app_edgecast/ca0d22bc278db3a5e38fdec90b10cc6c81c2553a.js

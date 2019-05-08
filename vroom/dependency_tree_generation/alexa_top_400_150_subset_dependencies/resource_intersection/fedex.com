@@ -1,0 +1,9 @@
+http://images.fedex.com/templates/components/apps/contentim/scripts/im-manifest.1820.01092017.01-min.js
+http://www.fedex.com/
+http://images.fedex.com/templates/components/apps/contentim/contentim_controller-min.js
+http://images.fedex.com/templates/components/apps/contentim/scripts/mbox.49.1680.07312015.02-min.js
+http://www.fedex.com/images/static/v1/logo-mobile.gif
+http://images.fedex.com/templates/components/apps/contentim/scripts/im.1820.10172016.04-min.js
+http://images.fedex.com/templates/components/apps/contentim/scripts/s_code.3.0.27.10142016.01-min.js
+http://www.fedex.com/images/static/v1/globe.gif
+http://metrics.fedex.com/id?d_visid_ver=1.6.0&d_fieldgroup=A&mcorgid=1E22171B520E93BF0A490D44%40AdobeOrg&mid=60752905945180429462601236680069755903&callback=s_c_il%5B0%5D._setAnalyticsFields

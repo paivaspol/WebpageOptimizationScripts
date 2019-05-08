@@ -20,7 +20,7 @@ def main(network_filename):
 
     for request_id, url in request_id_to_url.iteritems():
         if request_id in request_id_to_type:
-            print '{0} {1}'.format(url, request_id_to_type[request_id])
+            print('{0} {1}'.format(url, request_id_to_type[request_id]))
 
 if __name__ == '__main__':
     parser = ArgumentParser()

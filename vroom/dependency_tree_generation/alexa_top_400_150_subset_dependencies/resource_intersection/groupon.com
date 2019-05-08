@@ -1,0 +1,12 @@
+https://www2.grouponcdn.com/layout/assets/head.load-4aa718e011.js
+https://www2.grouponcdn.com/layout/assets/touch-mobile-v1.1.80-16f68b3924.css
+https://www.groupon.com/tracky
+https://www2.grouponcdn.com/browse/assets/touch_styles-3945e37278.css
+https://www.groupon.com/in_app_messages?division_id=washington-dc&page=1&per_page=1&locale=en_US&device_id=ITIER-DEVICE_ID
+https://img.grouponcdn.com/test/7TvjrcysWCRmbmUgc8d3bd/t-loading_2x-40x40
+https://www.groupon.com/
+https://www.groupon.com/browse/js/locale.js?country=US&locale=en_US&version=d33cab529f
+https://www.groupon.com/browse/touch/deals?isNearbyPage=false&_csrf=AqTPXuyU-OTxphyzQq5DsT0Nk-bwLsxsRkZs&isTouchRequest=true&currentUrl=%2F&division=washington-dc
+https://www1.grouponcdn.com/browse/assets/touch_main-522e4089bc.js
+https://www2.grouponcdn.com/layout/assets/touch-mobile-v1.1.80-9924c3cb3d.js
+https://www2.grouponcdn.com/layout/assets/boomerang-basic-custom-0_9_3-cd47bbe468.js

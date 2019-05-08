@@ -16,10 +16,10 @@ def get_filename(filename):
         request_response = http_record_pb2.RequestResponse()
         request_response.ParseFromString(file_content)
         first_line = request_response.request.first_line
-        ip = request_response.ip
-        
+        ip = '[NONE]' if len(request_response.ip) == 0 else request_response.ip
+        port = request_response.port
         splitted_first_line = first_line.split()
-        print first_line + ' ' + ip
+        print first_line + ' ' + ip + ' ' + str(port)
 
 if __name__ == '__main__':
     parser = ArgumentParser()

@@ -73,7 +73,7 @@ def SelectPages(pages, num_pages, group_pages):
     if group_pages:
         pages_list = common_module.GetUrlsWithMostCommonPrefix(pages_list)
     return random.sample(pages_list, min(num_pages, len(pages_list)))
-    
+
 
 if __name__ == '__main__':
     parser = ArgumentParser()
@@ -90,6 +90,9 @@ if __name__ == '__main__':
             default=None)
     parser.add_argument('--group-pages', \
             help='Whether to group pages on some common prefix', \
+            default=False, action='store_true')
+    parser.add_argument('--output-diff', \
+            help='Produces the missing resources to a file', \
             default=False, action='store_true')
     args = parser.parse_args()
     Main()

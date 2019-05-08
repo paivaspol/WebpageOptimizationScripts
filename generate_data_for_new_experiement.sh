@@ -21,5 +21,5 @@ cd -
 
 # Generate the extended waterfall
 cd chrome_tracing_scripts
-./generate_extended_waterfall.sh ${root_dir}
+# ./generate_extended_waterfall.sh ${root_dir}
 cd -
