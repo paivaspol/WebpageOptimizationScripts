@@ -1,7 +1,10 @@
 from argparse import ArgumentParser
 from collections import defaultdict
 from urllib.parse import urlparse
+from urlmatcher import RoughUrlMatcher
+from multiprocessing import Pool
 
+import common
 import json
 import os
 import sys
@@ -10,35 +13,105 @@ def Main():
     if not os.path.exists(args.output_dir):
         os.mkdir(args.output_dir)
 
-    resp_sizes = None
-    if args.output_resp_sizes is not None:
-        resp_sizes = GetRespSizes(args.output_resp_sizes)
+    pool = Pool()
 
-    all_replay_urls, all_replay_sizes, all_resource_types = \
-        GetReplayURLs(args.root_dir)
+    ha_onload_ts_ms = None
+    if args.up_to_onload is not None:
+        ha_onload_ts_ms = common.GetLoadTimesTsMs(args.up_to_onload)
 
-    all_ha_urls, all_ha_resource_types = GetHAURLs(all_replay_urls.keys(), args.ha_all_urls)
-    for pageurl, page_replay_urls in all_replay_urls.items():
-        page_ha_urls = all_ha_urls[pageurl]
-        page_ha_resource_types = all_ha_resource_types[pageurl]
-        missing = GetDiff(page_ha_urls, page_replay_urls, compare_args=not args.ignore_args)
-        extra = GetDiff(page_replay_urls, page_ha_urls, compare_args=not args.ignore_args)
-        output_directory = os.path.join(args.output_dir, pageurl)
-        if not os.path.exists(output_directory):
-            os.mkdir(output_directory)
-
-        page_resp_size = resp_sizes[pageurl] if resp_sizes is not None else None
-        page_resource_types = all_resource_types[pageurl] if not None else None
-        OutputToFile(missing, os.path.join(output_directory, 'missing'),
-                page_resp_size, page_ha_resource_types)
-        OutputToFile(extra, os.path.join(output_directory, 'extra'),
-                page_resp_size, page_resource_types)
-        OutputRespSizeCompare(page_replay_urls,
-                os.path.join(output_directory, 'size_compare'),
-                all_replay_sizes[pageurl], page_resp_size)
+    for d in os.listdir(args.ha_splitted_url_root_dir):
+        requests_filename = os.path.join(args.ha_splitted_url_root_dir, d, 'requests.json')
+        response_bodies_filename = os.path.join(args.ha_splitted_url_root_dir, d, 'response_bodies.json')
+        page_replay_directory = os.path.join(args.replay_root_dir, d)
+        output_directory = os.path.join(args.output_dir, d)
+        if not (os.path.exists(requests_filename) and
+                os.path.exists(page_replay_directory)):
+            continue
+        # GetPageUrlDiffs(d, page_replay_directory, requests_filename,
+        #         response_bodies_filename, output_directory,
+        #         ha_onload_ts_ms)
+        pool.apply_async(GetPageUrlDiffs, args=(d, page_replay_directory,
+            requests_filename, response_bodies_filename, output_directory,
+            ha_onload_ts_ms))
+    pool.close()
+    pool.join()
 
 
-def OutputToFile(data, output_filename, resp_sizes, resource_types):
+def GetPageUrlDiffs(pageurl, page_replay_directory, requests_filename,
+        response_bodies_filename, output_directory, all_ha_onload_ts_ms):
+    '''Returns a tuple containing missing resources and extra resources.
+
+    Params:
+      - network_filename: the network log
+      - requests_filename: the JSON file exported from BigQuery
+      - response_bodies_filename: the JSON file exported from BigQuery
+    '''
+    print('Processing: {0}'.format(pageurl))
+
+    network_filename = os.path.join(page_replay_directory, 'network_' + pageurl)
+    start_end_time_filename = os.path.join(page_replay_directory, 'start_end_time_' + pageurl)
+    if not os.path.exists(network_filename):
+        print('network_filename: ' + network_filename)
+        return
+
+    urlmatcher = RoughUrlMatcher()
+
+    ha_onload_ts_ms = -1
+    replay_onload_ms = -1
+    if args.up_to_onload is not None:
+        ha_onload_ts_ms = all_ha_onload_ts_ms[pageurl]
+        replay_onload_ms = common.GetReplayPltMs(start_end_time_filename)
+
+    ha_urls, ha_resource_sizes, ha_resource_types = GetHAUrls(requests_filename,
+            onload_ts_ms=ha_onload_ts_ms)
+    replay_urls, replay_resource_sizes, replay_resource_types = \
+        GetReplayUrls(network_filename, onload_time_ms=replay_onload_ms)
+    urls_with_bodies = common.GetResponseBodiesUrls(response_bodies_filename)
+
+    # Missing resources: resources that were requested in HTTPArchive crawl,
+    # but not in replay.
+    #
+    # Find whether replay URL match a HA resource, if it matched then it is not
+    # a missing resource.
+    ha_left_for_matching = set(ha_urls)
+    ha_matched = set()
+    for replay_url in replay_urls:
+        matched, _ = urlmatcher.Match(replay_url, ha_left_for_matching, urlmatcher.SIFT4)
+        if matched == urlmatcher.NO_MATCH:
+            continue
+        ha_matched.add(matched)
+        ha_left_for_matching.remove(matched)
+    missing = [ url for url in ha_urls - ha_matched ]
+    missing.sort()
+
+    # Extra resources: resources that were not requested in HTTPArchive crawl,
+    # but was requested in replay.
+    #
+    # Find whether HA URL match a replay resource, if it matched then it is not
+    # an extra resource.
+    replay_left_for_matching = set(replay_urls)
+    replay_matched = set()
+    for ha_url in ha_urls:
+        matched, _ = urlmatcher.Match(ha_url, replay_left_for_matching, urlmatcher.SIFT4)
+        if matched == urlmatcher.NO_MATCH:
+            continue
+        replay_matched.add(matched)
+        replay_left_for_matching.remove(matched)
+    extra = [ url for url in replay_urls - replay_matched ]
+    extra.sort()
+
+    if not os.path.exists(output_directory):
+        os.mkdir(output_directory)
+
+    OutputToFile(missing, os.path.join(output_directory, 'missing'),
+            ha_resource_sizes, ha_resource_types,
+            urls_with_response=urls_with_bodies)
+    OutputToFile(extra, os.path.join(output_directory, 'extra'),
+            replay_resource_sizes, replay_resource_types)
+
+
+def OutputToFile(data, output_filename, resp_sizes={}, resource_types={},
+        urls_with_response=None):
     '''
     Outputs the data to file.
     '''
@@ -47,23 +120,29 @@ def OutputToFile(data, output_filename, resp_sizes, resource_types):
         missing_resp_size = 0
         for d in data:
             output_line = '{0}'.format(d)
-            if resp_sizes is not None:
-                if d in resp_sizes:
-                    output_line += ' ' + str(resp_sizes[d])
-                    running_size += resp_sizes[d]
-                else:
-                    output_line += ' [MISSING]'
-                    missing_resp_size += 1
+            if d in resource_types:
+                res_type = resource_types[d]
+                if len(res_type) == 0:
+                    res_type = '[RESOURCE_TYPE_MISSING]'
+                output_line += ' ' + res_type
+            else:
+                output_line += ' [RESOURCE_TYPE_MISSING]'
 
-            if resource_types is not None:
-                if d in resource_types:
-                    output_line += ' ' + resource_types[d]
-                else:
-                    output_line += ' [RESOURCE_TYPE_MISSING]'
+            if d in resp_sizes:
+                output_line += ' ' + str(resp_sizes[d])
+                running_size += resp_sizes[d]
+            else:
+                output_line += ' [MISSING_RESP_SIZE]'
+                missing_resp_size += 1
+
+            if urls_with_response is not None and d in urls_with_response:
+                output_line += ' HAS_RESPONSE'
+            elif urls_with_response is not None and d not in urls_with_response:
+                output_line += ' FETCHED'
 
             output_file.write(output_line + '\n')
 
-        if resp_sizes is not None:
+        if resp_sizes is not None and args.print_summary:
             output_file.write('Total: ' + str(running_size) + '\n')
             output_file.write('Missing resp size: ' + str(missing_resp_size) + '\n')
 
@@ -109,112 +188,64 @@ def OutputRespSizeCompare(urls, output_filename, replay_resp_sizes,
         output_file.write(output_lines)
 
 
-def GetRespSizes(resp_sizes_filename):
-    '''
-    Returns a dict from pageurl --> url --> respSize
-    '''
-    resp_sizes = defaultdict(dict)
-    with open(resp_sizes_filename, 'r') as input_file:
-        for i, l in enumerate(input_file):
-            if i == 0:
-                # Skip the header.
-                continue
-            # pageurl, url, resp_size, fetch_time
-            splitted = l.strip().split()
-            try:
-                pageurl = splitted[0]
-                url = splitted[1]
-                resp_size = int(splitted[2])
-                resp_sizes[EscapeURL(pageurl)][url] = resp_size
-            except Exception as e:
-                pass
-    return resp_sizes
-
-
-def GetDiff(first_urls, second_urls, compare_args=True):
-    '''
-    Returns difference between the first_urls and second_urls.
-    '''
-    if not compare_args:
-        first_urls = RemoveArgsFromURLs(first_urls)
-        second_url = RemoveArgsFromURLs(second_urls)
-    return first_urls - second_urls
-
-
-def RemoveArgsFromURLs(urls):
-    '''
-    Removes arguments from the given urls.
-    '''
-    retval = set()
-    for url in urls:
-        parsed_url = urlparse(url)
-        final_url = parsed_url.scheme + '://' + parsed_url.netloc + parsed_url.path
-        retval.add(final_url)
-    return retval
-
-
-def GetHAURLs(replay_urls, ha_all_urls_file):
-    all_urls = defaultdict(set)
-    resource_types = defaultdict(dict)
+def GetHAUrls(ha_all_urls_file, onload_ts_ms=-1):
+    '''Returns a tuple of (a set of HTTP Archive URLs, dictionary of resource
+    types.'''
+    all_urls = set()
+    resource_sizes = {}
+    resource_types = {}
     with open(ha_all_urls_file, 'r') as input_file:
         for i, l in enumerate(input_file):
-            if i == 0:
-                # Ignore first line.
+            entry = json.loads(l)
+            pageurl = common.escape_page(entry['page'])
+            url = entry['url']
+            payload = json.loads(entry['payload'])
+            resource_type = payload['response']['content']['mimeType']
+            resource_size = payload['response']['content']['size']
+            resource_sizes[url] = resource_size
+            start_ts_epoch_ms = common.GetTimestampSinceEpochMs(payload['startedDateTime'])
+            load_time_ms = payload['time'] if 'time' in payload else -1
+            # Only get up to onload. onload_ts_ms == -1 means get all requests.
+            if onload_ts_ms != -1 and (load_time_ms == -1 or start_ts_epoch_ms +
+                    load_time_ms > onload_ts_ms):
                 continue
-            splitted = l.strip().split()
-            pageurl = splitted[0]
-            try:
-                url = splitted[1]
-                resource_type = splitted[4]
-                pageurl = EscapeURL(pageurl)
-                if pageurl not in replay_urls:
-                    continue
-                all_urls[pageurl].add(url)
-                resource_types[pageurl][url] = resource_type
-            except Exception as e:
-                pass
-    return all_urls, resource_types
+            all_urls.add(url)
+            resource_types[url] = resource_type
+    return all_urls, resource_sizes, resource_types
 
 
-def GetReplayURLs(root_dir):
-    '''Returns a dict mapping from escaped page URL to a set of unique URLs.'''
-    all_urls = {}
-    all_sizes = {}
-    all_types = {}
-    for d in os.listdir(root_dir):
-        network_filename = os.path.join(root_dir, d, 'network_' + d)
-        page_urls, page_req_sizes, resource_types = GetURLs(network_filename)
-        all_urls[d] = page_urls
-        all_sizes[d] = page_req_sizes
-        all_types[d] = resource_types
-    return all_urls, all_sizes, all_types
-
-
-def GetURLs(network_filename):
+def GetReplayUrls(network_filename, onload_time_ms=-1):
     '''Returns a set of unique URLs seen in the network file.'''
     urls = set()
-    requested = set()
     size_map = {}
     resource_types = {}
     req_id_to_url = {}
+    first_ts_ms = -1
     with open(network_filename, 'r') as input_file:
         for l in input_file:
             e = json.loads(l.strip())
             if e['method'] == 'Network.requestWillBeSent':
-                # print(e)
+                ts_ms = e['params']['timestamp'] * 1000.0
+                if first_ts_ms == -1:
+                    first_ts_ms = ts_ms
+
+                # This happens after onload. Ignore.
+                if onload_time_ms != -1 and ts_ms > first_ts_ms + onload_time_ms:
+                    continue
+
                 req_id = e['params']['requestId']
                 url = e['params']['request']['url']
                 if not url.startswith('http'):
                     continue
 
-                requested.add(url)
                 req_id_to_url[req_id] = url
                 resource_types[url] = e['params']['type']
-            elif e['method'] == 'Network.responseReceived':
-                url = e['params']['response']['url']
-                if e['params']['response']['status'] == 200 and url in requested:
-                    # print(e)
-                    urls.add(url)
+                urls.add(url)
+            # elif e['method'] == 'Network.responseReceived':
+            #     url = e['params']['response']['url']
+            #     if e['params']['response']['status'] == 200 and url in requested:
+            #         # print(e)
+            #         urls.add(url)
             elif e['method'] == 'Network.loadingFinished':
                 req_id = e['params']['requestId']
                 if req_id not in req_id_to_url:
@@ -225,27 +256,13 @@ def GetURLs(network_filename):
     return urls, size_map, resource_types
 
 
-HTTP_PREFIX = 'http://'
-HTTPS_PREFIX = 'https://'
-WWW_PREFIX = 'www.'
-def EscapeURL(url):
-    if url.endswith('/'):
-        url = url[:len(url) - 1]
-    if url.startswith(HTTPS_PREFIX):
-        url = url[len(HTTPS_PREFIX):]
-    elif url.startswith(HTTP_PREFIX):
-        url = url[len(HTTP_PREFIX):]
-    if url.startswith(WWW_PREFIX):
-        url = url[len(WWW_PREFIX):]
-    return url.replace('/', '_')
-
-
 if __name__ == '__main__':
     parser = ArgumentParser()
-    parser.add_argument('root_dir')
-    parser.add_argument('ha_all_urls')
+    parser.add_argument('ha_splitted_url_root_dir')
+    parser.add_argument('replay_root_dir')
     parser.add_argument('output_dir')
-    parser.add_argument('--output-resp-sizes', default=None)
     parser.add_argument('--ignore-args', default=False, action='store_true')
+    parser.add_argument('--up-to-onload', default=None)
+    parser.add_argument('--print-summary', default=False, action='store_true')
     args = parser.parse_args()
     Main()

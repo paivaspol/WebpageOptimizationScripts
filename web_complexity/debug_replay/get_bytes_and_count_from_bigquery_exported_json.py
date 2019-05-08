@@ -1,6 +1,7 @@
 from argparse import ArgumentParser
 from collections import defaultdict
 
+import common
 import json
 
 HTTP_PREFIX = 'http://'
@@ -27,10 +28,25 @@ def Main():
     req_size_mapping = defaultdict(int) # Maps from pageurl --> size
     req_count_mapping = defaultdict(int)
 
+    onload_ts_ms = None
+    if args.up_to_onload:
+        onload_ts_ms = common.GetLoadTimesTsMs(args.up_to_onload)
+
     for req in all_reqs:
         page = escape_page(req['page'])
         req_url = req['url']
         payload = json.loads(req['payload'])
+
+        # if payload['_id'].startswith('99999'):
+        #     # This is a service worker request. Ignore.
+        #     continue
+
+        start_ts_epoch_ms = common.GetTimestampSinceEpochMs(payload['startedDateTime'])
+        load_time_ms = payload['time'] if 'time' in payload else -1
+        if onload_ts_ms is not None and (load_time_ms == -1 or page not in onload_ts_ms or
+                start_ts_epoch_ms + load_time_ms > onload_ts_ms[page]):
+            # request after onload. ignore.
+            continue
 
         # Find the response size:
         resp_size = payload['response']['content']['size']
@@ -46,5 +62,6 @@ def Main():
 if __name__ == '__main__':
     parser = ArgumentParser()
     parser.add_argument('json_file')
+    parser.add_argument('--up-to-onload', default=None)
     args = parser.parse_args()
     Main()

@@ -7,7 +7,7 @@ temp.log
 *temp*
 *tmp*
 
-# Archives 
+# Archives
 *.tar.gz
 *.bak
 *.zip
@@ -42,3 +42,5 @@ per_packet_delay/*/
 squid_cache_analysis/*/
 stylesheet_script_website_interaction/*/
 utils/*/
+
+generated_data/

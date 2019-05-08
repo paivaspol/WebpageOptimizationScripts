@@ -8,9 +8,11 @@ the fly, so we want to see if this is the reason why we are seeing the
 variation.
 '''
 from argparse import ArgumentParser
+from collections import defaultdict
 
-import os
+import common
 import json
+import os
 
 RESOURCE_TYPES_TO_CHECK = { 'Image', 'Font' }
 
@@ -21,18 +23,22 @@ def GetHABytes(ha_filename):
     This assumes that the `ha_filename` contains JSON object in each line and
     they are delimited by newlines.
     '''
-    bytes_dict = {}
+    bytes_dict = defaultdict(dict)
     with open(ha_filename, 'r') as input_file:
         for l in input_file:
             resource = json.loads(l.strip())
+            page = common.escape_page(resource['page'])
             url = resource['url']
             if not url.startswith('http'):
                 # ignore non-http urls
                 continue
 
             payload = json.loads(resource['payload'])
-            bytes_fetched = payload['_bytesIn']
-            bytes_dict[url] = bytes_fetched
+            try:
+                bytes_fetched = int(payload['response']['content']['size'])
+                bytes_dict[page][url] = bytes_fetched
+            except Exception as e:
+                pass
     return bytes_dict
 
 
@@ -71,31 +77,43 @@ def GetReplayBytes(network_filename):
     return urls, size_map, resource_types
 
 
-def GetBytesDiffForPage(ha_bytes, replay_file):
+def GetBytesDiffForPage(ha_bytes, replay_file, output_filename):
     '''Finds the bytes diff for each of the page. The diff is "replay - HA".'''
     urls, replay_bytes, resource_types = GetReplayBytes(replay_file)
     total_ha_urls_bytes = 0
     total_replay_urls_bytes = 0
-    for url, replay_url_bytes in replay_bytes.items():
-        if url not in ha_bytes:
-            continue
+    with open(output_filename, 'w') as output_file:
+        for url, replay_url_bytes in replay_bytes.items():
+            if url not in ha_bytes:
+                continue
 
-        resource_type = resource_types[url]
-        # if resource_type not in RESOURCE_TYPES_TO_CHECK:
-        #     continue
+            resource_type = resource_types[url]
+            # if resource_type not in RESOURCE_TYPES_TO_CHECK:
+            #     continue
 
-        ha_url_bytes = ha_bytes[url]
-        total_ha_urls_bytes += ha_url_bytes
-        total_replay_urls_bytes += replay_url_bytes
+            ha_url_bytes = ha_bytes[url]
+            total_ha_urls_bytes += ha_url_bytes
+            total_replay_urls_bytes += replay_url_bytes
+            output_file.write('{0} {1} {2}\n'.format(
+                url, ha_url_bytes, replay_url_bytes))
     return total_ha_urls_bytes, total_replay_urls_bytes
 
 
 def Main():
+    if not os.path.exists(args.output_dir):
+        os.mkdir(args.output_dir)
+
     ha_bytes = GetHABytes(args.ha_file)
     for d in os.listdir(args.replay_root_dir):
         replay_filename = os.path.join(args.replay_root_dir, d, 'network_' + d)
-        page_ha_urls_bytes, page_replay_urls_bytes = GetBytesDiffForPage(ha_bytes, replay_filename)
+        output_filename = os.path.join(args.output_dir, d)
+        page_ha_urls_bytes, page_replay_urls_bytes = GetBytesDiffForPage(
+                ha_bytes[d], replay_filename, output_filename)
         diff = page_replay_urls_bytes - page_ha_urls_bytes
+        if page_replay_urls_bytes <= 136:
+            # 136 because it is the default 404 size.
+            continue
+
         print('{0} {1} {2} {3}'.format(d, page_ha_urls_bytes,
             page_replay_urls_bytes, diff))
 
@@ -104,5 +122,6 @@ if __name__ == '__main__':
     parser = ArgumentParser()
     parser.add_argument('ha_file')
     parser.add_argument('replay_root_dir')
+    parser.add_argument('output_dir')
     args = parser.parse_args()
     Main()
