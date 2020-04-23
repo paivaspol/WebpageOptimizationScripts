@@ -9,6 +9,9 @@ import json
 import os
 import sys
 
+WEBCOMPLEXITY = 'webcomplexity.com'
+ARCHIVE_ORG = 'archive.org'
+
 def Main():
     if not os.path.exists(args.output_dir):
         os.mkdir(args.output_dir)
@@ -19,22 +22,29 @@ def Main():
     if args.up_to_onload is not None:
         ha_onload_ts_ms = common.GetLoadTimesTsMs(args.up_to_onload)
 
+    results = []
     for d in os.listdir(args.ha_splitted_url_root_dir):
+        if args.debug is not None and args.debug not in d:
+            continue
         requests_filename = os.path.join(args.ha_splitted_url_root_dir, d, 'requests.json')
         response_bodies_filename = os.path.join(args.ha_splitted_url_root_dir, d, 'response_bodies.json')
         page_replay_directory = os.path.join(args.replay_root_dir, d)
         output_directory = os.path.join(args.output_dir, d)
         if not (os.path.exists(requests_filename) and
                 os.path.exists(page_replay_directory)):
+            if args.debug is not None:
+                print('Did not exec')
+                print(page_replay_directory)
             continue
-        # GetPageUrlDiffs(d, page_replay_directory, requests_filename,
-        #         response_bodies_filename, output_directory,
-        #         ha_onload_ts_ms)
-        pool.apply_async(GetPageUrlDiffs, args=(d, page_replay_directory,
-            requests_filename, response_bodies_filename, output_directory,
-            ha_onload_ts_ms))
+        result = pool.apply_async(GetPageUrlDiffs, args=(d,
+            page_replay_directory, requests_filename, response_bodies_filename,
+            output_directory, ha_onload_ts_ms))
+        results.append(result)
     pool.close()
     pool.join()
+
+    for r in results:
+        r.get()
 
 
 def GetPageUrlDiffs(pageurl, page_replay_directory, requests_filename,
@@ -74,6 +84,8 @@ def GetPageUrlDiffs(pageurl, page_replay_directory, requests_filename,
     # Find whether replay URL match a HA resource, if it matched then it is not
     # a missing resource.
     ha_left_for_matching = set(ha_urls)
+    if args.debug:
+        print(len(ha_left_for_matching))
     ha_matched = set()
     for replay_url in replay_urls:
         matched, _ = urlmatcher.Match(replay_url, ha_left_for_matching, urlmatcher.SIFT4)
@@ -191,6 +203,8 @@ def OutputRespSizeCompare(urls, output_filename, replay_resp_sizes,
 def GetHAUrls(ha_all_urls_file, onload_ts_ms=-1):
     '''Returns a tuple of (a set of HTTP Archive URLs, dictionary of resource
     types.'''
+    if args.debug:
+        print('Onload: ' + str(onload_ts_ms))
     all_urls = set()
     resource_sizes = {}
     resource_types = {}
@@ -209,6 +223,10 @@ def GetHAUrls(ha_all_urls_file, onload_ts_ms=-1):
             if onload_ts_ms != -1 and (load_time_ms == -1 or start_ts_epoch_ms +
                     load_time_ms > onload_ts_ms):
                 continue
+
+            if payload['response']['status'] == 206:
+                continue
+
             all_urls.add(url)
             resource_types[url] = resource_type
     return all_urls, resource_sizes, resource_types
@@ -216,44 +234,129 @@ def GetHAUrls(ha_all_urls_file, onload_ts_ms=-1):
 
 def GetReplayUrls(network_filename, onload_time_ms=-1):
     '''Returns a set of unique URLs seen in the network file.'''
-    urls = set()
-    size_map = {}
-    resource_types = {}
-    req_id_to_url = {}
-    first_ts_ms = -1
     with open(network_filename, 'r') as input_file:
+        req_ids = set()
+        resource_types = {}
+        urls = []
+        url_to_size = defaultdict(int)
+        # only maps to the last URL in the redirection chain.
+        req_id_to_url = {}
+        total_bytes = 0
+        first_ts_ms = -1
+        sum_content_length = 0
         for l in input_file:
             e = json.loads(l.strip())
             if e['method'] == 'Network.requestWillBeSent':
-                ts_ms = e['params']['timestamp'] * 1000.0
-                if first_ts_ms == -1:
-                    first_ts_ms = ts_ms
-
-                # This happens after onload. Ignore.
-                if onload_time_ms != -1 and ts_ms > first_ts_ms + onload_time_ms:
-                    continue
-
                 req_id = e['params']['requestId']
                 url = e['params']['request']['url']
-                if not url.startswith('http'):
+                timestamp_ms = e['params']['timestamp'] * 1000 # Convert to ms
+                if first_ts_ms == -1:
+                    first_ts_ms = timestamp_ms
+                if WEBCOMPLEXITY in url or ARCHIVE_ORG in url or not url.startswith('http'):
                     continue
 
-                req_id_to_url[req_id] = url
+                # Cut at load time.
+                if onload_time_ms != -1 and timestamp_ms - first_ts_ms > onload_time_ms:
+                    continue
+
+                if 'redirectResponse' in e['params']:
+                    redirect_req_id = e['params']['requestId'] + '-redirect'
+                    req_ids.add(redirect_req_id)
+                    # Take care of the redirect URL
+                    url = e['params']['redirectResponse']['url']
+                    # urls.append(url)
+                    if e['params']['redirectResponse']['fromDiskCache']:
+                        continue
+                    urls.append(url)
+                    url_to_size[url] = e['params']['redirectResponse']['encodedDataLength']
+                    if args.debug:
+                        print('Added: ' + url)
                 resource_types[url] = e['params']['type']
-                urls.add(url)
-            # elif e['method'] == 'Network.responseReceived':
-            #     url = e['params']['response']['url']
-            #     if e['params']['response']['status'] == 200 and url in requested:
-            #         # print(e)
-            #         urls.add(url)
-            elif e['method'] == 'Network.loadingFinished':
+                # req_ids.add(req_id)
+                # urls.append(url)
+            elif e['method'] == 'Network.responseReceived':
                 req_id = e['params']['requestId']
-                if req_id not in req_id_to_url:
+                url = e['params']['response']['url']
+                if WEBCOMPLEXITY in url or ARCHIVE_ORG in url or not url.startswith('http'):
+                    continue
+                req_id_to_url[req_id] = url
+                timestamp_ms = e['params']['timestamp'] * 1000 # Convert to ms
+
+                if e['params']['response']['status'] != 200:
+                    continue
+
+                # Ignore resources from cache.
+                if e['params']['response']['fromDiskCache']:
+                    continue
+
+                # Cut at load time.
+                if onload_time_ms != -1 and timestamp_ms - first_ts_ms > onload_time_ms:
+                    continue
+
+                if req_id not in req_ids:
+                    url = e['params']['response']['url']
+                    urls.append(url)
+                    if args.debug:
+                        print('Added: ' + url)
+                req_ids.add(req_id)
+                url_to_size[url] += e['params']['response']['encodedDataLength']
+                sum_content_length += common.GetContentLength(e['params']['response']['headers'])
+            elif e['method'] == 'Network.requestServedFromCache':
+                req_id = e['params']['requestId']
+                if req_id not in req_ids:
                     continue
                 url = req_id_to_url[req_id]
-                size = e['params']['encodedDataLength']
-                size_map[url] = int(size)
-    return urls, size_map, resource_types
+                if url in urls:
+                    urls.remove(url)
+            elif e['method'] == 'Network.loadingFinished':
+                req_id = e['params']['requestId']
+                if req_id not in req_ids:
+                    continue
+                url = req_id_to_url[req_id]
+                size = int(e['params']['encodedDataLength'])
+                url_to_size[url] = size
+                total_bytes += size
+
+    # with open(network_filename, 'r') as input_file:
+    #     urls = set()
+    #     size_map = {}
+    #     req_id_to_url = {}
+    #     first_ts_ms = -1
+    #     for l in input_file:
+    #         e = json.loads(l.strip())
+    #         if e['method'] == 'Network.requestWillBeSent':
+    #             ts_ms = e['params']['timestamp'] * 1000.0
+    #             if first_ts_ms == -1:
+    #                 first_ts_ms = ts_ms
+
+    #             # This happens after onload. Ignore.
+    #             if onload_time_ms != -1 and ts_ms > first_ts_ms + onload_time_ms:
+    #                 continue
+
+    #             req_id = e['params']['requestId']
+    #             url = e['params']['request']['url']
+    #             if not url.startswith('http') or \
+    #                     WEBCOMPLEXITY in url or \
+    #                     ARCHIVE_ORG in url:
+    #                 continue
+
+    #             req_id_to_url[req_id] = url
+    #             # resource_types[url] = e['params']['type']
+    #             # urls.add(url)
+    #         elif e['method'] == 'Network.responseReceived':
+    #             url = e['params']['response']['url']
+    #             if e['params']['response']['status'] == 200 and url in requested:
+    #                 # print(e)
+    #                 urls.add(url)
+    #         elif e['method'] == 'Network.loadingFinished':
+    #             req_id = e['params']['requestId']
+    #             if req_id not in req_id_to_url:
+    #                 continue
+    #             url = req_id_to_url[req_id]
+    #             size = e['params']['encodedDataLength']
+    #             size_map[url] = int(size)
+    print(urls)
+    return urls, url_to_size, resource_types
 
 
 if __name__ == '__main__':
@@ -264,5 +367,6 @@ if __name__ == '__main__':
     parser.add_argument('--ignore-args', default=False, action='store_true')
     parser.add_argument('--up-to-onload', default=None)
     parser.add_argument('--print-summary', default=False, action='store_true')
+    parser.add_argument('--debug', default=None)
     args = parser.parse_args()
     Main()

@@ -15,7 +15,7 @@ def escape_page(url):
 
 
 def RemoveQuery(url):
-    from urlparse import urlparse
+    from urllib.parse import urlparse
     parsed_url = urlparse(url)
     return parsed_url.scheme + '://' + parsed_url.netloc + parsed_url.path
 
@@ -176,3 +176,14 @@ def GetMimeTypeFromHAR(payload):
         if name.lower() == 'content-type':
             return value
     return ''
+
+def GetContentLength(headers):
+    for k, v in headers.items():
+        if k.lower() == 'content-length':
+            try:
+                return int(v)
+            except Exception as e:
+                return 0
+    return 0
+
+

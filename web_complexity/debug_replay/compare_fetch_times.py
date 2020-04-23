@@ -9,13 +9,13 @@ FETCH_INCREASE_THRESHOLD = -1000
 
 def Main():
     replay_fetch_times = GetFetchTimesFromNetworkFile(args.page_network_file)
-    ha_fetch_times = GetFetchTimesFromDBQuery(args.page_request_info)
+    ha_fetch_times = GetFetchTimesFromHARequestInfo(args.page_request_info)
     for r in replay_fetch_times:
         if r not in ha_fetch_times:
             continue
-        diff = ha_fetch_times[r] - replay_fetch_times[r]
-        print('\t{0} {1} {2} {3}'.format(
-            r, ha_fetch_times[r], replay_fetch_times[r], diff))
+        diff = replay_fetch_times[r] - ha_fetch_times[r]
+        print('{0} {1} {2} {3}'.format(
+            r, replay_fetch_times[r], ha_fetch_times[r], diff))
 
 
 def GetReplayFetchTimes(root_dir):
@@ -35,7 +35,7 @@ def GetReplayFetchTimes(root_dir):
 def GetFetchTimesFromNetworkFile(network_filename):
     '''
     Returns a dictionary mapping from the request url to fetch times measured
-    from the difference between the timestamp when the fetch is complete and 
+    from the difference between the timestamp when the fetch is complete and
     when the request is sent.
     '''
     fetch_times = {}
@@ -55,7 +55,7 @@ def GetFetchTimesFromNetworkFile(network_filename):
                 ts = e['params']['timestamp']
                 if request_id not in request_started:
                     continue
-                # Convert to ms 
+                # Convert to ms
                 url = request_id_to_url[request_id]
                 fetch_time = int((ts - request_started[request_id]) * 1000)
                 fetch_times[common.RemoveQuery(url)] = fetch_time
@@ -70,15 +70,14 @@ def GetFetchTimesFromHARequestInfo(request_info_filename):
     Returns:
     A dictionary mapping from pageurl --> request URL --> fetch time
     '''
-    fetch_times = defaultdict(lambda: defaultdict(dict))
+    fetch_times = {}
     with open(request_info_filename, 'r') as input_file:
         for l in input_file:
             r = json.loads(l.strip())
-            pageurl = common.escape_page(r['pageurl'])
-            resource_url = r['url']
+            resource_url = common.RemoveQuery(r['url'])
             payload = json.loads(r['payload'])
             fetch_time = payload['time']
-            fetch_times[pageurl][resource_url] = fetch_time
+            fetch_times[resource_url] = fetch_time
     return fetch_times
 
 

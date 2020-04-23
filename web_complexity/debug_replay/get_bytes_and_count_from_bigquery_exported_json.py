@@ -21,7 +21,7 @@ def escape_page(url):
 
 def Main():
     all_reqs = []
-    with open(args.json_file, 'r') as input_file:
+    with open(args.requests_json_file, 'r') as input_file:
         for l in input_file:
             all_reqs.append(json.loads(l))
 
@@ -34,12 +34,11 @@ def Main():
 
     for req in all_reqs:
         page = escape_page(req['page'])
+        if args.debug is not None and args.debug not in page:
+            continue
+
         req_url = req['url']
         payload = json.loads(req['payload'])
-
-        # if payload['_id'].startswith('99999'):
-        #     # This is a service worker request. Ignore.
-        #     continue
 
         start_ts_epoch_ms = common.GetTimestampSinceEpochMs(payload['startedDateTime'])
         load_time_ms = payload['time'] if 'time' in payload else -1
@@ -48,10 +47,17 @@ def Main():
             # request after onload. ignore.
             continue
 
+        if payload['response']['status'] == 206:
+            continue
+        if args.debug:
+            print(req_url)
+
         # Find the response size:
         resp_size = payload['response']['content']['size']
         req_size_mapping[page] += resp_size
         req_count_mapping[page] += 1
+    if args.debug is not None:
+        print(str(req_size_mapping))
 
     sorted_mapping = sorted(req_size_mapping.items(), key=lambda x: x[1])
     for pageurl, size in sorted_mapping:
@@ -61,7 +67,8 @@ def Main():
 
 if __name__ == '__main__':
     parser = ArgumentParser()
-    parser.add_argument('json_file')
-    parser.add_argument('--up-to-onload', default=None)
+    parser.add_argument('requests_json_file')
+    parser.add_argument('--up-to-onload', default=None, help='pages json file.')
+    parser.add_argument('--debug', default=None)
     args = parser.parse_args()
     Main()

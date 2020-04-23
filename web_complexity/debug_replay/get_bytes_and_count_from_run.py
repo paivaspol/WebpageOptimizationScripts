@@ -1,19 +1,24 @@
 from argparse import ArgumentParser
+from collections import defaultdict
 
 import common
 import json
 import os
 
+WEBCOMPLEXITY = 'webcomplexity.com'
+ARCHIVE_ORG = 'archive.org'
+
 def Main():
     pages_to_ignore = []
     for d in os.listdir(args.root_dir):
-        # if 'sanook.com' not in d:
-        #     continue
+        if args.debug and args.debug not in d:
+            continue
         network_filename = os.path.join(args.root_dir, d, 'network_' + d)
         load_time = -1
         if args.up_to_onload:
             plt_filename = os.path.join(args.root_dir, d, 'start_end_time_' + d)
             if not os.path.exists(plt_filename):
+                # print('here: ' + plt_filename)
                 continue
             load_time = common.GetReplayPltMs(plt_filename)
 
@@ -34,7 +39,9 @@ def GetBytesAndCount(network_filename, load_time=-1):
     with open(network_filename, 'r') as input_file:
         req_ids = set()
         urls = []
-        req_id_to_requests = {}
+        url_to_size = defaultdict(int)
+        # only maps to the last URL in the redirection chain.
+        req_id_to_url = {}
         total_bytes = 0
         first_ts_ms = -1
         sum_content_length = 0
@@ -47,7 +54,7 @@ def GetBytesAndCount(network_filename, load_time=-1):
                 timestamp_ms = e['params']['timestamp'] * 1000 # Convert to ms
                 if first_ts_ms == -1:
                     first_ts_ms = timestamp_ms
-                if url.startswith('data:'):
+                if WEBCOMPLEXITY in url or ARCHIVE_ORG in url or not url.startswith('http'):
                     continue
 
                 # Cut at load time.
@@ -57,11 +64,31 @@ def GetBytesAndCount(network_filename, load_time=-1):
                 if 'redirectResponse' in e['params']:
                     redirect_req_id = e['params']['requestId'] + '-redirect'
                     req_ids.add(redirect_req_id)
+                    # Take care of the redirect URL
+                    url = e['params']['redirectResponse']['url']
+                    # urls.append(url)
+                    if e['params']['redirectResponse']['fromDiskCache']:
+                        continue
+                    urls.append(url)
+                    url_to_size[url] = e['params']['redirectResponse']['encodedDataLength']
+                    if args.debug:
+                        print('Added: ' + url)
                 # req_ids.add(req_id)
                 # urls.append(url)
             elif e['method'] == 'Network.responseReceived':
                 req_id = e['params']['requestId']
+                url = e['params']['response']['url']
+                if WEBCOMPLEXITY in url or ARCHIVE_ORG in url or not url.startswith('http'):
+                    continue
+                req_id_to_url[req_id] = url
                 timestamp_ms = e['params']['timestamp'] * 1000 # Convert to ms
+
+                if e['params']['response']['status'] != 200:
+                    continue
+
+                # Ignore resources from cache.
+                if e['params']['response']['fromDiskCache']:
+                    continue
 
                 # Cut at load time.
                 if load_time != -1 and timestamp_ms - first_ts_ms > load_time:
@@ -70,37 +97,40 @@ def GetBytesAndCount(network_filename, load_time=-1):
                 if req_id not in req_ids:
                     url = e['params']['response']['url']
                     urls.append(url)
+                    if args.debug:
+                        print('Added: ' + url)
                 req_ids.add(req_id)
-
-                sum_content_length += GetContentLength(e['params']['response']['headers'])
+                url_to_size[url] += e['params']['response']['encodedDataLength']
+                sum_content_length += common.GetContentLength(e['params']['response']['headers'])
+            elif e['method'] == 'Network.requestServedFromCache':
+                req_id = e['params']['requestId']
+                if req_id not in req_ids:
+                    continue
+                url = req_id_to_url[req_id]
+                if url in urls:
+                    urls.remove(url)
             elif e['method'] == 'Network.loadingFinished':
                 req_id = e['params']['requestId']
                 if req_id not in req_ids:
-                    if req_id in req_id_to_requests:
-                        print('Missing: {0} {1}'.format(req_id,
-                            req_id_to_requests[req_id]))
                     continue
+                url = req_id_to_url[req_id]
                 size = int(e['params']['encodedDataLength'])
+                url_to_size[url] = size
                 total_bytes += size
-        # print('Total bytes: {0} total content-length: {1}'.format(total_bytes,
-        #    sum_content_length))
-        # print(req_ids)
-        # for u in urls:
-        #     print(u)
-        return total_bytes, len(urls)
-
-
-def GetContentLength(headers):
-    for k, v in headers.items():
-        if k.lower() == 'content-length':
-            return int(v)
-    return -1
-
+        if args.ignore_duplicates:
+            total_bytes = sum([x[1] for x in url_to_size.items()])
+            num_resources = len(url_to_size)
+        else:
+            num_resources = len(urls)
+        return total_bytes, num_resources
 
 if __name__ == '__main__':
     parser = ArgumentParser()
     parser.add_argument('root_dir')
     parser.add_argument('--output-broken-pages', default=None)
     parser.add_argument('--up-to-onload', default=False, action='store_true')
+    parser.add_argument('--ignore-duplicates', default=False,
+            action='store_true')
+    parser.add_argument('--debug', default=None)
     args = parser.parse_args()
     Main()
